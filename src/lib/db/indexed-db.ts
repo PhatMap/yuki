@@ -6,6 +6,7 @@ import type {
   BranchContinuityIssue,
   ChapterChunk,
   ImportedChapter,
+  RewriteDraft,
   Story,
   StoryAnalysisResult,
   StoryBranchV2,
@@ -27,6 +28,7 @@ export class AiStoryDatabase extends Dexie {
   branches!: Table<StoryBranchV2, string>;
   branchChanges!: Table<BranchChange, string>;
   continuityIssues!: Table<BranchContinuityIssue, string>;
+  rewriteDrafts!: Table<RewriteDraft, string>;
 
   constructor() {
     super("ai-story-app-db");
@@ -46,6 +48,25 @@ export class AiStoryDatabase extends Dexie {
         "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
       continuityIssues:
         "id, storyId, branchId, changeId, severity, status",
+    });
+
+    this.version(2).stores({
+      stories:
+        "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
+      importedChapters:
+        "id, storyId, chapterNumber, title, wordCount, status",
+      chapterChunks:
+        "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
+      analysisStatuses:
+        "storyId, totalChapters, parsedChapters, chunkedChapters, analyzedChapters, totalChunks, updatedAt",
+      analysisResults: "storyId, updatedAt",
+      branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
+      branchChanges:
+        "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
+      continuityIssues:
+        "id, storyId, branchId, changeId, severity, status",
+      rewriteDrafts:
+        "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
     });
   }
 }
@@ -179,6 +200,14 @@ export async function saveContinuityIssues(
   });
 }
 
+export async function getRewriteDrafts(storyId: string) {
+  return db.rewriteDrafts.where("storyId").equals(storyId).toArray();
+}
+
+export async function saveRewriteDraft(draft: RewriteDraft) {
+  await db.rewriteDrafts.put(draft);
+}
+
 export async function clearStoryData(storyId: string) {
   await db.transaction(
     "rw",
@@ -191,6 +220,7 @@ export async function clearStoryData(storyId: string) {
       db.branches,
       db.branchChanges,
       db.continuityIssues,
+      db.rewriteDrafts,
     ],
     async () => {
       await db.stories.delete(storyId);
@@ -201,6 +231,7 @@ export async function clearStoryData(storyId: string) {
       await db.branches.where("storyId").equals(storyId).delete();
       await db.branchChanges.where("storyId").equals(storyId).delete();
       await db.continuityIssues.where("storyId").equals(storyId).delete();
+      await db.rewriteDrafts.where("storyId").equals(storyId).delete();
     },
   );
 }

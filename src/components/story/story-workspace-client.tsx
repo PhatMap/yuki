@@ -7,6 +7,7 @@ import {
   BookOpen,
   Boxes,
   CalendarDays,
+  FileText,
   GitBranch,
   HeartHandshake,
   PenLine,
@@ -638,6 +639,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <Link href={`/stories/${storyId}/rewrite-planner`}>
                 <PenLine className="mr-2 h-4 w-4" />
                 Open Rewrite Planner
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/rewrite-draft`}>
+                <FileText className="mr-2 h-4 w-4" />
+                Open Rewrite Draft
               </Link>
             </Button>
             <Button variant="outline">

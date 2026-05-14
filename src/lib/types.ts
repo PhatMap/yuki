@@ -248,6 +248,20 @@ export interface BranchChapter {
   updatedAt: string;
 }
 
+export interface RewriteDraft {
+  id: string;
+  storyId: string;
+  branchChangeId: string;
+  targetChapterId: string;
+  title: string;
+  originalText: string;
+  rewrittenText: string;
+  notes: string;
+  status: "draft" | "reviewed" | "accepted";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BranchContinuityIssue {
   id: string;
   storyId: string;

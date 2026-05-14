@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   BookOpen,
   CalendarDays,
+  FileText,
   GitBranch,
   Layers3,
   PenLine,
@@ -661,6 +662,12 @@ export function StoryRewritePlannerClient({
                 <Link href={`/stories/${storyId}/timeline`}>
                   <CalendarDays className="mr-2 h-4 w-4" />
                   Timeline
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/rewrite-draft`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Open Rewrite Draft Workspace
                 </Link>
               </Button>
               <Button asChild>
