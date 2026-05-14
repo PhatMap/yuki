@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
   AlertTriangle,
   BookOpen,
   CalendarDays,
@@ -67,6 +68,11 @@ const storyNavigationItems = [
     label: "AI Contract",
     href: "ai-contract",
     icon: FileText,
+  },
+  {
+    label: "AI Test",
+    href: "ai-proxy-test",
+    icon: Activity,
   },
   {
     label: "Settings",
