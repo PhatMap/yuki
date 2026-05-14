@@ -10,6 +10,9 @@ import {
   getContinuityIssues,
   getImportedChapters,
   getStoryById,
+  saveBranchChanges,
+  saveBranches,
+  saveContinuityIssues,
 } from "@/lib/db/indexed-db";
 import {
   branches,
@@ -120,6 +123,58 @@ function writeStoredArray<T>(key: string, value: T[]) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+async function saveBranchesToStorage(storyId: string, branches: StoryBranchV2[]) {
+  let localStorageSaved = false;
+  let indexedDbSaved = false;
+
+  try {
+    writeStoredArray(branchesStorageKey(storyId), branches);
+    localStorageSaved = true;
+  } catch (error) {
+    console.error("Failed to save branches to localStorage", error);
+  }
+
+  try {
+    await saveBranches(storyId, branches);
+    indexedDbSaved = true;
+  } catch (error) {
+    console.error("Failed to save branches to IndexedDB", error);
+  }
+
+  return localStorageSaved || indexedDbSaved;
+}
+
+async function saveBranchChangesToStorage({
+  storyId,
+  changes,
+  issues,
+}: {
+  storyId: string;
+  changes: BranchChange[];
+  issues: BranchContinuityIssue[];
+}) {
+  let localStorageSaved = false;
+  let indexedDbSaved = false;
+
+  try {
+    writeStoredArray(branchChangesStorageKey(storyId), changes);
+    writeStoredArray(continuityIssuesStorageKey(storyId), issues);
+    localStorageSaved = true;
+  } catch (error) {
+    console.error("Failed to save branch changes to localStorage", error);
+  }
+
+  try {
+    await saveBranchChanges(storyId, changes);
+    await saveContinuityIssues(storyId, issues);
+    indexedDbSaved = true;
+  } catch (error) {
+    console.error("Failed to save branch changes to IndexedDB", error);
+  }
+
+  return localStorageSaved || indexedDbSaved;
+}
+
 async function readIndexedDbWorkspaceData(
   storyId: string,
 ): Promise<WorkspaceStorageData> {
@@ -221,6 +276,8 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
+  const [isSavingBranchData, setIsSavingBranchData] = useState(false);
+  const [branchStorageError, setBranchStorageError] = useState("");
   const [activeBranchId, setActiveBranchId] = useState<string>();
   const [selectedChapterId, setSelectedChapterId] = useState<string>();
   const [editorChapterId, setEditorChapterId] = useState<string>();
@@ -379,8 +436,11 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     setEditorContent(value);
   }
 
-  function handleCreateAlternateBranch() {
-    if (!selectedChapter) return;
+  async function handleCreateAlternateBranch() {
+    if (!selectedChapter || isSavingBranchData) return;
+
+    setIsSavingBranchData(true);
+    setBranchStorageError("");
 
     const branch = createAlternateBranch({
       storyId,
@@ -391,20 +451,33 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     });
     const nextBranches = [branch, ...alternateBranches];
 
-    writeStoredArray(branchesStorageKey(storyId), nextBranches);
     setStorageData((current) => ({
       ...current,
       branches: nextBranches,
     }));
     setActiveBranchId(branch.id);
+
+    const saved = await saveBranchesToStorage(storyId, nextBranches);
+
+    if (!saved) {
+      setBranchStorageError(
+        "Could not save branch data to IndexedDB or localStorage.",
+      );
+    }
+
+    setIsSavingBranchData(false);
   }
 
-  function handleAddChangeToBranch() {
-    if (!selectedChapter) return;
+  async function handleAddChangeToBranch() {
+    if (!selectedChapter || isSavingBranchData) return;
+
+    setIsSavingBranchData(true);
+    setBranchStorageError("");
 
     let targetBranch =
       activeBranch.type !== "canon" ? activeBranch : alternateBranches[0];
     let nextBranches = alternateBranches;
+    let shouldSaveBranches = false;
 
     if (!targetBranch) {
       targetBranch = createAlternateBranch({
@@ -415,7 +488,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         baseBranchId: canonBranch.id,
       });
       nextBranches = [targetBranch, ...alternateBranches];
-      writeStoredArray(branchesStorageKey(storyId), nextBranches);
+      shouldSaveBranches = true;
       setStorageData((current) => ({
         ...current,
         branches: nextBranches,
@@ -447,14 +520,30 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     const nextChanges = [change, ...branchChanges];
     const nextIssues = [...issues, ...continuityIssues];
 
-    writeStoredArray(branchChangesStorageKey(storyId), nextChanges);
-    writeStoredArray(continuityIssuesStorageKey(storyId), nextIssues);
     setStorageData((current) => ({
       ...current,
+      branches: nextBranches,
       branchChanges: nextChanges,
       continuityIssues: nextIssues,
     }));
     setActiveBranchId(targetBranch.id);
+
+    const branchSaved = shouldSaveBranches
+      ? await saveBranchesToStorage(storyId, nextBranches)
+      : true;
+    const changesSaved = await saveBranchChangesToStorage({
+      storyId,
+      changes: nextChanges,
+      issues: nextIssues,
+    });
+
+    if (!branchSaved || !changesSaved) {
+      setBranchStorageError(
+        "Could not save branch changes to IndexedDB or localStorage.",
+      );
+    }
+
+    setIsSavingBranchData(false);
   }
 
   function handleFakeGenerate() {
@@ -582,6 +671,20 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Branch data is saved to IndexedDB with localStorage fallback.
+                </p>
+                {isSavingBranchData ? (
+                  <p className="text-xs text-muted-foreground">
+                    Saving branch data...
+                  </p>
+                ) : null}
+                {branchStorageError ? (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                    {branchStorageError}
+                  </p>
+                ) : null}
+
                 <div className="space-y-2">
                   {displayedBranches.map((branch) => {
                     const isActive = branch.id === activeBranch.id;
@@ -624,10 +727,15 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     type="button"
                     variant="outline"
                     onClick={handleCreateAlternateBranch}
+                    disabled={isSavingBranchData}
                   >
                     Create alternate branch
                   </Button>
-                  <Button type="button" onClick={handleAddChangeToBranch}>
+                  <Button
+                    type="button"
+                    onClick={handleAddChangeToBranch}
+                    disabled={isSavingBranchData}
+                  >
                     Add change to branch
                   </Button>
                 </div>
