@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { type ComponentType, useMemo, useSyncExternalStore } from "react";
+import {
+  type ComponentType,
+  type ReactNode,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import {
   BarChart3,
   BookOpen,
@@ -16,11 +21,16 @@ import {
   Users,
 } from "lucide-react";
 
+import { runMockAnalysis } from "@/lib/mock-analysis";
 import type {
   AnalysisStatus,
   ChapterChunk,
+  ExtractedEntity,
   ImportedChapter,
   Story,
+  StoryAnalysisResult,
+  StoryEvent,
+  WritingStyleProfile,
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +44,7 @@ const emptyStories: Story[] = [];
 const emptyChapters: ImportedChapter[] = [];
 const emptyChunks: ChapterChunk[] = [];
 const emptyAnalysisStatus: AnalysisStatus | null = null;
+const emptyAnalysisResult: StoryAnalysisResult | null = null;
 const parsedValueCache = new Map<
   string,
   { serializedValue: string; parsedValue: unknown }
@@ -76,14 +87,9 @@ function subscribeToLocalStorage(onStoreChange: () => void) {
   };
 }
 
-const analysisCards = [
-  { title: "Characters", icon: Users },
-  { title: "Events", icon: CalendarDays },
-  { title: "Items", icon: Boxes },
-  { title: "Terms", icon: ScrollText },
-  { title: "Locations", icon: MapPin },
-  { title: "Writing Style", icon: PenLine },
-];
+function notifyLocalStorageChange() {
+  window.dispatchEvent(new Event("storage"));
+}
 
 export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const stories = useSyncExternalStore(
@@ -118,6 +124,15 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       ),
     () => emptyAnalysisStatus,
   );
+  const analysisResult = useSyncExternalStore(
+    subscribeToLocalStorage,
+    () =>
+      readJsonValue<StoryAnalysisResult | null>(
+        `ai-story-app:analysis-result:${storyId}`,
+        emptyAnalysisResult,
+      ),
+    () => emptyAnalysisResult,
+  );
 
   const story = stories.find((item) => item.id === storyId);
   const totalWordCount = useMemo(() => {
@@ -138,6 +153,34 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const analysisProgress =
     totalChapters > 0 ? Math.round((analyzedChapters / totalChapters) * 100) : 0;
   const chunkProgress = chunks.length > 0 ? 100 : 0;
+
+  function handleStartMockAnalysis() {
+    const result = runMockAnalysis(storyId, chapters);
+    const now = new Date().toISOString();
+    const chunkedChapterCount = new Set(
+      chunks.map((chunk) => chunk.chapterId),
+    ).size;
+    const updatedStatus: AnalysisStatus = {
+      storyId,
+      totalChapters: chapters.length,
+      parsedChapters: chapters.length,
+      chunkedChapters: chunkedChapterCount,
+      analyzedChapters: chapters.length,
+      totalChunks: chunks.length,
+      createdAt: analysisStatus?.createdAt ?? now,
+      updatedAt: now,
+    };
+
+    localStorage.setItem(
+      `ai-story-app:analysis-result:${storyId}`,
+      JSON.stringify(result),
+    );
+    localStorage.setItem(
+      `ai-story-app:analysis-status:${storyId}`,
+      JSON.stringify(updatedStatus),
+    );
+    notifyLocalStorageChange();
+  }
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -164,7 +207,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 Open workspace
               </Link>
             </Button>
-            <Button disabled type="button">
+            <Button type="button" onClick={handleStartMockAnalysis}>
               <Play className="mr-2 h-4 w-4" />
               Start mock analysis
             </Button>
@@ -252,27 +295,30 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         </Card>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {analysisCards.map((card) => {
-            const Icon = card.icon;
-
-            return (
-              <Card key={card.title}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Icon className="h-5 w-5 text-primary" />
-                    {card.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm font-medium">Not analyzed yet</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Placeholder cho kết quả phân tích tự động. Chưa tích hợp AI
-                    hoặc backend.
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <EntityAnalysisCard
+            icon={Users}
+            title="Characters"
+            entities={analysisResult?.characters}
+          />
+          <EventAnalysisCard events={analysisResult?.events} />
+          <EntityAnalysisCard
+            icon={Boxes}
+            title="Items"
+            entities={analysisResult?.items}
+          />
+          <EntityAnalysisCard
+            icon={ScrollText}
+            title="Terms"
+            entities={analysisResult?.terms}
+          />
+          <EntityAnalysisCard
+            icon={MapPin}
+            title="Locations"
+            entities={analysisResult?.locations}
+          />
+          <WritingStyleCard
+            profile={analysisResult?.writingStyleProfiles[0]}
+          />
         </section>
       </section>
     </main>
@@ -319,5 +365,120 @@ function ProgressCard({ label, value }: { label: string; value: number }) {
         <p className="mt-3 text-sm text-muted-foreground">{value}%</p>
       </CardContent>
     </Card>
+  );
+}
+
+function AnalysisCardShell({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Icon className="h-5 w-5 text-primary" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+function NotAnalyzedYet() {
+  return (
+    <p className="text-sm text-muted-foreground">Not analyzed yet</p>
+  );
+}
+
+function EntityAnalysisCard({
+  icon,
+  title,
+  entities,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  entities?: ExtractedEntity[];
+}) {
+  return (
+    <AnalysisCardShell icon={icon} title={title}>
+      {entities ? (
+        <div>
+          <p className="text-sm font-medium">{entities.length} detected</p>
+          <div className="mt-3 space-y-3">
+            {entities.slice(0, 5).map((entity) => (
+              <div key={entity.id} className="rounded-md border p-3">
+                <p className="text-sm font-medium">{entity.name}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                  {entity.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <NotAnalyzedYet />
+      )}
+    </AnalysisCardShell>
+  );
+}
+
+function EventAnalysisCard({ events }: { events?: StoryEvent[] }) {
+  return (
+    <AnalysisCardShell icon={CalendarDays} title="Events">
+      {events ? (
+        <div>
+          <p className="text-sm font-medium">{events.length} detected</p>
+          <div className="mt-3 space-y-3">
+            {events.slice(0, 5).map((event) => (
+              <div key={event.id} className="rounded-md border p-3">
+                <p className="text-sm font-medium">{event.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Chapter {event.chapterNumber} · {event.importance}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <NotAnalyzedYet />
+      )}
+    </AnalysisCardShell>
+  );
+}
+
+function WritingStyleCard({
+  profile,
+}: {
+  profile?: WritingStyleProfile;
+}) {
+  return (
+    <AnalysisCardShell icon={PenLine} title="Writing Style">
+      {profile ? (
+        <div className="space-y-3 text-sm">
+          <div>
+            <p className="font-medium">Narration</p>
+            <p className="mt-1 text-muted-foreground">
+              {profile.narrationStyle}
+            </p>
+          </div>
+          <div>
+            <p className="font-medium">Pacing</p>
+            <p className="mt-1 text-muted-foreground">{profile.pacing}</p>
+          </div>
+          <div>
+            <p className="font-medium">Tone</p>
+            <p className="mt-1 text-muted-foreground">{profile.tone}</p>
+          </div>
+        </div>
+      ) : (
+        <NotAnalyzedYet />
+      )}
+    </AnalysisCardShell>
   );
 }
