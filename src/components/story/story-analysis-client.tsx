@@ -30,7 +30,10 @@ import {
   getStoryById,
   saveAnalysisResult,
 } from "@/lib/db/indexed-db";
-import { runMockAnalysis } from "@/lib/mock-analysis";
+import {
+  getAiPipelineProvider,
+  runAiPipeline,
+} from "@/lib/ai/pipeline";
 import type {
   AnalysisStatus,
   ChapterChunk,
@@ -203,6 +206,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const parsedChapters = analysisStatus?.parsedChapters ?? chapters.length;
   const analyzedChapters = analysisStatus?.analyzedChapters ?? 0;
   const totalChunks = analysisStatus?.totalChunks ?? chunks.length;
+  const pipelineProvider = getAiPipelineProvider("mock");
   const analysisProgress =
     totalChapters > 0 ? Math.round((analyzedChapters / totalChapters) * 100) : 0;
   const chunkProgress = chunks.length > 0 ? 100 : 0;
@@ -214,7 +218,16 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setIsSavingAnalysis(true);
     setStorageError("");
 
-    const result = runMockAnalysis(storyId, chapters);
+    const pipelineResult = await runAiPipeline(
+      {
+        storyId,
+        story,
+        chapters,
+        chunks,
+      },
+      "mock",
+    );
+    const result = pipelineResult.analysisResult;
     const now = new Date().toISOString();
     const chunkedChapterCount = new Set(
       chunks.map((chunk) => chunk.chapterId),
@@ -299,7 +312,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         <StoryNavigation storyId={storyId} />
 
         <p className="app-muted-text">
-          Reading from IndexedDB first, with localStorage fallback.
+          Reading from IndexedDB first, with localStorage fallback. Provider:{" "}
+          {pipelineProvider.label}.
         </p>
 
         {storageError ? (
