@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Bot, BookOpen, GitBranch, Save, WandSparkles } from "lucide-react";
 
 import {
@@ -419,6 +419,32 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
       })
       .slice(0, 5);
   }, [analysisResult, selectedChapter]);
+
+  const chapterBranchChanges = useMemo(() => {
+    if (!selectedChapter) return [];
+
+    return branchChanges
+      .filter((change) => {
+        if (change.affectedChapterNumbers.length > 0) {
+          return change.affectedChapterNumbers.includes(
+            selectedChapter.chapterNumber,
+          );
+        }
+
+        return change.chapterNumber === selectedChapter.chapterNumber;
+      })
+      .slice(0, 5);
+  }, [branchChanges, selectedChapter]);
+
+  const chapterContinuityIssues = useMemo(() => {
+    if (!selectedChapter) return [];
+
+    return continuityIssues
+      .filter((issue) =>
+        issue.affectedChapterNumbers.includes(selectedChapter.chapterNumber),
+      )
+      .slice(0, 5);
+  }, [continuityIssues, selectedChapter]);
 
   const visibleEditorContent =
     editorChapterId === selectedChapter?.id
@@ -909,6 +935,21 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   </div>
                 </div>
               </CardContent>
+          </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Chapter Inspector</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChapterInspector
+                  chapter={selectedChapter}
+                  events={nearbyEvents}
+                  branchChanges={chapterBranchChanges}
+                  continuityIssues={chapterContinuityIssues}
+                  isImportedChapter={hasImportedChapters}
+                />
+              </CardContent>
             </Card>
 
             <Card>
@@ -1023,6 +1064,160 @@ function AnalysisEntityList({
         </div>
       ))}
     </>
+  );
+}
+
+function ChapterInspector({
+  chapter,
+  events,
+  branchChanges,
+  continuityIssues,
+  isImportedChapter,
+}: {
+  chapter?: WorkspaceChapter;
+  events: StoryEvent[];
+  branchChanges: BranchChange[];
+  continuityIssues: BranchContinuityIssue[];
+  isImportedChapter: boolean;
+}) {
+  if (!chapter) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Select a chapter to inspect.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-2 text-sm">
+        <InspectorRow label="Chapter" value={chapter.chapterNumber} />
+        <InspectorRow label="Title" value={chapter.title} />
+        {typeof chapter.wordCount === "number" ? (
+          <InspectorRow
+            label="Word count"
+            value={chapter.wordCount.toLocaleString()}
+          />
+        ) : null}
+        {chapter.status ? (
+          <InspectorRow label="Status" value={chapter.status} />
+        ) : null}
+        <InspectorRow
+          label="Content length"
+          value={chapter.content.length.toLocaleString()}
+        />
+        <InspectorRow
+          label="Source"
+          value={isImportedChapter ? "Imported chapter" : "Mock chapter"}
+        />
+      </div>
+
+      <div className="rounded-md border bg-muted/30 p-3">
+        <p className="text-sm font-medium">Chunks</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Chunk data is available in analysis dashboard. Chunk details will be
+          added after workspace chunk loading.
+        </p>
+      </div>
+
+      <InspectorSection title="Nearby Story Events">
+        {events.length > 0 ? (
+          events.map((event) => (
+            <div key={event.id} className="app-list-item">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-medium">{event.title}</p>
+                <Badge variant="outline">{event.importance}</Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Chapter {event.chapterNumber}
+              </p>
+              <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                {event.description}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No events for this chapter.
+          </p>
+        )}
+      </InspectorSection>
+
+      <InspectorSection title="Branch Changes">
+        {branchChanges.length > 0 ? (
+          branchChanges.map((change) => (
+            <div key={change.id} className="app-list-item">
+              <p className="text-sm font-medium">{change.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {change.type} · {change.impactScope}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {change.status}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No branch changes affect this chapter.
+          </p>
+        )}
+      </InspectorSection>
+
+      <InspectorSection title="Continuity Issues">
+        {continuityIssues.length > 0 ? (
+          continuityIssues.map((issue) => (
+            <div key={issue.id} className="app-list-item">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-medium">{issue.title}</p>
+                <Badge variant="outline">{issue.severity}</Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {issue.status}
+              </p>
+              {issue.suggestedFix ? (
+                <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
+                  {issue.suggestedFix}
+                </p>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No continuity issues for this chapter.
+          </p>
+        )}
+      </InspectorSection>
+    </div>
+  );
+}
+
+function InspectorRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function InspectorSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium">{title}</p>
+      <div className="space-y-2">{children}</div>
+    </div>
   );
 }
 
