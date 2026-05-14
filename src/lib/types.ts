@@ -170,6 +170,97 @@ export interface AnalysisStatus {
   updatedAt: string;
 }
 
+export type StoryBranchType =
+  | "canon"
+  | "alternate"
+  | "rewrite"
+  | "continuation"
+  | "what-if";
+
+export type BranchStatus = "draft" | "active" | "archived";
+
+export type BranchChangeType =
+  | "event_change"
+  | "relationship_change"
+  | "character_state_change"
+  | "item_change"
+  | "term_change"
+  | "location_change"
+  | "timeline_change"
+  | "chapter_rewrite"
+  | "continuation";
+
+export type ImpactScope =
+  | "single_scene"
+  | "single_chapter"
+  | "chapter_range"
+  | "from_chapter_forward"
+  | "entire_branch";
+
+export interface StoryBranchV2 {
+  id: string;
+  storyId: string;
+  name: string;
+  type: StoryBranchType;
+  status: BranchStatus;
+  baseBranchId?: string;
+  divergesFromChapter?: number;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BranchChange {
+  id: string;
+  storyId: string;
+  branchId: string;
+  type: BranchChangeType;
+  title: string;
+  description: string;
+  targetName?: string;
+  originalValue?: string;
+  newValue?: string;
+  chapterNumber?: number;
+  chapterRangeStart?: number;
+  chapterRangeEnd?: number;
+  impactScope: ImpactScope;
+  affectedCharacters: string[];
+  affectedItems: string[];
+  affectedTerms: string[];
+  affectedLocations: string[];
+  affectedChapterNumbers: number[];
+  status: "draft" | "applied" | "needs_review";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BranchChapter {
+  id: string;
+  storyId: string;
+  branchId: string;
+  sourceChapterId?: string;
+  chapterNumber: number;
+  title: string;
+  content: string;
+  changeIds: string[];
+  status: "draft" | "rewritten" | "generated" | "approved";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BranchContinuityIssue {
+  id: string;
+  storyId: string;
+  branchId: string;
+  changeId?: string;
+  severity: "low" | "medium" | "high" | "critical";
+  title: string;
+  description: string;
+  affectedChapterNumbers: number[];
+  suggestedFix?: string;
+  status: "open" | "resolved" | "ignored";
+}
+
 export interface StoryBranch {
   id: string;
   storyId: string;
