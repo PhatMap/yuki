@@ -30,10 +30,12 @@ export interface Story {
   id: string;
   title: string;
   description: string;
+  author?: string;
   genre: StoryGenre;
   tone: StoryTone;
   canonAdherence: CanonAdherence;
   isFanwork: boolean;
+  source?: "manual" | "import";
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +58,90 @@ export interface Chapter {
   content: string;
   order: number;
   createdAt: string;
+}
+
+export interface ImportedChapter {
+  id: string;
+  storyId: string;
+  chapterNumber: number;
+  title: string;
+  rawContent: string;
+  cleanContent: string;
+  wordCount: number;
+  status: "imported" | "parsed" | "analyzed" | "failed";
+  createdAt: string;
+}
+
+export interface ChapterChunk {
+  id: string;
+  storyId: string;
+  chapterId: string;
+  chapterNumber: number;
+  chunkIndex: number;
+  content: string;
+  wordCount: number;
+  startOffset?: number;
+  endOffset?: number;
+  status: "created" | "embedded" | "analyzed";
+}
+
+export type ExtractedEntityType =
+  | "character"
+  | "item"
+  | "term"
+  | "location"
+  | "faction"
+  | "power-system"
+  | "event";
+
+export interface ExtractedEntity {
+  id: string;
+  storyId: string;
+  type: ExtractedEntityType;
+  name: string;
+  aliases?: string[];
+  description: string;
+  firstSeenChapter?: number;
+  lastSeenChapter?: number;
+  relatedChapterNumbers: number[];
+  confidence?: number;
+}
+
+export interface StoryEvent {
+  id: string;
+  storyId: string;
+  chapterNumber: number;
+  title: string;
+  description: string;
+  charactersInvolved: string[];
+  locationsInvolved: string[];
+  consequences: string[];
+  importance: "low" | "medium" | "high" | "critical";
+}
+
+export interface CharacterState {
+  id: string;
+  storyId: string;
+  characterName: string;
+  chapterNumber: number;
+  location?: string;
+  status?: string;
+  powerLevel?: string;
+  itemsOwned?: string[];
+  currentGoal?: string;
+  emotionalState?: string;
+  relationshipNotes?: string;
+}
+
+export interface AnalysisStatus {
+  storyId: string;
+  totalChapters: number;
+  parsedChapters: number;
+  chunkedChapters: number;
+  analyzedChapters: number;
+  totalChunks: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface StoryBranch {
