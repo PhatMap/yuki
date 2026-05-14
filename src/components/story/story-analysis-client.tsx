@@ -31,7 +31,9 @@ import {
   saveAnalysisResult,
 } from "@/lib/db/indexed-db";
 import {
+  type AiPipelineProviderId,
   getAiPipelineProvider,
+  listAiPipelineProviders,
   runAiPipeline,
 } from "@/lib/ai/pipeline";
 import type {
@@ -53,6 +55,13 @@ import { StatCard } from "@/components/app/stat-card";
 import { StoryNavigation } from "@/components/app/story-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface StoryAnalysisClientProps {
   storyId: string;
@@ -152,6 +161,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] =
+    useState<AiPipelineProviderId>("mock");
 
   useEffect(() => {
     let isActive = true;
@@ -206,7 +217,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const parsedChapters = analysisStatus?.parsedChapters ?? chapters.length;
   const analyzedChapters = analysisStatus?.analyzedChapters ?? 0;
   const totalChunks = analysisStatus?.totalChunks ?? chunks.length;
-  const pipelineProvider = getAiPipelineProvider("mock");
+  const pipelineProviders = listAiPipelineProviders();
+  const pipelineProvider = getAiPipelineProvider(selectedProviderId);
   const geminiProxyProvider = getAiPipelineProvider("gemini-proxy");
   const analysisProgress =
     totalChapters > 0 ? Math.round((analyzedChapters / totalChapters) * 100) : 0;
@@ -219,6 +231,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setIsSavingAnalysis(true);
     setStorageError("");
 
+    if (
+      selectedProviderId === "gemini-proxy" &&
+      !geminiProxyProvider.isConfigured?.()
+    ) {
+      setStorageError(
+        "Gemini proxy is not configured. Set NEXT_PUBLIC_AI_PROXY_ENDPOINT or choose Mock pipeline.",
+      );
+      setIsSavingAnalysis(false);
+      return;
+    }
+
     const pipelineResult = await runAiPipeline(
       {
         storyId,
@@ -226,7 +249,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         chapters,
         chunks,
       },
-      "mock",
+      selectedProviderId,
     );
 
     if (pipelineResult.status !== "completed" || !pipelineResult.analysisResult) {
@@ -314,7 +337,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 disabled={isLoading || chapters.length === 0 || isSavingAnalysis}
               >
                 <Play className="mr-2 h-4 w-4" />
-                {isSavingAnalysis ? "Saving..." : "Start mock analysis"}
+                {isSavingAnalysis ? "Saving..." : "Start analysis"}
               </Button>
             </>
           }
@@ -327,6 +350,35 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           {pipelineProvider.label}. Gemini proxy:{" "}
           {geminiProxyProvider.isConfigured?.() ? "configured" : "not configured"}.
         </p>
+
+        <SectionCard title="AI provider">
+          <div className="grid gap-3 md:grid-cols-[280px_1fr] md:items-center">
+            <Select
+              value={selectedProviderId}
+              onValueChange={(value) =>
+                setSelectedProviderId(value as AiPipelineProviderId)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pipelineProviders.map((provider) => (
+                  <SelectItem key={provider.id} value={provider.id}>
+                    {provider.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="app-muted-text">
+              {pipelineProvider.description}
+              {selectedProviderId === "gemini-proxy" &&
+              !geminiProxyProvider.isConfigured?.()
+                ? " NEXT_PUBLIC_AI_PROXY_ENDPOINT is not configured."
+                : ""}
+            </p>
+          </div>
+        </SectionCard>
 
         {storageError ? (
           <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
