@@ -10,7 +10,14 @@ import {
   stories,
   worldNotes,
 } from "@/lib/mock-data";
-import type { Chapter, ImportedChapter, Story } from "@/lib/types";
+import type {
+  Chapter,
+  ExtractedEntity,
+  ImportedChapter,
+  Story,
+  StoryAnalysisResult,
+  StoryEvent,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,6 +88,21 @@ function readImportedChapters(storyId: string): ImportedChapter[] {
   }
 }
 
+function readAnalysisResult(storyId: string): StoryAnalysisResult | null {
+  if (typeof window === "undefined") return null;
+
+  const serializedResult =
+    localStorage.getItem(`ai-story-app:analysis-result:${storyId}`) || "";
+
+  if (!serializedResult) return null;
+
+  try {
+    return JSON.parse(serializedResult) as StoryAnalysisResult;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeImportedChapter(chapter: ImportedChapter): WorkspaceChapter {
   return {
     id: chapter.id,
@@ -112,6 +134,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     storyId,
     chapters: readImportedChapters(storyId),
   }));
+  const [analysisResultSnapshot] = useState(() => ({
+    storyId,
+    result: readAnalysisResult(storyId),
+  }));
   const [selectedChapterId, setSelectedChapterId] = useState<string>();
   const [editorChapterId, setEditorChapterId] = useState<string>();
   const [editorContent, setEditorContent] = useState("");
@@ -122,6 +148,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     importedChaptersSnapshot.storyId === storyId
       ? importedChaptersSnapshot.chapters
       : readImportedChapters(storyId);
+  const analysisResult =
+    analysisResultSnapshot.storyId === storyId
+      ? analysisResultSnapshot.result
+      : readAnalysisResult(storyId);
 
   const allStories = useMemo(() => {
     return [...localStories, ...stories];
@@ -167,6 +197,27 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
       (chapter) => chapter.id === resolvedSelectedChapterId,
     );
   }, [resolvedSelectedChapterId, workspaceChapters]);
+
+  const nearbyEvents = useMemo(() => {
+    if (!analysisResult?.events || !selectedChapter) return [];
+
+    return [...analysisResult.events]
+      .sort((left, right) => {
+        const leftDistance = Math.abs(
+          left.chapterNumber - selectedChapter.chapterNumber,
+        );
+        const rightDistance = Math.abs(
+          right.chapterNumber - selectedChapter.chapterNumber,
+        );
+
+        if (leftDistance !== rightDistance) {
+          return leftDistance - rightDistance;
+        }
+
+        return left.chapterNumber - right.chapterNumber;
+      })
+      .slice(0, 5);
+  }, [analysisResult, selectedChapter]);
 
   const visibleEditorContent =
     editorChapterId === selectedChapter?.id
@@ -406,22 +457,34 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <CardTitle className="text-base">Characters</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {storyCharacters.length > 0 ? (
-                storyCharacters.map((character) => (
-                  <div
-                    key={character.id}
-                    className="rounded-md border bg-background p-3"
-                  >
-                    <p className="text-sm font-medium">{character.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {character.role}
-                    </p>
-                  </div>
-                ))
+              {analysisResult ? (
+                <AnalysisEntityList
+                  emptyText="No characters detected."
+                  entities={analysisResult.characters}
+                />
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Chưa có nhân vật.
-                </p>
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    No analysis result yet. Run analysis first.
+                  </p>
+                  {storyCharacters.length > 0 ? (
+                    storyCharacters.map((character) => (
+                      <div
+                        key={character.id}
+                        className="rounded-md border bg-background p-3"
+                      >
+                        <p className="text-sm font-medium">{character.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {character.role}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Chưa có nhân vật.
+                    </p>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -430,22 +493,48 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             <CardHeader>
               <CardTitle className="text-base">World Bible</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {notes.length > 0 ? (
-                notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className="rounded-md border bg-background p-3"
-                  >
-                    <p className="text-sm font-medium">{note.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {note.content}
-                    </p>
+            <CardContent className="space-y-4">
+              {analysisResult ? (
+                <WorldBibleAnalysis result={analysisResult} />
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    No analysis result yet. Run analysis first.
+                  </p>
+                  <div className="space-y-2">
+                    {notes.length > 0 ? (
+                      notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="rounded-md border bg-background p-3"
+                        >
+                          <p className="text-sm font-medium">{note.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {note.content}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Chưa có world note.
+                      </p>
+                    )}
                   </div>
-                ))
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Story Events</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {analysisResult ? (
+                <StoryEventsList events={nearbyEvents} />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Chưa có world note.
+                  No analysis result yet. Run analysis first.
                 </p>
               )}
             </CardContent>
@@ -453,5 +542,106 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         </aside>
       </div>
     </main>
+  );
+}
+
+function AnalysisEntityList({
+  entities,
+  emptyText,
+}: {
+  entities: ExtractedEntity[];
+  emptyText: string;
+}) {
+  if (entities.length === 0) {
+    return <p className="text-sm text-muted-foreground">{emptyText}</p>;
+  }
+
+  return (
+    <>
+      {entities.slice(0, 5).map((entity) => (
+        <div key={entity.id} className="rounded-md border bg-background p-3">
+          <p className="text-sm font-medium">{entity.name}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            {entity.description}
+          </p>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function WorldBibleAnalysis({ result }: { result: StoryAnalysisResult }) {
+  const style = result.writingStyleProfiles[0];
+
+  return (
+    <>
+      <WorldBibleSection title="Terms" entities={result.terms} />
+      <WorldBibleSection title="Locations" entities={result.locations} />
+      <WorldBibleSection title="Items" entities={result.items} />
+      {style ? (
+        <div>
+          <p className="mb-2 text-sm font-medium">Writing Style</p>
+          <div className="rounded-md border bg-background p-3">
+            <p className="text-xs text-muted-foreground">{style.tone}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {style.pacing}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function WorldBibleSection({
+  title,
+  entities,
+}: {
+  title: string;
+  entities: ExtractedEntity[];
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium">{title}</p>
+      <div className="space-y-2">
+        {entities.length > 0 ? (
+          entities.slice(0, 5).map((entity) => (
+            <div key={entity.id} className="rounded-md border bg-background p-3">
+              <p className="text-sm font-medium">{entity.name}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                {entity.description}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">No entries detected.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StoryEventsList({ events }: { events: StoryEvent[] }) {
+  if (events.length === 0) {
+    return <p className="text-sm text-muted-foreground">No events detected.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {events.map((event) => (
+        <div key={event.id} className="rounded-md border bg-background p-3">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-medium">{event.title}</p>
+            <Badge variant="outline">{event.importance}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Chapter {event.chapterNumber}
+          </p>
+          <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
+            {event.description}
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
