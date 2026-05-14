@@ -4,11 +4,11 @@
   }
 
   .app-container {
-    @apply mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8;
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8;
   }
 
   .app-page-header {
-    @apply flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between;
+    @apply flex flex-col gap-4 rounded-lg border bg-background p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between;
   }
 
   .app-page-eyebrow {
@@ -16,15 +16,15 @@
   }
 
   .app-page-title {
-    @apply text-3xl font-bold tracking-tight;
+    @apply text-2xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl;
   }
 
   .app-page-description {
-    @apply mt-3 max-w-3xl text-muted-foreground;
+    @apply mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base;
   }
 
   .app-toolbar {
-    @apply flex flex-wrap gap-2;
+    @apply flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end;
   }
 
   .app-grid-cards {
@@ -40,11 +40,11 @@
   }
 
   .app-section-title {
-    @apply text-xl font-semibold;
+    @apply text-lg font-semibold sm:text-xl;
   }
 
   .app-muted-text {
-    @apply text-sm text-muted-foreground;
+    @apply text-sm leading-6 text-muted-foreground;
   }
 
   .app-card-hover {
@@ -56,11 +56,11 @@
   }
 
   .app-warning-box {
-    @apply flex gap-3 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground;
+    @apply flex gap-3 rounded-lg border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground;
   }
 
   .app-empty-state {
-    @apply rounded-lg border border-dashed p-6 text-sm text-muted-foreground;
+    @apply rounded-lg border border-dashed bg-background p-6 text-sm leading-6 text-muted-foreground;
   }
 
   .app-workspace {
@@ -68,11 +68,11 @@
   }
 
   .app-workspace-topbar {
-    @apply border-b bg-background;
+    @apply border-b bg-background shadow-sm;
   }
 
   .app-workspace-grid {
-    @apply mx-auto grid max-w-7xl gap-4 px-6 py-6 lg:grid-cols-[260px_1fr_320px];
+    @apply mx-auto grid max-w-7xl gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)_320px] lg:py-6;
   }
 
   .app-panel {
@@ -84,14 +84,30 @@
   }
 
   .app-list-button {
-    @apply w-full rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted;
+    @apply flex w-full items-center justify-between gap-2 rounded-md border bg-background px-3 py-2.5 text-left text-sm leading-5 transition hover:bg-muted;
   }
 
   .app-list-item {
-    @apply rounded-md border bg-background p-3;
+    @apply rounded-md border bg-background p-3.5;
   }
 
   .app-code-block {
-    @apply whitespace-pre-wrap text-sm text-muted-foreground;
+    @apply whitespace-pre-wrap break-words rounded-md bg-muted/30 p-3 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-story-nav {
+    @apply overflow-x-auto rounded-lg border bg-background p-1 shadow-sm;
+  }
+
+  .app-story-nav-list {
+    @apply flex min-w-max gap-1;
+  }
+
+  .app-story-nav-link {
+    @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground;
+  }
+
+  .app-story-nav-link-active {
+    @apply bg-muted text-foreground;
   }
 }

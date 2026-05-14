@@ -53,6 +53,7 @@ import type {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/app/page-shell";
+import { StoryNavigation } from "@/components/app/story-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -593,7 +594,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   return (
     <PageShell className="app-workspace">
       <div className="app-workspace-topbar">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold">{story.title}</h1>
@@ -610,7 +611,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/bible`}>
                 <BookOpen className="mr-2 h-4 w-4" />
@@ -657,6 +658,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
+        <StoryNavigation storyId={storyId} />
       </div>
 
       {isLoading ? (

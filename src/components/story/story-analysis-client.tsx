@@ -47,6 +47,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
+import { StoryNavigation } from "@/components/app/story-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -294,6 +295,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             </>
           }
         />
+
+        <StoryNavigation storyId={storyId} />
 
         <p className="app-muted-text">
           Reading from IndexedDB first, with localStorage fallback.

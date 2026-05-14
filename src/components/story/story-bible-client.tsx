@@ -39,6 +39,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
+import { StoryNavigation } from "@/components/app/story-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -239,6 +240,8 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
             </>
           }
         />
+
+        <StoryNavigation storyId={storyId} />
 
         <p className="app-muted-text">
           Story Bible reads from IndexedDB first, with localStorage fallback.
