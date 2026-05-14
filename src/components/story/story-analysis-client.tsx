@@ -207,6 +207,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const analyzedChapters = analysisStatus?.analyzedChapters ?? 0;
   const totalChunks = analysisStatus?.totalChunks ?? chunks.length;
   const pipelineProvider = getAiPipelineProvider("mock");
+  const geminiProxyProvider = getAiPipelineProvider("gemini-proxy");
   const analysisProgress =
     totalChapters > 0 ? Math.round((analyzedChapters / totalChapters) * 100) : 0;
   const chunkProgress = chunks.length > 0 ? 100 : 0;
@@ -227,6 +228,16 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       },
       "mock",
     );
+
+    if (pipelineResult.status !== "completed" || !pipelineResult.analysisResult) {
+      setStorageError(
+        pipelineResult.errorMessage ??
+          `${pipelineResult.providerLabel} did not return an analysis result.`,
+      );
+      setIsSavingAnalysis(false);
+      return;
+    }
+
     const result = pipelineResult.analysisResult;
     const now = new Date().toISOString();
     const chunkedChapterCount = new Set(
@@ -313,7 +324,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
         <p className="app-muted-text">
           Reading from IndexedDB first, with localStorage fallback. Provider:{" "}
-          {pipelineProvider.label}.
+          {pipelineProvider.label}. Gemini proxy:{" "}
+          {geminiProxyProvider.isConfigured?.() ? "configured" : "not configured"}.
         </p>
 
         {storageError ? (

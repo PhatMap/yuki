@@ -38,7 +38,8 @@ export interface AiPipelineResult {
   providerId: string;
   providerLabel: string;
   status: AiPipelineStatus;
-  analysisResult: StoryAnalysisResult;
+  analysisResult?: StoryAnalysisResult;
+  errorMessage?: string;
   steps: AiPipelineProgress[];
   startedAt: string;
   completedAt: string;
@@ -48,5 +49,6 @@ export interface AiPipelineProvider {
   id: string;
   label: string;
   description: string;
+  isConfigured?: () => boolean;
   run(input: AiPipelineInput): Promise<AiPipelineResult>;
 }

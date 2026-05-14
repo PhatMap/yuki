@@ -1,3 +1,4 @@
+import { geminiProxyAiPipelineProvider } from "@/lib/ai/gemini-proxy-pipeline";
 import { mockAiPipelineProvider } from "@/lib/ai/mock-pipeline";
 import type {
   AiPipelineInput,
@@ -6,6 +7,7 @@ import type {
 } from "@/lib/ai/types";
 
 const providers = {
+  "gemini-proxy": geminiProxyAiPipelineProvider,
   mock: mockAiPipelineProvider,
 } satisfies Record<string, AiPipelineProvider>;
 
