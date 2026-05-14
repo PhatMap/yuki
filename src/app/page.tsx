@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BookOpen,
   Bot,
+  FileUp,
   Library,
   MessageCircle,
   PenLine,
@@ -18,6 +19,12 @@ const actions = [
     description: "Tạo concept, nhân vật, thế giới và chương đầu.",
     href: "/stories/new",
     icon: Sparkles,
+  },
+  {
+    title: "Import truyện có sẵn",
+    description: "Nạp truyện dài để phân tích chương, timeline và văn phong.",
+    href: "/stories/import",
+    icon: FileUp,
   },
   {
     title: "Viết tiếp truyện",
