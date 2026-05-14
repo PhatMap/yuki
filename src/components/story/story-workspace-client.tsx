@@ -10,7 +10,8 @@ import {
   stories,
   worldNotes,
 } from "@/lib/mock-data";
-import type { Story } from "@/lib/types";
+import type { Chapter, ImportedChapter, Story } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,15 @@ import { Textarea } from "@/components/ui/textarea";
 interface StoryWorkspaceClientProps {
   storyId: string;
 }
+
+type WorkspaceChapter = {
+  id: string;
+  chapterNumber: number;
+  title: string;
+  content: string;
+  wordCount?: number;
+  status?: string;
+};
 
 const localStoriesKey = "ai-story-app:stories";
 const emptyStories: Story[] = [];
@@ -57,25 +67,122 @@ function subscribeToLocalStories(onStoreChange: () => void) {
   };
 }
 
+function readImportedChapters(storyId: string): ImportedChapter[] {
+  if (typeof window === "undefined") return [];
+
+  const serializedChapters =
+    localStorage.getItem(`ai-story-app:chapters:${storyId}`) || "[]";
+
+  try {
+    const parsedChapters = JSON.parse(serializedChapters) as ImportedChapter[];
+    return Array.isArray(parsedChapters) ? parsedChapters : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeImportedChapter(chapter: ImportedChapter): WorkspaceChapter {
+  return {
+    id: chapter.id,
+    chapterNumber: chapter.chapterNumber,
+    title: chapter.title,
+    content: chapter.cleanContent || chapter.rawContent,
+    wordCount: chapter.wordCount,
+    status: chapter.status,
+  };
+}
+
+function normalizeMockChapter(chapter: Chapter): WorkspaceChapter {
+  return {
+    id: chapter.id,
+    chapterNumber: chapter.order,
+    title: chapter.title,
+    content: chapter.content,
+    status: "Draft",
+  };
+}
+
 export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   const localStories = useSyncExternalStore(
     subscribeToLocalStories,
     readLocalStoriesSnapshot,
     () => emptyStories,
   );
+  const [importedChaptersSnapshot] = useState(() => ({
+    storyId,
+    chapters: readImportedChapters(storyId),
+  }));
+  const [selectedChapterId, setSelectedChapterId] = useState<string>();
+  const [editorChapterId, setEditorChapterId] = useState<string>();
+  const [editorContent, setEditorContent] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResult, setAiResult] = useState("");
+
+  const importedChapters =
+    importedChaptersSnapshot.storyId === storyId
+      ? importedChaptersSnapshot.chapters
+      : readImportedChapters(storyId);
 
   const allStories = useMemo(() => {
     return [...localStories, ...stories];
   }, [localStories]);
 
   const story = allStories.find((item) => item.id === storyId) ?? stories[0];
+  const hasImportedChapters = importedChapters.length > 0;
 
-  const storyChapters = chapters.filter((item) => item.storyId === story.id);
-  const storyCharacters = characters.filter((item) => item.storyId === story.id);
-  const storyBranches = branches.filter((item) => item.storyId === story.id);
-  const notes = worldNotes.filter((item) => item.storyId === story.id);
+  const storyChapters = useMemo(() => {
+    return chapters.filter((item) => item.storyId === story.id);
+  }, [story.id]);
+
+  const storyCharacters = useMemo(() => {
+    return characters.filter((item) => item.storyId === story.id);
+  }, [story.id]);
+
+  const storyBranches = useMemo(() => {
+    return branches.filter((item) => item.storyId === story.id);
+  }, [story.id]);
+
+  const notes = useMemo(() => {
+    return worldNotes.filter((item) => item.storyId === story.id);
+  }, [story.id]);
+
+  const workspaceChapters = useMemo<WorkspaceChapter[]>(() => {
+    if (hasImportedChapters) {
+      return importedChapters.map(normalizeImportedChapter);
+    }
+
+    return storyChapters.map(normalizeMockChapter);
+  }, [hasImportedChapters, importedChapters, storyChapters]);
+
+  const resolvedSelectedChapterId = useMemo(() => {
+    const hasSelectedChapter = workspaceChapters.some(
+      (chapter) => chapter.id === selectedChapterId,
+    );
+
+    return hasSelectedChapter ? selectedChapterId : workspaceChapters[0]?.id;
+  }, [selectedChapterId, workspaceChapters]);
+
+  const selectedChapter = useMemo(() => {
+    return workspaceChapters.find(
+      (chapter) => chapter.id === resolvedSelectedChapterId,
+    );
+  }, [resolvedSelectedChapterId, workspaceChapters]);
+
+  const visibleEditorContent =
+    editorChapterId === selectedChapter?.id
+      ? editorContent
+      : (selectedChapter?.content ?? "");
+
+  function handleSelectChapter(chapter: WorkspaceChapter) {
+    setSelectedChapterId(chapter.id);
+    setEditorChapterId(chapter.id);
+    setEditorContent(chapter.content);
+  }
+
+  function handleEditorContentChange(value: string) {
+    setEditorChapterId(selectedChapter?.id);
+    setEditorContent(value);
+  }
 
   function handleFakeGenerate() {
     setAiResult(
@@ -88,7 +195,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
       <div className="border-b bg-background">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-xl font-semibold">{story.title}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold">{story.title}</h1>
+              {hasImportedChapters ? (
+                <Badge variant="outline">Imported novel</Badge>
+              ) : null}
+            </div>
             <p className="text-sm text-muted-foreground">
               {story.genre} · {story.tone} ·{" "}
               {story.isFanwork ? "Fanwork" : "Original"}
@@ -112,21 +224,52 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         <aside className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BookOpen className="h-4 w-4" />
-                Chapters
-              </CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BookOpen className="h-4 w-4" />
+                  Chapters
+                </CardTitle>
+                {hasImportedChapters ? (
+                  <Badge variant="secondary">
+                    {importedChapters.length} imported
+                  </Badge>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {storyChapters.length > 0 ? (
-                storyChapters.map((chapter) => (
-                  <button
-                    key={chapter.id}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted"
-                  >
-                    {chapter.title}
-                  </button>
-                ))
+              {workspaceChapters.length > 0 ? (
+                workspaceChapters.map((chapter) => {
+                  const isSelected = chapter.id === selectedChapter?.id;
+
+                  return (
+                    <button
+                      key={chapter.id}
+                      type="button"
+                      className={cn(
+                        "w-full rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted",
+                        isSelected && "border-primary bg-primary/5",
+                      )}
+                      onClick={() => handleSelectChapter(chapter)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-medium">
+                          Ch. {chapter.chapterNumber}
+                        </span>
+                        {chapter.status ? (
+                          <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                            {chapter.status}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 line-clamp-2">{chapter.title}</p>
+                      {typeof chapter.wordCount === "number" ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {chapter.wordCount.toLocaleString()} words
+                        </p>
+                      ) : null}
+                    </button>
+                  );
+                })
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Chưa có chương nào.
@@ -167,15 +310,32 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         <section>
           <Card className="min-h-[720px]">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{storyChapters[0]?.title ?? "Chương mới"}</CardTitle>
-                <Badge variant="secondary">Draft</Badge>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle>
+                    {selectedChapter?.title ?? "Chương mới"}
+                  </CardTitle>
+                  {selectedChapter ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Chapter {selectedChapter.chapterNumber}
+                      {typeof selectedChapter.wordCount === "number"
+                        ? ` · ${selectedChapter.wordCount.toLocaleString()} words`
+                        : ""}
+                    </p>
+                  ) : null}
+                </div>
+                <Badge variant="secondary">
+                  {selectedChapter?.status ?? "Draft"}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <Textarea
                 className="min-h-[560px] resize-none border-0 text-base leading-7 shadow-none focus-visible:ring-0"
-                defaultValue={storyChapters[0]?.content}
+                value={visibleEditorContent}
+                onChange={(event) =>
+                  handleEditorContentChange(event.target.value)
+                }
                 placeholder="Bắt đầu viết chương truyện..."
               />
 
