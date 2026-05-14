@@ -32,6 +32,12 @@ import type {
   StoryEvent,
   WritingStyleProfile,
 } from "@/lib/types";
+import { EmptyState } from "@/components/app/empty-state";
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
+import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -183,61 +189,52 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   }
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="mb-2 text-sm font-medium text-muted-foreground">
-              Novel Analysis
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {story?.title ?? "Imported Novel"}
-            </h1>
-            <p className="mt-3 max-w-3xl text-muted-foreground">
-              {story?.author ? `Tác giả: ${story.author}. ` : ""}
-              Ready for analysis. Dữ liệu đang nằm trong localStorage và chưa
-              gọi AI thật hoặc backend.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/workspace`}>
-                <BookOpen className="mr-2 h-4 w-4" />
-                Open workspace
-              </Link>
-            </Button>
-            <Button type="button" onClick={handleStartMockAnalysis}>
-              <Play className="mr-2 h-4 w-4" />
-              Start mock analysis
-            </Button>
-          </div>
-        </div>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Novel Analysis"
+          title={story?.title ?? "Imported Novel"}
+          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Ready for analysis. Dữ liệu đang nằm trong localStorage và chưa gọi AI thật hoặc backend.`}
+          action={
+            <>
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/workspace`}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Open workspace
+                </Link>
+              </Button>
+              <Button type="button" onClick={handleStartMockAnalysis}>
+                <Play className="mr-2 h-4 w-4" />
+                Start mock analysis
+              </Button>
+            </>
+          }
+        />
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard
-            icon={BookOpen}
-            label="Total chapters"
+          <StatCard
+            icon={<BookOpen className="h-4 w-4" />}
+            title="Total chapters"
             value={totalChapters.toLocaleString("vi-VN")}
           />
-          <MetricCard
-            icon={ScrollText}
-            label="Total words"
+          <StatCard
+            icon={<ScrollText className="h-4 w-4" />}
+            title="Total words"
             value={totalWordCount.toLocaleString("vi-VN")}
           />
-          <MetricCard
-            icon={Database}
-            label="Total chunks"
+          <StatCard
+            icon={<Database className="h-4 w-4" />}
+            title="Total chunks"
             value={totalChunks.toLocaleString("vi-VN")}
           />
-          <MetricCard
-            icon={BarChart3}
-            label="Parsed chapters"
+          <StatCard
+            icon={<BarChart3 className="h-4 w-4" />}
+            title="Parsed chapters"
             value={parsedChapters.toLocaleString("vi-VN")}
           />
-          <MetricCard
-            icon={Sparkles}
-            label="Analyzed chapters"
+          <StatCard
+            icon={<Sparkles className="h-4 w-4" />}
+            title="Analyzed chapters"
             value={analyzedChapters.toLocaleString("vi-VN")}
           />
         </section>
@@ -248,51 +245,47 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           <ProgressCard label="Analysis progress" value={analysisProgress} />
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Chapter preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {chapters.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-muted/60 text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Chapter</th>
-                      <th className="px-3 py-2 font-medium">Title</th>
-                      <th className="px-3 py-2 font-medium">Words</th>
-                      <th className="px-3 py-2 font-medium">Chunks</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
+        <SectionCard title="Chapter preview">
+          {chapters.length > 0 ? (
+            <div className="overflow-hidden rounded-lg border">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/60 text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Chapter</th>
+                    <th className="px-3 py-2 font-medium">Title</th>
+                    <th className="px-3 py-2 font-medium">Words</th>
+                    <th className="px-3 py-2 font-medium">Chunks</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chapters.slice(0, 20).map((chapter) => (
+                    <tr className="border-t" key={chapter.id}>
+                      <td className="px-3 py-2">{chapter.chapterNumber}</td>
+                      <td className="px-3 py-2 font-medium">
+                        {chapter.title}
+                      </td>
+                      <td className="px-3 py-2">
+                        {chapter.wordCount.toLocaleString("vi-VN")}
+                      </td>
+                      <td className="px-3 py-2">
+                        {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString(
+                          "vi-VN",
+                        )}
+                      </td>
+                      <td className="px-3 py-2">{chapter.status}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {chapters.slice(0, 20).map((chapter) => (
-                      <tr className="border-t" key={chapter.id}>
-                        <td className="px-3 py-2">{chapter.chapterNumber}</td>
-                        <td className="px-3 py-2 font-medium">
-                          {chapter.title}
-                        </td>
-                        <td className="px-3 py-2">
-                          {chapter.wordCount.toLocaleString("vi-VN")}
-                        </td>
-                        <td className="px-3 py-2">
-                          {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString(
-                            "vi-VN",
-                          )}
-                        </td>
-                        <td className="px-3 py-2">{chapter.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                Chưa có imported chapters trong localStorage cho story này.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              title="Chưa có imported chapters"
+              description="Chưa có dữ liệu trong localStorage cho story này."
+            />
+          )}
+        </SectionCard>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <EntityAnalysisCard
@@ -320,32 +313,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             profile={analysisResult?.writingStyleProfiles[0]}
           />
         </section>
-      </section>
-    </main>
-  );
-}
-
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Icon className="h-4 w-4" />
-          {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-semibold">{value}</p>
-      </CardContent>
-    </Card>
+      </PageContainer>
+    </PageShell>
   );
 }
 
@@ -391,9 +360,7 @@ function AnalysisCardShell({
 }
 
 function NotAnalyzedYet() {
-  return (
-    <p className="text-sm text-muted-foreground">Not analyzed yet</p>
-  );
+  return <p className="text-sm text-muted-foreground">Not analyzed yet</p>;
 }
 
 function EntityAnalysisCard({

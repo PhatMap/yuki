@@ -29,6 +29,7 @@ import type {
   StoryEvent,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/app/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -407,8 +408,8 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   }
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <div className="border-b bg-background">
+    <PageShell className="app-workspace">
+      <div className="app-workspace-topbar">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -436,12 +437,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-4 px-6 py-6 lg:grid-cols-[260px_1fr_320px]">
-        <aside className="space-y-4">
+      <div className="app-workspace-grid">
+        <aside className="app-panel">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
-                <CardTitle className="flex items-center gap-2 text-base">
+                <CardTitle className="app-panel-title">
                   <BookOpen className="h-4 w-4" />
                   Chapters
                 </CardTitle>
@@ -462,7 +463,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                       key={chapter.id}
                       type="button"
                       className={cn(
-                        "w-full rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted",
+                        "app-list-button",
                         isSelected && "border-primary bg-primary/5",
                       )}
                       onClick={() => handleSelectChapter(chapter)}
@@ -496,7 +497,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="app-panel-title">
                 <GitBranch className="h-4 w-4" />
                 Branches / Alternate Canon
               </CardTitle>
@@ -511,7 +512,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                       key={branch.id}
                       type="button"
                       className={cn(
-                        "w-full rounded-md border bg-background p-3 text-left text-sm hover:bg-muted",
+                        "app-list-item w-full text-left text-sm hover:bg-muted",
                         isActive && "border-primary bg-primary/5",
                       )}
                       onClick={() => setActiveBranchId(branch.id)}
@@ -556,7 +557,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   {storyBranches.map((branch) => (
                     <div
                       key={branch.id}
-                      className="rounded-md border bg-background p-3"
+                      className="app-list-item"
                     >
                       <p className="text-sm font-medium">{branch.name}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -581,7 +582,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     activeBranchChanges.map((change) => (
                       <div
                         key={change.id}
-                        className="rounded-md border bg-background p-3"
+                        className="app-list-item"
                       >
                         <p className="text-sm font-medium">{change.title}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -615,7 +616,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     activeContinuityIssues.map((issue) => (
                       <div
                         key={issue.id}
-                        className="rounded-md border bg-background p-3"
+                        className="app-list-item"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-medium">{issue.title}</p>
@@ -673,7 +674,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               {aiResult ? (
                 <div className="mt-4 rounded-lg border bg-muted/40 p-4">
                   <p className="mb-2 text-sm font-medium">AI Output</p>
-                  <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  <pre className="app-code-block">
                     {aiResult}
                   </pre>
                 </div>
@@ -682,10 +683,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
           </Card>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="app-panel">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="app-panel-title">
                 <Bot className="h-4 w-4" />
                 AI Assistant
               </CardTitle>
@@ -718,13 +719,13 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <div>
                 <p className="mb-2 text-sm font-medium">Canon adherence</p>
                 <div className="grid gap-2 text-sm text-muted-foreground">
-                  <button className="rounded-md border bg-background px-3 py-2 text-left">
+                  <button className="app-list-button">
                     Rất sát bản gốc
                   </button>
-                  <button className="rounded-md border bg-background px-3 py-2 text-left">
+                  <button className="app-list-button">
                     Vừa phải
                   </button>
-                  <button className="rounded-md border bg-background px-3 py-2 text-left">
+                  <button className="app-list-button">
                     Chỉ lấy cảm hứng
                   </button>
                 </div>
@@ -751,7 +752,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     storyCharacters.map((character) => (
                       <div
                         key={character.id}
-                        className="rounded-md border bg-background p-3"
+                        className="app-list-item"
                       >
                         <p className="text-sm font-medium">{character.name}</p>
                         <p className="text-xs text-muted-foreground">
@@ -786,7 +787,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                       notes.map((note) => (
                         <div
                           key={note.id}
-                          className="rounded-md border bg-background p-3"
+                          className="app-list-item"
                         >
                           <p className="text-sm font-medium">{note.title}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -821,7 +822,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
           </Card>
         </aside>
       </div>
-    </main>
+    </PageShell>
   );
 }
 
@@ -839,7 +840,7 @@ function AnalysisEntityList({
   return (
     <>
       {entities.slice(0, 5).map((entity) => (
-        <div key={entity.id} className="rounded-md border bg-background p-3">
+        <div key={entity.id} className="app-list-item">
           <p className="text-sm font-medium">{entity.name}</p>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
             {entity.description}
@@ -861,7 +862,7 @@ function WorldBibleAnalysis({ result }: { result: StoryAnalysisResult }) {
       {style ? (
         <div>
           <p className="mb-2 text-sm font-medium">Writing Style</p>
-          <div className="rounded-md border bg-background p-3">
+          <div className="app-list-item">
             <p className="text-xs text-muted-foreground">{style.tone}</p>
             <p className="mt-2 text-xs text-muted-foreground">
               {style.pacing}
@@ -886,7 +887,7 @@ function WorldBibleSection({
       <div className="space-y-2">
         {entities.length > 0 ? (
           entities.slice(0, 5).map((entity) => (
-            <div key={entity.id} className="rounded-md border bg-background p-3">
+            <div key={entity.id} className="app-list-item">
               <p className="text-sm font-medium">{entity.name}</p>
               <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                 {entity.description}
@@ -909,7 +910,7 @@ function StoryEventsList({ events }: { events: StoryEvent[] }) {
   return (
     <div className="space-y-2">
       {events.map((event) => (
-        <div key={event.id} className="rounded-md border bg-background p-3">
+        <div key={event.id} className="app-list-item">
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-medium">{event.title}</p>
             <Badge variant="outline">{event.importance}</Badge>

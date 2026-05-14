@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 
 import { stories } from "@/lib/mock-data";
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -48,45 +51,35 @@ const actions = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-muted/30">
-      <section className="mx-auto max-w-7xl px-6 py-8">
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <p className="mb-2 text-sm font-medium text-muted-foreground">
-              AI Story Companion
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Studio sáng tác truyện bằng AI
-            </h1>
-            <p className="mt-3 max-w-2xl text-muted-foreground">
-              Tạo truyện mới, viết tiếp truyện đang dang dở, viết fanfiction,
-              nhập vai nhân vật và quản lý thế giới truyện trong một workspace.
-            </p>
-          </div>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="AI Story Companion"
+          title="Studio sáng tác truyện bằng AI"
+          description="Tạo truyện mới, viết tiếp truyện đang dang dở, viết fanfiction, nhập vai nhân vật và quản lý thế giới truyện trong một workspace."
+          action={
+            <Button asChild>
+              <Link href="/dashboard">
+                <Bot className="mr-2 h-4 w-4" />
+                Bắt đầu
+              </Link>
+            </Button>
+          }
+        />
 
-          <Button asChild>
-            <Link href="/dashboard">
-              <Bot className="mr-2 h-4 w-4" />
-              Bắt đầu
-            </Link>
-          </Button>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="app-grid-cards">
           {actions.map((action) => {
             const Icon = action.icon;
 
             return (
               <Link key={action.title} href={action.href}>
-                <Card className="h-full transition hover:shadow-md">
+                <Card className="app-card-hover h-full">
                   <CardHeader>
                     <Icon className="mb-3 h-6 w-6 text-primary" />
                     <CardTitle className="text-lg">{action.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {action.description}
-                    </p>
+                    <p className="app-muted-text">{action.description}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -94,10 +87,10 @@ export default function HomePage() {
           })}
         </div>
 
-        <section className="mt-10">
-          <div className="mb-4 flex items-center gap-2">
+        <section className="app-section">
+          <div className="app-section-header">
             <BookOpen className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Truyện gần đây</h2>
+            <h2 className="app-section-title">Truyện gần đây</h2>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -120,7 +113,7 @@ export default function HomePage() {
             ))}
           </div>
         </section>
-      </section>
-    </main>
+      </PageContainer>
+    </PageShell>
   );
 }
