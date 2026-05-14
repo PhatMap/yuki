@@ -4,8 +4,9 @@ import Link from "next/link";
 import {
   type ComponentType,
   type ReactNode,
+  useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
 } from "react";
 import {
   BarChart3,
@@ -21,6 +22,14 @@ import {
   Users,
 } from "lucide-react";
 
+import {
+  getAnalysisResult,
+  getAnalysisStatus,
+  getChapterChunks,
+  getImportedChapters,
+  getStoryById,
+  saveAnalysisResult,
+} from "@/lib/db/indexed-db";
 import { runMockAnalysis } from "@/lib/mock-analysis";
 import type {
   AnalysisStatus,
@@ -45,102 +54,139 @@ interface StoryAnalysisClientProps {
   storyId: string;
 }
 
+interface AnalysisDashboardData {
+  story?: Story;
+  chapters: ImportedChapter[];
+  chunks: ChapterChunk[];
+  analysisStatus?: AnalysisStatus;
+  analysisResult?: StoryAnalysisResult;
+}
+
 const storyStorageKey = "ai-story-app:stories";
-const emptyStories: Story[] = [];
-const emptyChapters: ImportedChapter[] = [];
-const emptyChunks: ChapterChunk[] = [];
-const emptyAnalysisStatus: AnalysisStatus | null = null;
-const emptyAnalysisResult: StoryAnalysisResult | null = null;
-const parsedValueCache = new Map<
-  string,
-  { serializedValue: string; parsedValue: unknown }
->();
 
 function readJsonValue<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
 
-  const serializedValue = localStorage.getItem(key) || "";
-  const cachedValue = parsedValueCache.get(key);
-
-  if (cachedValue?.serializedValue === serializedValue) {
-    return cachedValue.parsedValue as T;
-  }
-
-  if (!serializedValue) {
-    parsedValueCache.set(key, { serializedValue, parsedValue: fallback });
-
-    return fallback;
-  }
-
   try {
-    const parsedValue = JSON.parse(serializedValue) as T;
+    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
 
-    parsedValueCache.set(key, { serializedValue, parsedValue });
-
-    return parsedValue;
+    return parsedValue ?? fallback;
   } catch {
-    parsedValueCache.set(key, { serializedValue, parsedValue: fallback });
-
     return fallback;
   }
 }
 
-function subscribeToLocalStorage(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
+function readLocalStory(storyId: string) {
+  const stories = readJsonValue<Story[]>(storyStorageKey, []);
 
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
+  return stories.find((story) => story.id === storyId);
+}
+
+function readLocalDashboardData(storyId: string): AnalysisDashboardData {
+  return {
+    story: readLocalStory(storyId),
+    chapters: readJsonValue<ImportedChapter[]>(
+      `ai-story-app:chapters:${storyId}`,
+      [],
+    ),
+    chunks: readJsonValue<ChapterChunk[]>(
+      `ai-story-app:chunks:${storyId}`,
+      [],
+    ),
+    analysisStatus: readJsonValue<AnalysisStatus | undefined>(
+      `ai-story-app:analysis-status:${storyId}`,
+      undefined,
+    ),
+    analysisResult: readJsonValue<StoryAnalysisResult | undefined>(
+      `ai-story-app:analysis-result:${storyId}`,
+      undefined,
+    ),
   };
 }
 
-function notifyLocalStorageChange() {
-  window.dispatchEvent(new Event("storage"));
+async function readIndexedDbDashboardData(storyId: string) {
+  const [story, chapters, chunks, analysisStatus, analysisResult] =
+    await Promise.all([
+      getStoryById(storyId),
+      getImportedChapters(storyId),
+      getChapterChunks(storyId),
+      getAnalysisStatus(storyId),
+      getAnalysisResult(storyId),
+    ]);
+
+  return {
+    story,
+    chapters,
+    chunks,
+    analysisStatus,
+    analysisResult,
+  };
+}
+
+function mergeDashboardData(
+  indexedDbData: AnalysisDashboardData,
+  localData: AnalysisDashboardData,
+): AnalysisDashboardData {
+  return {
+    story: indexedDbData.story ?? localData.story,
+    chapters:
+      indexedDbData.chapters.length > 0
+        ? indexedDbData.chapters
+        : localData.chapters,
+    chunks:
+      indexedDbData.chunks.length > 0 ? indexedDbData.chunks : localData.chunks,
+    analysisStatus: indexedDbData.analysisStatus ?? localData.analysisStatus,
+    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
+  };
 }
 
 export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
-  const stories = useSyncExternalStore(
-    subscribeToLocalStorage,
-    () => readJsonValue<Story[]>(storyStorageKey, emptyStories),
-    () => emptyStories,
-  );
-  const chapters = useSyncExternalStore(
-    subscribeToLocalStorage,
-    () =>
-      readJsonValue<ImportedChapter[]>(
-        `ai-story-app:chapters:${storyId}`,
-        emptyChapters,
-      ),
-    () => emptyChapters,
-  );
-  const chunks = useSyncExternalStore(
-    subscribeToLocalStorage,
-    () =>
-      readJsonValue<ChapterChunk[]>(
-        `ai-story-app:chunks:${storyId}`,
-        emptyChunks,
-      ),
-    () => emptyChunks,
-  );
-  const analysisStatus = useSyncExternalStore(
-    subscribeToLocalStorage,
-    () =>
-      readJsonValue<AnalysisStatus | null>(
-        `ai-story-app:analysis-status:${storyId}`,
-        emptyAnalysisStatus,
-      ),
-    () => emptyAnalysisStatus,
-  );
-  const analysisResult = useSyncExternalStore(
-    subscribeToLocalStorage,
-    () =>
-      readJsonValue<StoryAnalysisResult | null>(
-        `ai-story-app:analysis-result:${storyId}`,
-        emptyAnalysisResult,
-      ),
-    () => emptyAnalysisResult,
-  );
+  const [dashboardData, setDashboardData] = useState<AnalysisDashboardData>({
+    chapters: [],
+    chunks: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [storageError, setStorageError] = useState("");
+  const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
 
-  const story = stories.find((item) => item.id === storyId);
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadDashboardData() {
+      let indexedDbData: AnalysisDashboardData = {
+        chapters: [],
+        chunks: [],
+      };
+      let indexedDbFailed = false;
+      const localData = readLocalDashboardData(storyId);
+
+      try {
+        indexedDbData = await readIndexedDbDashboardData(storyId);
+      } catch (error) {
+        indexedDbFailed = true;
+        console.error("Failed to read analysis dashboard data from IndexedDB", error);
+      }
+
+      if (!isActive) return;
+
+      setDashboardData(mergeDashboardData(indexedDbData, localData));
+      setStorageError(
+        indexedDbFailed
+          ? "IndexedDB read failed. Showing localStorage fallback data."
+          : "",
+      );
+      setIsLoading(false);
+    }
+
+    void loadDashboardData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [storyId]);
+
+  const { story, chapters, chunks, analysisStatus, analysisResult } =
+    dashboardData;
   const totalWordCount = useMemo(() => {
     return chapters.reduce((total, chapter) => total + chapter.wordCount, 0);
   }, [chapters]);
@@ -159,8 +205,14 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const analysisProgress =
     totalChapters > 0 ? Math.round((analyzedChapters / totalChapters) * 100) : 0;
   const chunkProgress = chunks.length > 0 ? 100 : 0;
+  const hasDashboardData = Boolean(story) || chapters.length > 0;
 
-  function handleStartMockAnalysis() {
+  async function handleStartMockAnalysis() {
+    if (isSavingAnalysis) return;
+
+    setIsSavingAnalysis(true);
+    setStorageError("");
+
     const result = runMockAnalysis(storyId, chapters);
     const now = new Date().toISOString();
     const chunkedChapterCount = new Set(
@@ -176,16 +228,44 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       createdAt: analysisStatus?.createdAt ?? now,
       updatedAt: now,
     };
+    let localStorageSaved = false;
+    let indexedDbSaved = false;
 
-    localStorage.setItem(
-      `ai-story-app:analysis-result:${storyId}`,
-      JSON.stringify(result),
-    );
-    localStorage.setItem(
-      `ai-story-app:analysis-status:${storyId}`,
-      JSON.stringify(updatedStatus),
-    );
-    notifyLocalStorageChange();
+    try {
+      localStorage.setItem(
+        `ai-story-app:analysis-result:${storyId}`,
+        JSON.stringify(result),
+      );
+      localStorage.setItem(
+        `ai-story-app:analysis-status:${storyId}`,
+        JSON.stringify(updatedStatus),
+      );
+      localStorageSaved = true;
+    } catch (error) {
+      console.error("Failed to save mock analysis to localStorage", error);
+    }
+
+    try {
+      await saveAnalysisResult(storyId, result, updatedStatus);
+      indexedDbSaved = true;
+    } catch (error) {
+      console.error("Failed to save mock analysis to IndexedDB", error);
+    }
+
+    if (!localStorageSaved && !indexedDbSaved) {
+      setStorageError(
+        "Could not save mock analysis to IndexedDB or localStorage.",
+      );
+      setIsSavingAnalysis(false);
+      return;
+    }
+
+    setDashboardData((current) => ({
+      ...current,
+      analysisResult: result,
+      analysisStatus: updatedStatus,
+    }));
+    setIsSavingAnalysis(false);
   }
 
   return (
@@ -194,7 +274,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         <PageHeader
           eyebrow="Novel Analysis"
           title={story?.title ?? "Imported Novel"}
-          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Ready for analysis. Dữ liệu đang nằm trong localStorage và chưa gọi AI thật hoặc backend.`}
+          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Ready for analysis. Reading from IndexedDB first, with localStorage fallback.`}
           action={
             <>
               <Button asChild variant="outline">
@@ -203,116 +283,147 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                   Open workspace
                 </Link>
               </Button>
-              <Button type="button" onClick={handleStartMockAnalysis}>
+              <Button
+                type="button"
+                onClick={handleStartMockAnalysis}
+                disabled={isLoading || chapters.length === 0 || isSavingAnalysis}
+              >
                 <Play className="mr-2 h-4 w-4" />
-                Start mock analysis
+                {isSavingAnalysis ? "Saving..." : "Start mock analysis"}
               </Button>
             </>
           }
         />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <StatCard
-            icon={<BookOpen className="h-4 w-4" />}
-            title="Total chapters"
-            value={totalChapters.toLocaleString("vi-VN")}
-          />
-          <StatCard
-            icon={<ScrollText className="h-4 w-4" />}
-            title="Total words"
-            value={totalWordCount.toLocaleString("vi-VN")}
-          />
-          <StatCard
-            icon={<Database className="h-4 w-4" />}
-            title="Total chunks"
-            value={totalChunks.toLocaleString("vi-VN")}
-          />
-          <StatCard
-            icon={<BarChart3 className="h-4 w-4" />}
-            title="Parsed chapters"
-            value={parsedChapters.toLocaleString("vi-VN")}
-          />
-          <StatCard
-            icon={<Sparkles className="h-4 w-4" />}
-            title="Analyzed chapters"
-            value={analyzedChapters.toLocaleString("vi-VN")}
-          />
-        </section>
+        <p className="app-muted-text">
+          Reading from IndexedDB first, with localStorage fallback.
+        </p>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <ProgressCard label="Import progress" value={100} />
-          <ProgressCard label="Chunk progress" value={chunkProgress} />
-          <ProgressCard label="Analysis progress" value={analysisProgress} />
-        </section>
+        {storageError ? (
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            {storageError}
+          </p>
+        ) : null}
 
-        <SectionCard title="Chapter preview">
-          {chapters.length > 0 ? (
-            <div className="overflow-hidden rounded-lg border">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-muted/60 text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Chapter</th>
-                    <th className="px-3 py-2 font-medium">Title</th>
-                    <th className="px-3 py-2 font-medium">Words</th>
-                    <th className="px-3 py-2 font-medium">Chunks</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {chapters.slice(0, 20).map((chapter) => (
-                    <tr className="border-t" key={chapter.id}>
-                      <td className="px-3 py-2">{chapter.chapterNumber}</td>
-                      <td className="px-3 py-2 font-medium">
-                        {chapter.title}
-                      </td>
-                      <td className="px-3 py-2">
-                        {chapter.wordCount.toLocaleString("vi-VN")}
-                      </td>
-                      <td className="px-3 py-2">
-                        {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString(
-                          "vi-VN",
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{chapter.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState
-              title="Chưa có imported chapters"
-              description="Chưa có dữ liệu trong localStorage cho story này."
-            />
-          )}
-        </SectionCard>
+        {isLoading ? (
+          <SectionCard title="Loading analysis data">
+            <p className="app-muted-text">
+              Reading imported story data from IndexedDB and localStorage...
+            </p>
+          </SectionCard>
+        ) : !hasDashboardData ? (
+          <EmptyState
+            title="No analysis data found"
+            description="No imported story data was found in IndexedDB or localStorage for this story."
+          />
+        ) : (
+          <>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <StatCard
+                icon={<BookOpen className="h-4 w-4" />}
+                title="Total chapters"
+                value={totalChapters.toLocaleString("vi-VN")}
+              />
+              <StatCard
+                icon={<ScrollText className="h-4 w-4" />}
+                title="Total words"
+                value={totalWordCount.toLocaleString("vi-VN")}
+              />
+              <StatCard
+                icon={<Database className="h-4 w-4" />}
+                title="Total chunks"
+                value={totalChunks.toLocaleString("vi-VN")}
+              />
+              <StatCard
+                icon={<BarChart3 className="h-4 w-4" />}
+                title="Parsed chapters"
+                value={parsedChapters.toLocaleString("vi-VN")}
+              />
+              <StatCard
+                icon={<Sparkles className="h-4 w-4" />}
+                title="Analyzed chapters"
+                value={analyzedChapters.toLocaleString("vi-VN")}
+              />
+            </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <EntityAnalysisCard
-            icon={Users}
-            title="Characters"
-            entities={analysisResult?.characters}
-          />
-          <EventAnalysisCard events={analysisResult?.events} />
-          <EntityAnalysisCard
-            icon={Boxes}
-            title="Items"
-            entities={analysisResult?.items}
-          />
-          <EntityAnalysisCard
-            icon={ScrollText}
-            title="Terms"
-            entities={analysisResult?.terms}
-          />
-          <EntityAnalysisCard
-            icon={MapPin}
-            title="Locations"
-            entities={analysisResult?.locations}
-          />
-          <WritingStyleCard
-            profile={analysisResult?.writingStyleProfiles[0]}
-          />
-        </section>
+            <section className="grid gap-4 lg:grid-cols-3">
+              <ProgressCard label="Import progress" value={100} />
+              <ProgressCard label="Chunk progress" value={chunkProgress} />
+              <ProgressCard label="Analysis progress" value={analysisProgress} />
+            </section>
+
+            <SectionCard title="Chapter preview">
+              {chapters.length > 0 ? (
+                <div className="overflow-hidden rounded-lg border">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-muted/60 text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Chapter</th>
+                        <th className="px-3 py-2 font-medium">Title</th>
+                        <th className="px-3 py-2 font-medium">Words</th>
+                        <th className="px-3 py-2 font-medium">Chunks</th>
+                        <th className="px-3 py-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chapters.slice(0, 20).map((chapter) => (
+                        <tr className="border-t" key={chapter.id}>
+                          <td className="px-3 py-2">
+                            {chapter.chapterNumber}
+                          </td>
+                          <td className="px-3 py-2 font-medium">
+                            {chapter.title}
+                          </td>
+                          <td className="px-3 py-2">
+                            {chapter.wordCount.toLocaleString("vi-VN")}
+                          </td>
+                          <td className="px-3 py-2">
+                            {(
+                              chunkCountsByChapterId[chapter.id] ?? 0
+                            ).toLocaleString("vi-VN")}
+                          </td>
+                          <td className="px-3 py-2">{chapter.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState
+                  title="Chưa có imported chapters"
+                  description="Chưa có dữ liệu trong IndexedDB hoặc localStorage cho story này."
+                />
+              )}
+            </SectionCard>
+
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <EntityAnalysisCard
+                icon={Users}
+                title="Characters"
+                entities={analysisResult?.characters}
+              />
+              <EventAnalysisCard events={analysisResult?.events} />
+              <EntityAnalysisCard
+                icon={Boxes}
+                title="Items"
+                entities={analysisResult?.items}
+              />
+              <EntityAnalysisCard
+                icon={ScrollText}
+                title="Terms"
+                entities={analysisResult?.terms}
+              />
+              <EntityAnalysisCard
+                icon={MapPin}
+                title="Locations"
+                entities={analysisResult?.locations}
+              />
+              <WritingStyleCard
+                profile={analysisResult?.writingStyleProfiles[0]}
+              />
+            </section>
+          </>
+        )}
       </PageContainer>
     </PageShell>
   );
