@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bot, BookOpen, GitBranch, Save, WandSparkles } from "lucide-react";
 
+import {
+  getAnalysisResult,
+  getBranchChanges,
+  getBranches,
+  getContinuityIssues,
+  getImportedChapters,
+  getStoryById,
+} from "@/lib/db/indexed-db";
 import {
   branches,
   chapters,
@@ -49,69 +57,47 @@ type WorkspaceChapter = {
   status?: string;
 };
 
+type WorkspaceStorageData = {
+  story?: Story;
+  importedChapters: ImportedChapter[];
+  analysisResult: StoryAnalysisResult | null;
+  branches: StoryBranchV2[];
+  branchChanges: BranchChange[];
+  continuityIssues: BranchContinuityIssue[];
+};
+
 const localStoriesKey = "ai-story-app:stories";
-const emptyStories: Story[] = [];
-let cachedSerializedStories = "";
-let cachedLocalStories: Story[] = emptyStories;
 
-function readLocalStoriesSnapshot() {
-  if (typeof window === "undefined") return emptyStories;
-
-  const serializedStories = localStorage.getItem(localStoriesKey) || "[]";
-
-  if (serializedStories === cachedSerializedStories) {
-    return cachedLocalStories;
-  }
-
-  cachedSerializedStories = serializedStories;
+function readJsonValue<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
 
   try {
-    const parsedStories = JSON.parse(serializedStories) as Story[];
-    cachedLocalStories = Array.isArray(parsedStories)
-      ? parsedStories
-      : emptyStories;
+    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
+
+    return parsedValue ?? fallback;
   } catch {
-    cachedLocalStories = emptyStories;
-  }
-
-  return cachedLocalStories;
-}
-
-function subscribeToLocalStories(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
-
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
-  };
-}
-
-function readImportedChapters(storyId: string): ImportedChapter[] {
-  if (typeof window === "undefined") return [];
-
-  const serializedChapters =
-    localStorage.getItem(`ai-story-app:chapters:${storyId}`) || "[]";
-
-  try {
-    const parsedChapters = JSON.parse(serializedChapters) as ImportedChapter[];
-    return Array.isArray(parsedChapters) ? parsedChapters : [];
-  } catch {
-    return [];
+    return fallback;
   }
 }
 
-function readAnalysisResult(storyId: string): StoryAnalysisResult | null {
-  if (typeof window === "undefined") return null;
+function readLocalStory(storyId: string) {
+  return readJsonValue<Story[]>(localStoriesKey, []).find(
+    (story) => story.id === storyId,
+  );
+}
 
-  const serializedResult =
-    localStorage.getItem(`ai-story-app:analysis-result:${storyId}`) || "";
+function readLocalImportedChapters(storyId: string) {
+  return readJsonValue<ImportedChapter[]>(
+    `ai-story-app:chapters:${storyId}`,
+    [],
+  );
+}
 
-  if (!serializedResult) return null;
-
-  try {
-    return JSON.parse(serializedResult) as StoryAnalysisResult;
-  } catch {
-    return null;
-  }
+function readLocalAnalysisResult(storyId: string) {
+  return readJsonValue<StoryAnalysisResult | null>(
+    `ai-story-app:analysis-result:${storyId}`,
+    null,
+  );
 }
 
 function branchesStorageKey(storyId: string) {
@@ -127,18 +113,81 @@ function continuityIssuesStorageKey(storyId: string) {
 }
 
 function readStoredArray<T>(key: string): T[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "[]") as T[];
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
-    return [];
-  }
+  return readJsonValue<T[]>(key, []);
 }
 
 function writeStoredArray<T>(key: string, value: T[]) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+async function readIndexedDbWorkspaceData(
+  storyId: string,
+): Promise<WorkspaceStorageData> {
+  const [
+    story,
+    importedChapters,
+    analysisResult,
+    branches,
+    branchChanges,
+    continuityIssues,
+  ] = await Promise.all([
+    getStoryById(storyId),
+    getImportedChapters(storyId),
+    getAnalysisResult(storyId),
+    getBranches(storyId),
+    getBranchChanges(storyId),
+    getContinuityIssues(storyId),
+  ]);
+
+  return {
+    story,
+    importedChapters,
+    analysisResult: analysisResult ?? null,
+    branches,
+    branchChanges,
+    continuityIssues,
+  };
+}
+
+function readLocalWorkspaceData(storyId: string): WorkspaceStorageData {
+  return {
+    story: readLocalStory(storyId),
+    importedChapters: readLocalImportedChapters(storyId),
+    analysisResult: readLocalAnalysisResult(storyId),
+    branches: readStoredArray<StoryBranchV2>(branchesStorageKey(storyId)),
+    branchChanges: readStoredArray<BranchChange>(
+      branchChangesStorageKey(storyId),
+    ),
+    continuityIssues: readStoredArray<BranchContinuityIssue>(
+      continuityIssuesStorageKey(storyId),
+    ),
+  };
+}
+
+function mergeWorkspaceData(
+  indexedDbData: WorkspaceStorageData,
+  localData: WorkspaceStorageData,
+): WorkspaceStorageData {
+  return {
+    story: indexedDbData.story ?? localData.story,
+    importedChapters:
+      indexedDbData.importedChapters.length > 0
+        ? indexedDbData.importedChapters
+        : localData.importedChapters,
+    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
+    branches:
+      indexedDbData.branches.length > 0
+        ? indexedDbData.branches
+        : localData.branches,
+    branchChanges:
+      indexedDbData.branchChanges.length > 0
+        ? indexedDbData.branchChanges
+        : localData.branchChanges,
+    continuityIssues:
+      indexedDbData.continuityIssues.length > 0
+        ? indexedDbData.continuityIssues
+        : localData.continuityIssues,
+  };
 }
 
 function normalizeImportedChapter(chapter: ImportedChapter): WorkspaceChapter {
@@ -163,35 +212,15 @@ function normalizeMockChapter(chapter: Chapter): WorkspaceChapter {
 }
 
 export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
-  const localStories = useSyncExternalStore(
-    subscribeToLocalStories,
-    readLocalStoriesSnapshot,
-    () => emptyStories,
-  );
-  const [importedChaptersSnapshot] = useState(() => ({
-    storyId,
-    chapters: readImportedChapters(storyId),
-  }));
-  const [analysisResultSnapshot] = useState(() => ({
-    storyId,
-    result: readAnalysisResult(storyId),
-  }));
-  const [branchesSnapshot, setBranchesSnapshot] = useState(() => ({
-    storyId,
-    branches: readStoredArray<StoryBranchV2>(branchesStorageKey(storyId)),
-  }));
-  const [branchChangesSnapshot, setBranchChangesSnapshot] = useState(() => ({
-    storyId,
-    changes: readStoredArray<BranchChange>(branchChangesStorageKey(storyId)),
-  }));
-  const [continuityIssuesSnapshot, setContinuityIssuesSnapshot] = useState(
-    () => ({
-      storyId,
-      issues: readStoredArray<BranchContinuityIssue>(
-        continuityIssuesStorageKey(storyId),
-      ),
-    }),
-  );
+  const [storageData, setStorageData] = useState<WorkspaceStorageData>({
+    importedChapters: [],
+    analysisResult: null,
+    branches: [],
+    branchChanges: [],
+    continuityIssues: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [storageError, setStorageError] = useState("");
   const [activeBranchId, setActiveBranchId] = useState<string>();
   const [selectedChapterId, setSelectedChapterId] = useState<string>();
   const [editorChapterId, setEditorChapterId] = useState<string>();
@@ -199,34 +228,52 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResult, setAiResult] = useState("");
 
-  const importedChapters =
-    importedChaptersSnapshot.storyId === storyId
-      ? importedChaptersSnapshot.chapters
-      : readImportedChapters(storyId);
-  const analysisResult =
-    analysisResultSnapshot.storyId === storyId
-      ? analysisResultSnapshot.result
-      : readAnalysisResult(storyId);
-  const localBranches =
-    branchesSnapshot.storyId === storyId
-      ? branchesSnapshot.branches
-      : readStoredArray<StoryBranchV2>(branchesStorageKey(storyId));
-  const branchChanges =
-    branchChangesSnapshot.storyId === storyId
-      ? branchChangesSnapshot.changes
-      : readStoredArray<BranchChange>(branchChangesStorageKey(storyId));
-  const continuityIssues =
-    continuityIssuesSnapshot.storyId === storyId
-      ? continuityIssuesSnapshot.issues
-      : readStoredArray<BranchContinuityIssue>(
-          continuityIssuesStorageKey(storyId),
-        );
+  useEffect(() => {
+    let isActive = true;
 
-  const allStories = useMemo(() => {
-    return [...localStories, ...stories];
-  }, [localStories]);
+    async function loadWorkspaceData() {
+      const localData = readLocalWorkspaceData(storyId);
+      let indexedDbData: WorkspaceStorageData = {
+        importedChapters: [],
+        analysisResult: null,
+        branches: [],
+        branchChanges: [],
+        continuityIssues: [],
+      };
+      let indexedDbFailed = false;
 
-  const story = allStories.find((item) => item.id === storyId) ?? stories[0];
+      try {
+        indexedDbData = await readIndexedDbWorkspaceData(storyId);
+      } catch (error) {
+        indexedDbFailed = true;
+        console.error("Failed to read workspace data from IndexedDB", error);
+      }
+
+      if (!isActive) return;
+
+      setStorageData(mergeWorkspaceData(indexedDbData, localData));
+      setStorageError(
+        indexedDbFailed
+          ? "IndexedDB read failed. Showing localStorage or mock fallback data."
+          : "",
+      );
+      setIsLoading(false);
+    }
+
+    void loadWorkspaceData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [storyId]);
+
+  const importedChapters = storageData.importedChapters;
+  const analysisResult = storageData.analysisResult;
+  const localBranches = storageData.branches;
+  const branchChanges = storageData.branchChanges;
+  const continuityIssues = storageData.continuityIssues;
+  const story =
+    storageData.story ?? stories.find((item) => item.id === storyId) ?? stories[0];
   const hasImportedChapters = importedChapters.length > 0;
 
   const storyChapters = useMemo(() => {
@@ -345,7 +392,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     const nextBranches = [branch, ...alternateBranches];
 
     writeStoredArray(branchesStorageKey(storyId), nextBranches);
-    setBranchesSnapshot({ storyId, branches: nextBranches });
+    setStorageData((current) => ({
+      ...current,
+      branches: nextBranches,
+    }));
     setActiveBranchId(branch.id);
   }
 
@@ -366,7 +416,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
       });
       nextBranches = [targetBranch, ...alternateBranches];
       writeStoredArray(branchesStorageKey(storyId), nextBranches);
-      setBranchesSnapshot({ storyId, branches: nextBranches });
+      setStorageData((current) => ({
+        ...current,
+        branches: nextBranches,
+      }));
     }
 
     const draftChange = createBranchChange({
@@ -396,8 +449,11 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
     writeStoredArray(branchChangesStorageKey(storyId), nextChanges);
     writeStoredArray(continuityIssuesStorageKey(storyId), nextIssues);
-    setBranchChangesSnapshot({ storyId, changes: nextChanges });
-    setContinuityIssuesSnapshot({ storyId, issues: nextIssues });
+    setStorageData((current) => ({
+      ...current,
+      branchChanges: nextChanges,
+      continuityIssues: nextIssues,
+    }));
     setActiveBranchId(targetBranch.id);
   }
 
@@ -422,6 +478,9 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               {story.genre} · {story.tone} ·{" "}
               {story.isFanwork ? "Fanwork" : "Original"}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Workspace reads from IndexedDB first, with localStorage fallback.
+            </p>
           </div>
 
           <div className="flex gap-2">
@@ -437,391 +496,399 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         </div>
       </div>
 
-      <div className="app-workspace-grid">
-        <aside className="app-panel">
-          <Card>
+      {isLoading ? (
+        <div className="app-workspace-grid">
+          <Card className="lg:col-span-3">
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="app-panel-title">
-                  <BookOpen className="h-4 w-4" />
-                  Chapters
-                </CardTitle>
-                {hasImportedChapters ? (
-                  <Badge variant="secondary">
-                    {importedChapters.length} imported
-                  </Badge>
-                ) : null}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {workspaceChapters.length > 0 ? (
-                workspaceChapters.map((chapter) => {
-                  const isSelected = chapter.id === selectedChapter?.id;
-
-                  return (
-                    <button
-                      key={chapter.id}
-                      type="button"
-                      className={cn(
-                        "app-list-button",
-                        isSelected && "border-primary bg-primary/5",
-                      )}
-                      onClick={() => handleSelectChapter(chapter)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="font-medium">
-                          Ch. {chapter.chapterNumber}
-                        </span>
-                        {chapter.status ? (
-                          <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                            {chapter.status}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 line-clamp-2">{chapter.title}</p>
-                      {typeof chapter.wordCount === "number" ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {chapter.wordCount.toLocaleString()} words
-                        </p>
-                      ) : null}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Chưa có chương nào.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="app-panel-title">
-                <GitBranch className="h-4 w-4" />
-                Branches / Alternate Canon
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {displayedBranches.map((branch) => {
-                  const isActive = branch.id === activeBranch.id;
-
-                  return (
-                    <button
-                      key={branch.id}
-                      type="button"
-                      className={cn(
-                        "app-list-item w-full text-left text-sm hover:bg-muted",
-                        isActive && "border-primary bg-primary/5",
-                      )}
-                      onClick={() => setActiveBranchId(branch.id)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium">{branch.name}</p>
-                        <Badge variant={branch.type === "canon" ? "secondary" : "outline"}>
-                          {branch.type}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                        {branch.description}
-                      </p>
-                      {branch.divergesFromChapter ? (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Diverges from chapter {branch.divergesFromChapter}
-                        </p>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="grid gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCreateAlternateBranch}
-                >
-                  Create alternate branch
-                </Button>
-                <Button type="button" onClick={handleAddChangeToBranch}>
-                  Add change to branch
-                </Button>
-              </div>
-
-              {storyBranches.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Legacy mock branch notes
-                  </p>
-                  {storyBranches.map((branch) => (
-                    <div
-                      key={branch.id}
-                      className="app-list-item"
-                    >
-                      <p className="text-sm font-medium">{branch.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {branch.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              <Separator />
-
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">Change Set</p>
-                  <Badge variant="secondary">
-                    {activeBranchChanges.length}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  {activeBranchChanges.length > 0 ? (
-                    activeBranchChanges.map((change) => (
-                      <div
-                        key={change.id}
-                        className="app-list-item"
-                      >
-                        <p className="text-sm font-medium">{change.title}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {change.type} · {change.impactScope}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {change.affectedChapterNumbers.length} affected
-                          chapters · {change.status}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Chưa có change set cho branch này.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">Continuity Issues</p>
-                  <Badge variant="secondary">
-                    {activeContinuityIssues.length}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  {activeContinuityIssues.length > 0 ? (
-                    activeContinuityIssues.map((issue) => (
-                      <div
-                        key={issue.id}
-                        className="app-list-item"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium">{issue.title}</p>
-                          <Badge variant="outline">{issue.severity}</Badge>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {issue.affectedChapterNumbers.length} affected
-                          chapters · {issue.status}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Chưa có continuity issue.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </aside>
-
-        <section>
-          <Card className="min-h-[720px]">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <CardTitle>
-                    {selectedChapter?.title ?? "Chương mới"}
-                  </CardTitle>
-                  {selectedChapter ? (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Chapter {selectedChapter.chapterNumber}
-                      {typeof selectedChapter.wordCount === "number"
-                        ? ` · ${selectedChapter.wordCount.toLocaleString()} words`
-                        : ""}
-                    </p>
-                  ) : null}
-                </div>
-                <Badge variant="secondary">
-                  {selectedChapter?.status ?? "Draft"}
-                </Badge>
-              </div>
+              <CardTitle>Loading workspace data</CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea
-                className="min-h-[560px] resize-none border-0 text-base leading-7 shadow-none focus-visible:ring-0"
-                value={visibleEditorContent}
-                onChange={(event) =>
-                  handleEditorContentChange(event.target.value)
-                }
-                placeholder="Bắt đầu viết chương truyện..."
-              />
-
-              {aiResult ? (
-                <div className="mt-4 rounded-lg border bg-muted/40 p-4">
-                  <p className="mb-2 text-sm font-medium">AI Output</p>
-                  <pre className="app-code-block">
-                    {aiResult}
-                  </pre>
-                </div>
-              ) : null}
+              <p className="app-muted-text">
+                Reading workspace data from IndexedDB and localStorage...
+              </p>
             </CardContent>
           </Card>
-        </section>
+        </div>
+      ) : (
+        <div className="app-workspace-grid">
+          <aside className="app-panel">
+            {storageError ? (
+              <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                {storageError}
+              </p>
+            ) : null}
 
-        <aside className="app-panel">
-          <Card>
-            <CardHeader>
-              <CardTitle className="app-panel-title">
-                <Bot className="h-4 w-4" />
-                AI Assistant
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                value={aiPrompt}
-                onChange={(event) => setAiPrompt(event.target.value)}
-                placeholder="Nhập yêu cầu: viết tiếp, thêm cao trào, sửa đoạn này u tối hơn..."
-                className="min-h-28"
-              />
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" onClick={handleFakeGenerate}>
-                  Viết tiếp
-                </Button>
-                <Button variant="secondary" onClick={handleFakeGenerate}>
-                  Viết lại
-                </Button>
-                <Button variant="secondary" onClick={handleFakeGenerate}>
-                  Thêm thoại
-                </Button>
-                <Button variant="secondary" onClick={handleFakeGenerate}>
-                  Tạo nhánh
-                </Button>
-              </div>
-
-              <Separator />
-
-              <div>
-                <p className="mb-2 text-sm font-medium">Canon adherence</p>
-                <div className="grid gap-2 text-sm text-muted-foreground">
-                  <button className="app-list-button">
-                    Rất sát bản gốc
-                  </button>
-                  <button className="app-list-button">
-                    Vừa phải
-                  </button>
-                  <button className="app-list-button">
-                    Chỉ lấy cảm hứng
-                  </button>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="app-panel-title">
+                    <BookOpen className="h-4 w-4" />
+                    Chapters
+                  </CardTitle>
+                  {hasImportedChapters ? (
+                    <Badge variant="secondary">
+                      {importedChapters.length} imported
+                    </Badge>
+                  ) : null}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {workspaceChapters.length > 0 ? (
+                  workspaceChapters.map((chapter) => {
+                    const isSelected = chapter.id === selectedChapter?.id;
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Characters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {analysisResult ? (
-                <AnalysisEntityList
-                  emptyText="No characters detected."
-                  entities={analysisResult.characters}
-                />
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    No analysis result yet. Run analysis first.
-                  </p>
-                  {storyCharacters.length > 0 ? (
-                    storyCharacters.map((character) => (
-                      <div
-                        key={character.id}
-                        className="app-list-item"
+                    return (
+                      <button
+                        key={chapter.id}
+                        type="button"
+                        className={cn(
+                          "app-list-button",
+                          isSelected && "border-primary bg-primary/5",
+                        )}
+                        onClick={() => handleSelectChapter(chapter)}
                       >
-                        <p className="text-sm font-medium">{character.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {character.role}
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-medium">
+                            Ch. {chapter.chapterNumber}
+                          </span>
+                          {chapter.status ? (
+                            <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                              {chapter.status}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 line-clamp-2">{chapter.title}</p>
+                        {typeof chapter.wordCount === "number" ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {chapter.wordCount.toLocaleString()} words
+                          </p>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Chưa có chương nào.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="app-panel-title">
+                  <GitBranch className="h-4 w-4" />
+                  Branches / Alternate Canon
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  {displayedBranches.map((branch) => {
+                    const isActive = branch.id === activeBranch.id;
+
+                    return (
+                      <button
+                        key={branch.id}
+                        type="button"
+                        className={cn(
+                          "app-list-item w-full text-left text-sm hover:bg-muted",
+                          isActive && "border-primary bg-primary/5",
+                        )}
+                        onClick={() => setActiveBranchId(branch.id)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium">{branch.name}</p>
+                          <Badge
+                            variant={
+                              branch.type === "canon" ? "secondary" : "outline"
+                            }
+                          >
+                            {branch.type}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {branch.description}
+                        </p>
+                        {branch.divergesFromChapter ? (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Diverges from chapter {branch.divergesFromChapter}
+                          </p>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="grid gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCreateAlternateBranch}
+                  >
+                    Create alternate branch
+                  </Button>
+                  <Button type="button" onClick={handleAddChangeToBranch}>
+                    Add change to branch
+                  </Button>
+                </div>
+
+                {storyBranches.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Legacy mock branch notes
+                    </p>
+                    {storyBranches.map((branch) => (
+                      <div key={branch.id} className="app-list-item">
+                        <p className="text-sm font-medium">{branch.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {branch.description}
                         </p>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Chưa có nhân vật.
-                    </p>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">World Bible</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {analysisResult ? (
-                <WorldBibleAnalysis result={analysisResult} />
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    No analysis result yet. Run analysis first.
-                  </p>
+                <Separator />
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Change Set</p>
+                    <Badge variant="secondary">
+                      {activeBranchChanges.length}
+                    </Badge>
+                  </div>
                   <div className="space-y-2">
-                    {notes.length > 0 ? (
-                      notes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="app-list-item"
-                        >
-                          <p className="text-sm font-medium">{note.title}</p>
+                    {activeBranchChanges.length > 0 ? (
+                      activeBranchChanges.map((change) => (
+                        <div key={change.id} className="app-list-item">
+                          <p className="text-sm font-medium">{change.title}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {note.content}
+                            {change.type} · {change.impactScope}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {change.affectedChapterNumbers.length} affected
+                            chapters · {change.status}
                           </p>
                         </div>
                       ))
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Chưa có world note.
+                        Chưa có change set cho branch này.
                       </p>
                     )}
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Story Events</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysisResult ? (
-                <StoryEventsList events={nearbyEvents} />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No analysis result yet. Run analysis first.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </aside>
-      </div>
+                <Separator />
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Continuity Issues</p>
+                    <Badge variant="secondary">
+                      {activeContinuityIssues.length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {activeContinuityIssues.length > 0 ? (
+                      activeContinuityIssues.map((issue) => (
+                        <div key={issue.id} className="app-list-item">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium">{issue.title}</p>
+                            <Badge variant="outline">{issue.severity}</Badge>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {issue.affectedChapterNumbers.length} affected
+                            chapters · {issue.status}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Chưa có continuity issue.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </aside>
+
+          <section>
+            <Card className="min-h-[720px]">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>
+                      {selectedChapter?.title ?? "Chương mới"}
+                    </CardTitle>
+                    {selectedChapter ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Chapter {selectedChapter.chapterNumber}
+                        {typeof selectedChapter.wordCount === "number"
+                          ? ` · ${selectedChapter.wordCount.toLocaleString()} words`
+                          : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Badge variant="secondary">
+                    {selectedChapter?.status ?? "Draft"}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  className="min-h-[560px] resize-none border-0 text-base leading-7 shadow-none focus-visible:ring-0"
+                  value={visibleEditorContent}
+                  onChange={(event) =>
+                    handleEditorContentChange(event.target.value)
+                  }
+                  placeholder="Bắt đầu viết chương truyện..."
+                />
+
+                {aiResult ? (
+                  <div className="mt-4 rounded-lg border bg-muted/40 p-4">
+                    <p className="mb-2 text-sm font-medium">AI Output</p>
+                    <pre className="app-code-block">{aiResult}</pre>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          </section>
+
+          <aside className="app-panel">
+            <Card>
+              <CardHeader>
+                <CardTitle className="app-panel-title">
+                  <Bot className="h-4 w-4" />
+                  AI Assistant
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Textarea
+                  value={aiPrompt}
+                  onChange={(event) => setAiPrompt(event.target.value)}
+                  placeholder="Nhập yêu cầu: viết tiếp, thêm cao trào, sửa đoạn này u tối hơn..."
+                  className="min-h-28"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="secondary" onClick={handleFakeGenerate}>
+                    Viết tiếp
+                  </Button>
+                  <Button variant="secondary" onClick={handleFakeGenerate}>
+                    Viết lại
+                  </Button>
+                  <Button variant="secondary" onClick={handleFakeGenerate}>
+                    Thêm thoại
+                  </Button>
+                  <Button variant="secondary" onClick={handleFakeGenerate}>
+                    Tạo nhánh
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <p className="mb-2 text-sm font-medium">Canon adherence</p>
+                  <div className="grid gap-2 text-sm text-muted-foreground">
+                    <button className="app-list-button">
+                      Rất sát bản gốc
+                    </button>
+                    <button className="app-list-button">Vừa phải</button>
+                    <button className="app-list-button">
+                      Chỉ lấy cảm hứng
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Characters</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {analysisResult ? (
+                  <AnalysisEntityList
+                    emptyText="No characters detected."
+                    entities={analysisResult.characters}
+                  />
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      No analysis result yet. Run analysis first.
+                    </p>
+                    {storyCharacters.length > 0 ? (
+                      storyCharacters.map((character) => (
+                        <div key={character.id} className="app-list-item">
+                          <p className="text-sm font-medium">
+                            {character.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {character.role}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Chưa có nhân vật.
+                      </p>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">World Bible</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {analysisResult ? (
+                  <WorldBibleAnalysis result={analysisResult} />
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      No analysis result yet. Run analysis first.
+                    </p>
+                    <div className="space-y-2">
+                      {notes.length > 0 ? (
+                        notes.map((note) => (
+                          <div key={note.id} className="app-list-item">
+                            <p className="text-sm font-medium">{note.title}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {note.content}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Chưa có world note.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Story Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analysisResult ? (
+                  <StoryEventsList events={nearbyEvents} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No analysis result yet. Run analysis first.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </aside>
+        </div>
+      )}
     </PageShell>
   );
 }
