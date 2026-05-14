@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 import {
   BarChart3,
@@ -77,6 +78,7 @@ interface AnalysisDashboardData {
 
 const storyStorageKey = "ai-story-app:stories";
 const aiProviderStorageKeyPrefix = "ai-story-app:ai-provider";
+const aiProviderStorageEvent = "yuki-ai-provider-storage-change";
 
 function getAiProviderStorageKey(storyId: string) {
   return `${aiProviderStorageKeyPrefix}:${storyId}`;
@@ -109,14 +111,35 @@ function saveStoredAiProviderId(
   storyId: string,
   providerId: AiPipelineProviderId,
 ) {
+  if (typeof window === "undefined") return;
+
   try {
     localStorage.setItem(getAiProviderStorageKey(storyId), providerId);
+    window.dispatchEvent(new Event(aiProviderStorageEvent));
   } catch (error) {
     console.error(
       "Failed to save AI provider selection to localStorage",
       error,
     );
   }
+}
+
+function subscribeToAiProviderStorage(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  const handleStorageChange = () => {
+    onStoreChange();
+  };
+
+  window.addEventListener("storage", handleStorageChange);
+  window.addEventListener(aiProviderStorageEvent, handleStorageChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorageChange);
+    window.removeEventListener(aiProviderStorageEvent, handleStorageChange);
+  };
 }
 
 function readJsonValue<T>(key: string, fallback: T): T {
@@ -200,12 +223,11 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
-  const [selectedProviderId, setSelectedProviderId] =
-    useState<AiPipelineProviderId>("mock");
-
-  useEffect(() => {
-    setSelectedProviderId(readStoredAiProviderId(storyId));
-  }, [storyId]);
+  const selectedProviderId = useSyncExternalStore<AiPipelineProviderId>(
+    subscribeToAiProviderStorage,
+    () => readStoredAiProviderId(storyId),
+    () => "mock",
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -413,7 +435,6 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               onValueChange={(value) => {
                 const providerId = value as AiPipelineProviderId;
 
-                setSelectedProviderId(providerId);
                 saveStoredAiProviderId(storyId, providerId);
               }}
             >

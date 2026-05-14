@@ -64,6 +64,11 @@ const storyNavigationItems = [
     icon: FileText,
   },
   {
+    label: "AI Contract",
+    href: "ai-contract",
+    icon: FileText,
+  },
+  {
     label: "Settings",
     href: "settings",
     icon: Settings,
