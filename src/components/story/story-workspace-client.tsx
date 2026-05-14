@@ -9,6 +9,7 @@ import {
   CalendarDays,
   GitBranch,
   HeartHandshake,
+  PenLine,
   Save,
   WandSparkles,
 } from "lucide-react";
@@ -631,6 +632,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <Link href={`/stories/${storyId}/world-tracker`}>
                 <Boxes className="mr-2 h-4 w-4" />
                 Open World Tracker
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/rewrite-planner`}>
+                <PenLine className="mr-2 h-4 w-4" />
+                Open Rewrite Planner
               </Link>
             </Button>
             <Button variant="outline">
