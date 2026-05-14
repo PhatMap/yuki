@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   Bot,
   BookOpen,
+  Boxes,
   CalendarDays,
   GitBranch,
   HeartHandshake,
@@ -624,6 +625,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <Link href={`/stories/${storyId}/relationships`}>
                 <HeartHandshake className="mr-2 h-4 w-4" />
                 Open Relationships
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/world-tracker`}>
+                <Boxes className="mr-2 h-4 w-4" />
+                Open World Tracker
               </Link>
             </Button>
             <Button variant="outline">

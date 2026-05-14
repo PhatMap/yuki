@@ -224,6 +224,12 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
                   Open Relationships
                 </Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/world-tracker`}>
+                  <Boxes className="mr-2 h-4 w-4" />
+                  Open World Tracker
+                </Link>
+              </Button>
               <Button asChild>
                 <Link href={`/stories/${storyId}/analysis`}>
                   <AlertTriangle className="mr-2 h-4 w-4" />
