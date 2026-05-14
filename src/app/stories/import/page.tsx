@@ -9,6 +9,7 @@ import {
   createInitialAnalysisStatus,
   detectChaptersFromText,
 } from "@/lib/novel-processing";
+import { saveImportedStoryData } from "@/lib/db/indexed-db";
 import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,8 @@ export default function ImportNovelPage() {
     [],
   );
   const [detectedChunks, setDetectedChunks] = useState<ChapterChunk[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   const totalWordCount = useMemo(() => {
     return detectedChapters.reduce(
@@ -64,11 +67,20 @@ export default function ImportNovelPage() {
     setDetectedChunks(chunks);
   }
 
-  function handleCreateStoryFromImport() {
+  async function handleCreateStoryFromImport() {
+    if (isCreating) return;
+
+    setIsCreating(true);
+    setCreateError("");
+
     const storyId = `story-${Date.now()}`;
     const importedChapters = detectChaptersFromText(novelText, storyId);
 
-    if (importedChapters.length === 0) return;
+    if (importedChapters.length === 0) {
+      setIsCreating(false);
+      setCreateError("Không thể tạo chương từ nội dung đã nhập.");
+      return;
+    }
 
     const chunks = chunkChapters(importedChapters);
     const analysisStatus = createInitialAnalysisStatus(
@@ -95,19 +107,50 @@ export default function ImportNovelPage() {
       updatedAt: now,
     };
 
-    localStorage.setItem(
-      storyStorageKey,
-      JSON.stringify([newStory, ...readLocalStories()]),
-    );
-    localStorage.setItem(
-      `ai-story-app:chapters:${storyId}`,
-      JSON.stringify(importedChapters),
-    );
-    localStorage.setItem(`ai-story-app:chunks:${storyId}`, JSON.stringify(chunks));
-    localStorage.setItem(
-      `ai-story-app:analysis-status:${storyId}`,
-      JSON.stringify(analysisStatus),
-    );
+    let localStorageSaved = false;
+    let indexedDbSaved = false;
+
+    try {
+      localStorage.setItem(
+        storyStorageKey,
+        JSON.stringify([newStory, ...readLocalStories()]),
+      );
+      localStorage.setItem(
+        `ai-story-app:chapters:${storyId}`,
+        JSON.stringify(importedChapters),
+      );
+      localStorage.setItem(
+        `ai-story-app:chunks:${storyId}`,
+        JSON.stringify(chunks),
+      );
+      localStorage.setItem(
+        `ai-story-app:analysis-status:${storyId}`,
+        JSON.stringify(analysisStatus),
+      );
+      localStorageSaved = true;
+    } catch (error) {
+      console.error("Failed to save imported novel to localStorage", error);
+    }
+
+    try {
+      await saveImportedStoryData({
+        story: newStory,
+        chapters: importedChapters,
+        chunks,
+        analysisStatus,
+      });
+      indexedDbSaved = true;
+    } catch (error) {
+      console.error("Failed to save imported novel to IndexedDB", error);
+    }
+
+    if (!localStorageSaved && !indexedDbSaved) {
+      setCreateError(
+        "Không thể lưu truyện import vào IndexedDB hoặc localStorage. Vui lòng thử lại.",
+      );
+      setIsCreating(false);
+      return;
+    }
 
     router.push(`/stories/${storyId}/analysis`);
   }
@@ -129,6 +172,12 @@ export default function ImportNovelPage() {
             <p>
               Với truyện rất dài, bản localStorage chỉ dùng cho prototype. Bản
               production cần database và background processing.
+            </p>
+          </div>
+          <div className="mt-3 flex max-w-3xl gap-3 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+            <p>
+              Prototype hiện lưu song song IndexedDB và localStorage fallback.
             </p>
           </div>
         </div>
@@ -187,12 +236,18 @@ export default function ImportNovelPage() {
                 <Button
                   type="button"
                   onClick={handleCreateStoryFromImport}
-                  disabled={!novelText.trim()}
+                  disabled={!novelText.trim() || isCreating}
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  Create story from import
+                  {isCreating ? "Đang tạo..." : "Create story from import"}
                 </Button>
               </div>
+
+              {createError ? (
+                <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  {createError}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 
