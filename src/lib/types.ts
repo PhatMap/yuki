@@ -119,6 +119,32 @@ export interface StoryEvent {
   importance: "low" | "medium" | "high" | "critical";
 }
 
+export interface WritingStyleProfile {
+  id: string;
+  storyId: string;
+  scope: "story" | "arc" | "chapter";
+  chapterRangeStart?: number;
+  chapterRangeEnd?: number;
+  narrationStyle: string;
+  sentenceStyle: string;
+  dialogueStyle: string;
+  pacing: string;
+  tone: string;
+  commonPatterns: string[];
+  tabooPatterns: string[];
+}
+
+export interface StoryAnalysisResult {
+  storyId: string;
+  characters: ExtractedEntity[];
+  events: StoryEvent[];
+  items: ExtractedEntity[];
+  terms: ExtractedEntity[];
+  locations: ExtractedEntity[];
+  writingStyleProfiles: WritingStyleProfile[];
+  updatedAt: string;
+}
+
 export interface CharacterState {
   id: string;
   storyId: string;
