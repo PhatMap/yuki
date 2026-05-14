@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Bot, BookOpen, GitBranch, Save, WandSparkles } from "lucide-react";
+import {
+  Bot,
+  BookOpen,
+  CalendarDays,
+  GitBranch,
+  Save,
+  WandSparkles,
+} from "lucide-react";
 
 import {
   getAnalysisResult,
@@ -604,6 +611,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <Link href={`/stories/${storyId}/bible`}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 Open Story Bible
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/timeline`}>
+                <CalendarDays className="mr-2 h-4 w-4" />
+                Open Timeline
               </Link>
             </Button>
             <Button variant="outline">

@@ -211,6 +211,12 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
                   Open Workspace
                 </Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/timeline`}>
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  Open Timeline
+                </Link>
+              </Button>
               <Button asChild>
                 <Link href={`/stories/${storyId}/analysis`}>
                   <AlertTriangle className="mr-2 h-4 w-4" />
