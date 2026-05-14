@@ -9,6 +9,7 @@ import {
   Database,
   FileText,
   GitBranch,
+  Gauge,
   HeartHandshake,
   Layers3,
   PenLine,
@@ -71,6 +72,11 @@ const storyNavigationItems = [
     label: "Data",
     href: "data-health",
     icon: Database,
+  },
+  {
+    label: "Scale Test",
+    href: "import-scale-test",
+    icon: Gauge,
   },
 ];
 
