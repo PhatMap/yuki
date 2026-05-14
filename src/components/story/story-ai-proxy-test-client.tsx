@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { StoryNavigation } from "@/components/app/story-navigation";
+import { getAiProxySmokeTestEndpoint } from "@/lib/ai/proxy-config";
 
 interface StoryAiProxyTestClientProps {
   storyId: string;
@@ -15,7 +16,7 @@ type TestResponse = {
   receivedAt: string;
 };
 
-const endpoint = "/api/ai/story-analysis";
+const endpoint = getAiProxySmokeTestEndpoint();
 
 function createSmokeTestPayload(storyId: string) {
   const createdAt = new Date().toISOString();

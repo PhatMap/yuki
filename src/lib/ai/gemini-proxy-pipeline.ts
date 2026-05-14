@@ -1,3 +1,7 @@
+import {
+  getPublicAiProxyEndpoint,
+  AI_PROXY_ENDPOINT_ENV_KEY,
+} from "@/lib/ai/proxy-config";
 import type {
   AiPipelineInput,
   AiPipelineProgress,
@@ -8,10 +12,6 @@ import type { StoryAnalysisResult } from "@/lib/types";
 
 const providerId = "gemini-proxy";
 const providerLabel = "Gemini proxy";
-
-function getProxyEndpoint() {
-  return process.env.NEXT_PUBLIC_AI_PROXY_ENDPOINT?.trim();
-}
 
 function createProgress(
   status: AiPipelineProgress["status"],
@@ -29,7 +29,9 @@ function createProgress(
 }
 
 function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
 }
 
 function isEntityArray(value: unknown) {
@@ -116,9 +118,10 @@ function isStoryAnalysisResult(value: unknown): value is StoryAnalysisResult {
   );
 }
 
-function extractAnalysisResult(value: unknown): StoryAnalysisResult | undefined {
+function extractAnalysisResult(
+  value: unknown,
+): StoryAnalysisResult | undefined {
   if (isStoryAnalysisResult(value)) return value;
-
   if (!value || typeof value !== "object") return undefined;
 
   const maybePipelineResult = value as Record<string, unknown>;
@@ -154,17 +157,16 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
   description:
     "Draft provider that calls a configured proxy endpoint instead of calling Gemini directly from the browser.",
   isConfigured() {
-    return Boolean(getProxyEndpoint());
+    return Boolean(getPublicAiProxyEndpoint());
   },
   async run(input: AiPipelineInput): Promise<AiPipelineResult> {
     const startedAt = new Date().toISOString();
-    const endpoint = getProxyEndpoint();
+    const endpoint = getPublicAiProxyEndpoint();
 
     if (!endpoint) {
       return createFailureResult({
         startedAt,
-        message:
-          "Gemini proxy is disabled because NEXT_PUBLIC_AI_PROXY_ENDPOINT is not configured.",
+        message: `Gemini proxy is disabled because ${AI_PROXY_ENDPOINT_ENV_KEY} is not configured.`,
       });
     }
 
