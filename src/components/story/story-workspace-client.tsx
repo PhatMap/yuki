@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Bot, BookOpen, GitBranch, Save, WandSparkles } from "lucide-react";
 
@@ -599,6 +600,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
           </div>
 
           <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/bible`}>
+                <BookOpen className="mr-2 h-4 w-4" />
+                Open Story Bible
+              </Link>
+            </Button>
             <Button variant="outline">
               <Save className="mr-2 h-4 w-4" />
               Lưu
