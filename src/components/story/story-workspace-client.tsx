@@ -7,6 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   GitBranch,
+  HeartHandshake,
   Save,
   WandSparkles,
 } from "lucide-react";
@@ -617,6 +618,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <Link href={`/stories/${storyId}/timeline`}>
                 <CalendarDays className="mr-2 h-4 w-4" />
                 Open Timeline
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/relationships`}>
+                <HeartHandshake className="mr-2 h-4 w-4" />
+                Open Relationships
               </Link>
             </Button>
             <Button variant="outline">
