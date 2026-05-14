@@ -11,6 +11,7 @@ import {
   HeartHandshake,
   Layers3,
   PenLine,
+  Settings,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -59,6 +60,11 @@ const storyNavigationItems = [
     label: "Draft",
     href: "rewrite-draft",
     icon: FileText,
+  },
+  {
+    label: "Settings",
+    href: "settings",
+    icon: Settings,
   },
 ];
 

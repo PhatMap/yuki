@@ -262,6 +262,17 @@ export interface RewriteDraft {
   updatedAt: string;
 }
 
+export interface StoryLocalSettings {
+  storyId: string;
+  fontSize: "small" | "medium" | "large";
+  readingWidth: "compact" | "comfortable" | "wide";
+  density: "compact" | "comfortable";
+  showMetadata: boolean;
+  autoSaveDrafts: boolean;
+  mockAiMode: "conservative" | "balanced" | "creative";
+  updatedAt: string;
+}
+
 export interface BranchContinuityIssue {
   id: string;
   storyId: string;
