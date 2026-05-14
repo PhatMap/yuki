@@ -2,74 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpenCheck, FileText, Upload } from "lucide-react";
+import { AlertTriangle, BookOpenCheck, FileText, Upload } from "lucide-react";
 
-import type { Chapter, Story } from "@/lib/types";
+import {
+  chunkChapters,
+  createInitialAnalysisStatus,
+  detectChaptersFromText,
+} from "@/lib/novel-processing";
+import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-interface DetectedChapter {
-  title: string;
-  content: string;
-  order: number;
-  wordCount: number;
-}
-
 const storyStorageKey = "ai-story-app:stories";
-const chapterMatcher = /(chương|chapter)\s+\d+/i;
-const chapterHeadingMatcher = /(chương|chapter)\s+\d+[^\r\n]*/gi;
-
-function estimateWordCount(text: string) {
-  const words = text.trim().match(/\S+/g);
-
-  return words?.length ?? 0;
-}
-
-function detectNovelChapters(text: string): DetectedChapter[] {
-  const sourceText = text.trim();
-
-  if (!sourceText) return [];
-
-  if (!chapterMatcher.test(sourceText)) {
-    return [
-      {
-        title: "Imported Novel",
-        content: sourceText,
-        order: 1,
-        wordCount: estimateWordCount(sourceText),
-      },
-    ];
-  }
-
-  const matches = Array.from(sourceText.matchAll(chapterHeadingMatcher));
-
-  if (matches.length === 0) {
-    return [
-      {
-        title: "Imported Novel",
-        content: sourceText,
-        order: 1,
-        wordCount: estimateWordCount(sourceText),
-      },
-    ];
-  }
-
-  return matches.map((match, index) => {
-    const startIndex = match.index ?? 0;
-    const nextIndex = matches[index + 1]?.index ?? sourceText.length;
-    const content = sourceText.slice(startIndex, nextIndex).trim();
-
-    return {
-      title: match[0].trim(),
-      content,
-      order: index + 1,
-      wordCount: estimateWordCount(content),
-    };
-  });
-}
+const tempStoryId = "preview-import-story";
 
 function readLocalStories() {
   try {
@@ -88,9 +36,10 @@ export default function ImportNovelPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [novelText, setNovelText] = useState("");
-  const [detectedChapters, setDetectedChapters] = useState<DetectedChapter[]>(
+  const [detectedChapters, setDetectedChapters] = useState<ImportedChapter[]>(
     [],
   );
+  const [detectedChunks, setDetectedChunks] = useState<ChapterChunk[]>([]);
 
   const totalWordCount = useMemo(() => {
     return detectedChapters.reduce(
@@ -99,19 +48,34 @@ export default function ImportNovelPage() {
     );
   }, [detectedChapters]);
 
+  const chunkCountsByChapterId = useMemo(() => {
+    return detectedChunks.reduce<Record<string, number>>((counts, chunk) => {
+      counts[chunk.chapterId] = (counts[chunk.chapterId] ?? 0) + 1;
+
+      return counts;
+    }, {});
+  }, [detectedChunks]);
+
   function handleDetectChapters() {
-    setDetectedChapters(detectNovelChapters(novelText));
+    const chapters = detectChaptersFromText(novelText, tempStoryId);
+    const chunks = chunkChapters(chapters);
+
+    setDetectedChapters(chapters);
+    setDetectedChunks(chunks);
   }
 
   function handleCreateStoryFromImport() {
-    const chaptersToImport =
-      detectedChapters.length > 0
-        ? detectedChapters
-        : detectNovelChapters(novelText);
-
-    if (chaptersToImport.length === 0) return;
-
     const storyId = `story-${Date.now()}`;
+    const importedChapters = detectChaptersFromText(novelText, storyId);
+
+    if (importedChapters.length === 0) return;
+
+    const chunks = chunkChapters(importedChapters);
+    const analysisStatus = createInitialAnalysisStatus(
+      storyId,
+      importedChapters,
+      chunks,
+    );
     const now = new Date().toISOString();
     const storyTitle = title.trim() || "Imported Novel";
 
@@ -119,7 +83,7 @@ export default function ImportNovelPage() {
       id: storyId,
       title: storyTitle,
       description:
-        chaptersToImport[0]?.content.slice(0, 240) ||
+        importedChapters[0]?.cleanContent.slice(0, 240) ||
         "Imported long-form novel.",
       author: author.trim(),
       genre: "adventure",
@@ -131,15 +95,6 @@ export default function ImportNovelPage() {
       updatedAt: now,
     };
 
-    const importedChapters: Chapter[] = chaptersToImport.map((chapter) => ({
-      id: `${storyId}-chapter-${chapter.order}`,
-      storyId,
-      title: chapter.title,
-      content: chapter.content,
-      order: chapter.order,
-      createdAt: now,
-    }));
-
     localStorage.setItem(
       storyStorageKey,
       JSON.stringify([newStory, ...readLocalStories()]),
@@ -147,6 +102,11 @@ export default function ImportNovelPage() {
     localStorage.setItem(
       `ai-story-app:chapters:${storyId}`,
       JSON.stringify(importedChapters),
+    );
+    localStorage.setItem(`ai-story-app:chunks:${storyId}`, JSON.stringify(chunks));
+    localStorage.setItem(
+      `ai-story-app:analysis-status:${storyId}`,
+      JSON.stringify(analysisStatus),
     );
 
     router.push(`/stories/${storyId}/analysis`);
@@ -164,6 +124,13 @@ export default function ImportNovelPage() {
             Nạp truyện có sẵn để phân tích chương, nhân vật, timeline, vật
             phẩm, thuật ngữ và văn phong.
           </p>
+          <div className="mt-4 flex max-w-3xl gap-3 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+            <p>
+              Với truyện rất dài, bản localStorage chỉ dùng cho prototype. Bản
+              production cần database và background processing.
+            </p>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -241,7 +208,8 @@ export default function ImportNovelPage() {
                       {detectedChapters.length} chương detected
                     </p>
                     <p className="mt-1 text-muted-foreground">
-                      Khoảng {totalWordCount.toLocaleString("vi-VN")} từ
+                      Khoảng {totalWordCount.toLocaleString("vi-VN")} từ ·{" "}
+                      {detectedChunks.length.toLocaleString("vi-VN")} chunks
                     </p>
                   </div>
 
@@ -249,10 +217,10 @@ export default function ImportNovelPage() {
                     {detectedChapters.map((chapter) => (
                       <article
                         className="rounded-lg border bg-background p-3"
-                        key={`${chapter.order}-${chapter.title}`}
+                        key={chapter.id}
                       >
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Chương {chapter.order}
+                          Chương {chapter.chapterNumber}
                         </p>
                         <h2 className="mt-1 text-sm font-semibold">
                           {chapter.title}
@@ -260,6 +228,12 @@ export default function ImportNovelPage() {
                         <p className="mt-2 text-xs text-muted-foreground">
                           {chapter.wordCount.toLocaleString("vi-VN")} từ ước
                           tính
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString(
+                            "vi-VN",
+                          )}{" "}
+                          chunks
                         </p>
                       </article>
                     ))}
