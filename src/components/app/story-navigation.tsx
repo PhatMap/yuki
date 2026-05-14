@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   BookOpen,
   CalendarDays,
+  Database,
   FileText,
   GitBranch,
   HeartHandshake,
@@ -65,6 +66,11 @@ const storyNavigationItems = [
     label: "Settings",
     href: "settings",
     icon: Settings,
+  },
+  {
+    label: "Data",
+    href: "data-health",
+    icon: Database,
   },
 ];
 
