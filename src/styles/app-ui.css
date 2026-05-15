@@ -1920,3 +1920,194 @@
     }
   }
 }
+
+@layer components {
+  .app-story-shell-nav {
+    z-index: 40;
+  }
+
+  .app-story-nav-scroll {
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 1rem;
+  }
+
+  .app-story-nav-groups {
+    align-items: stretch;
+  }
+
+  .app-story-nav-group {
+    min-width: max-content;
+  }
+
+  .app-story-nav-list {
+    align-items: center;
+  }
+
+  .app-story-nav-link {
+    min-width: max-content;
+  }
+
+  .app-story-nav-link-label {
+    line-height: 1;
+  }
+
+  .app-story-nav-group-active {
+    position: relative;
+  }
+
+  .app-story-nav-group-active::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: -0.38rem;
+    height: 2px;
+    border-radius: 999px;
+    background: hsl(var(--primary) / 0.68);
+  }
+
+  .app-story-shell-nav-inner {
+    min-width: 0;
+  }
+
+  .app-story-shell-title {
+    min-width: 0;
+  }
+
+  .app-story-shell-heading,
+  .app-story-shell-eyebrow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1024px) {
+    .app-story-shell-nav {
+      position: sticky;
+      top: 0;
+    }
+
+    .app-story-shell-nav-inner {
+      padding-top: 0.75rem;
+      padding-bottom: 0.7rem;
+    }
+
+    .app-story-nav-group {
+      padding: 0.35rem;
+    }
+
+    .app-story-nav-group-heading {
+      padding-inline: 0.45rem;
+      padding-bottom: 0.35rem;
+    }
+
+    .app-story-nav-group-label {
+      font-size: 0.64rem;
+      letter-spacing: 0.12em;
+    }
+
+    .app-story-nav-list {
+      gap: 0.2rem;
+    }
+
+    .app-story-nav-link {
+      height: 2.15rem;
+      gap: 0.4rem;
+      padding-inline: 0.55rem;
+      font-size: 0.8125rem;
+    }
+
+    .app-story-nav-link svg {
+      width: 0.9rem;
+      height: 0.9rem;
+    }
+
+    .app-story-nav-pending {
+      width: 0.32rem;
+      height: 0.32rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .app-story-shell-nav-inner {
+      padding-inline: 0.75rem;
+    }
+
+    .app-story-nav-scroll {
+      margin-inline: -0.75rem;
+      padding-inline: 0.75rem;
+      padding-bottom: 0.45rem;
+    }
+
+    .app-story-nav-groups {
+      gap: 0.45rem;
+    }
+
+    .app-story-nav-group {
+      border-radius: 0.9rem;
+    }
+
+    .app-story-nav-group-heading {
+      padding-inline: 0.4rem;
+      padding-bottom: 0.25rem;
+    }
+
+    .app-story-nav-group-label {
+      font-size: 0.6rem;
+    }
+
+    .app-story-nav-link {
+      height: 2rem;
+      border-radius: 0.7rem;
+      padding-inline: 0.5rem;
+      font-size: 0.78rem;
+    }
+
+    .app-story-nav-link-label {
+      max-width: 5.5rem;
+    }
+
+    .app-story-nav-group-active::after {
+      left: 0.55rem;
+      right: 0.55rem;
+      bottom: -0.32rem;
+    }
+
+    .app-container {
+      padding-top: 1rem;
+    }
+
+    .app-page-header {
+      padding: 1rem;
+    }
+
+    .app-toolbar {
+      width: 100%;
+    }
+
+    .app-toolbar>* {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .app-story-nav-link-label {
+      max-width: 4.8rem;
+    }
+
+    .app-story-nav-link {
+      gap: 0.32rem;
+      padding-inline: 0.42rem;
+      font-size: 0.74rem;
+    }
+
+    .app-story-nav-link svg {
+      width: 0.82rem;
+      height: 0.82rem;
+    }
+
+    .app-story-nav-group-label {
+      font-size: 0.56rem;
+    }
+  }
+}
