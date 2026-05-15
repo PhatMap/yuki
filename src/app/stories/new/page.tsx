@@ -52,6 +52,7 @@ const initialForm: CreateStoryForm = {
 export default function NewStoryPage() {
   const router = useRouter();
   const [form, setForm] = useState<CreateStoryForm>(initialForm);
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   function updateForm<K extends keyof CreateStoryForm>(
@@ -66,6 +67,10 @@ export default function NewStoryPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isSaving) return;
+
+    setIsSaving(true);
     setErrorMessage("");
 
     const storyId = `story-${Date.now()}`;
@@ -79,20 +84,26 @@ export default function NewStoryPage() {
       tone: form.tone,
       canonAdherence: form.canonAdherence,
       isFanwork: form.isFanwork,
-      source: "manual",
       createdAt: now,
       updatedAt: now,
     };
 
     try {
-      await saveStory(newStory);
-    } catch (error) {
-      console.error("Failed to save new story to IndexedDB", error);
-      setErrorMessage("Could not save the new story to IndexedDB.");
-      return;
-    }
+      await saveStory(newStory, {
+        storyId,
+        originalTitle: form.originalTitle.trim(),
+        originalAuthor: form.originalAuthor.trim(),
+        mustKeep: form.mustKeep.trim(),
+        mustChange: form.mustChange.trim(),
+        updatedAt: now,
+      });
 
-    router.push(`/stories/${storyId}/workspace`);
+      router.push(`/stories/${storyId}/workspace`);
+    } catch (error) {
+      console.error("Failed to save story setup to IndexedDB", error);
+      setErrorMessage("Không thể lưu project mới vào IndexedDB.");
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -297,9 +308,9 @@ export default function NewStoryPage() {
             ) : null}
 
             <div className="flex justify-end">
-              <Button type="submit">
+              <Button type="submit" disabled={isSaving}>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Tạo project truyện
+                {isSaving ? "Đang lưu..." : "Tạo project truyện"}
               </Button>
             </div>
           </form>

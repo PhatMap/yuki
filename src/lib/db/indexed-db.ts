@@ -12,6 +12,15 @@ import type {
   StoryBranchV2,
 } from "@/lib/types";
 
+export interface StorySetupData {
+  storyId: string;
+  originalTitle: string;
+  originalAuthor: string;
+  mustKeep: string;
+  mustChange: string;
+  updatedAt: string;
+}
+
 interface SaveImportedStoryDataParams {
   story: Story;
   chapters: ImportedChapter[];
@@ -21,6 +30,7 @@ interface SaveImportedStoryDataParams {
 
 export class AiStoryDatabase extends Dexie {
   stories!: Table<Story, string>;
+  storySetups!: Table<StorySetupData, string>;
   importedChapters!: Table<ImportedChapter, string>;
   chapterChunks!: Table<ChapterChunk, string>;
   analysisStatuses!: Table<AnalysisStatus, string>;
@@ -36,8 +46,7 @@ export class AiStoryDatabase extends Dexie {
     this.version(1).stores({
       stories:
         "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
-      importedChapters:
-        "id, storyId, chapterNumber, title, wordCount, status",
+      importedChapters: "id, storyId, chapterNumber, title, wordCount, status",
       chapterChunks:
         "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
       analysisStatuses:
@@ -46,15 +55,13 @@ export class AiStoryDatabase extends Dexie {
       branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
       branchChanges:
         "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
-      continuityIssues:
-        "id, storyId, branchId, changeId, severity, status",
+      continuityIssues: "id, storyId, branchId, changeId, severity, status",
     });
 
     this.version(2).stores({
       stories:
         "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
-      importedChapters:
-        "id, storyId, chapterNumber, title, wordCount, status",
+      importedChapters: "id, storyId, chapterNumber, title, wordCount, status",
       chapterChunks:
         "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
       analysisStatuses:
@@ -63,8 +70,25 @@ export class AiStoryDatabase extends Dexie {
       branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
       branchChanges:
         "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
-      continuityIssues:
-        "id, storyId, branchId, changeId, severity, status",
+      continuityIssues: "id, storyId, branchId, changeId, severity, status",
+      rewriteDrafts:
+        "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
+    });
+
+    this.version(3).stores({
+      stories:
+        "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
+      storySetups: "storyId, updatedAt",
+      importedChapters: "id, storyId, chapterNumber, title, wordCount, status",
+      chapterChunks:
+        "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
+      analysisStatuses:
+        "storyId, totalChapters, parsedChapters, chunkedChapters, analyzedChapters, totalChunks, updatedAt",
+      analysisResults: "storyId, updatedAt",
+      branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
+      branchChanges:
+        "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
+      continuityIssues: "id, storyId, branchId, changeId, severity, status",
       rewriteDrafts:
         "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
     });
@@ -72,6 +96,24 @@ export class AiStoryDatabase extends Dexie {
 }
 
 export const db = new AiStoryDatabase();
+
+export async function saveStory(story: Story, setup?: StorySetupData) {
+  await db.transaction("rw", db.stories, db.storySetups, async () => {
+    await db.stories.put(story);
+
+    if (setup) {
+      await db.storySetups.put(setup);
+    }
+  });
+}
+
+export async function saveStorySetup(setup: StorySetupData) {
+  await db.storySetups.put(setup);
+}
+
+export async function getStorySetup(storyId: string) {
+  return db.storySetups.get(storyId);
+}
 
 export async function saveImportedStoryData({
   story,
@@ -102,10 +144,6 @@ export async function getAllStories() {
   return db.stories.orderBy("updatedAt").reverse().toArray();
 }
 
-export async function saveStory(story: Story) {
-  await db.stories.put(story);
-}
-
 export async function getImportedChapters(storyId: string) {
   return db.importedChapters
     .where("storyId")
@@ -114,10 +152,7 @@ export async function getImportedChapters(storyId: string) {
 }
 
 export async function getChapterChunks(storyId: string) {
-  return db.chapterChunks
-    .where("storyId")
-    .equals(storyId)
-    .sortBy("chunkIndex");
+  return db.chapterChunks.where("storyId").equals(storyId).sortBy("chunkIndex");
 }
 
 export async function getAnalysisStatus(storyId: string) {
@@ -217,6 +252,7 @@ export async function clearStoryData(storyId: string) {
     "rw",
     [
       db.stories,
+      db.storySetups,
       db.importedChapters,
       db.chapterChunks,
       db.analysisStatuses,
@@ -228,6 +264,7 @@ export async function clearStoryData(storyId: string) {
     ],
     async () => {
       await db.stories.delete(storyId);
+      await db.storySetups.delete(storyId);
       await db.importedChapters.where("storyId").equals(storyId).delete();
       await db.chapterChunks.where("storyId").equals(storyId).delete();
       await db.analysisStatuses.delete(storyId);
