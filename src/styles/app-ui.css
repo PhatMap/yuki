@@ -531,3 +531,184 @@
     }
   }
 }
+
+@layer components {
+  .app-container :where(.rounded-2xl.border.bg-background) {
+    @apply min-w-0;
+  }
+
+  .app-container :where(.rounded-xl.border.bg-background) {
+    @apply min-w-0;
+  }
+
+  .app-data-panel {
+    @apply min-w-0 rounded-2xl border bg-background p-4 shadow-sm sm:p-5;
+  }
+
+  .app-data-panel-header {
+    @apply mb-4 flex min-w-0 flex-col gap-1;
+  }
+
+  .app-data-panel-title {
+    @apply text-base font-semibold tracking-tight;
+  }
+
+  .app-data-panel-description {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-data-grid {
+    @apply grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .app-data-stat {
+    @apply min-w-0 rounded-2xl border bg-background p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md;
+  }
+
+  .app-data-stat-label {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .app-data-stat-value {
+    @apply mt-2 break-words text-xl font-semibold tracking-tight;
+  }
+
+  .app-data-stat-description {
+    @apply mt-2 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-container :where(table) {
+    @apply border-separate border-spacing-0;
+  }
+
+  .app-container :where(thead th) {
+    @apply bg-muted/70 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+  }
+
+  .app-container :where(tbody tr) {
+    @apply transition hover:bg-muted/30;
+  }
+
+  .app-container :where(th:first-child) {
+    @apply rounded-tl-xl;
+  }
+
+  .app-container :where(th:last-child) {
+    @apply rounded-tr-xl;
+  }
+
+  .app-container :where(td, th) {
+    @apply align-top;
+  }
+
+  .app-container :where(td) {
+    @apply text-sm leading-6;
+  }
+
+  .app-container :where(td code) {
+    @apply rounded-md border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground;
+  }
+
+  .app-json-panel {
+    @apply max-h-[560px] overflow-auto rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-6 text-muted-foreground shadow-inner;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .app-json-panel-compact {
+    @apply max-h-[360px] overflow-auto rounded-xl border bg-muted/40 p-3 font-mono text-xs leading-5 text-muted-foreground shadow-inner;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .app-chip-row {
+    @apply flex min-w-0 flex-wrap gap-2;
+  }
+
+  .app-chip {
+    @apply inline-flex max-w-full items-center gap-1 rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium leading-none text-muted-foreground;
+  }
+
+  .app-chip-primary {
+    @apply inline-flex max-w-full items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold leading-none text-primary;
+  }
+
+  .app-chip-danger {
+    @apply inline-flex max-w-full items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-semibold leading-none text-destructive;
+  }
+
+  .app-chip-success {
+    @apply inline-flex max-w-full items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold leading-none text-emerald-700 dark:text-emerald-300;
+  }
+
+  .app-status-list {
+    @apply grid min-w-0 gap-3;
+  }
+
+  .app-status-item {
+    @apply min-w-0 rounded-xl border bg-background p-3.5 shadow-sm;
+  }
+
+  .app-status-item-title {
+    @apply break-words text-sm font-semibold;
+  }
+
+  .app-status-item-meta {
+    @apply mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground;
+  }
+
+  .app-status-item-body {
+    @apply mt-2 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-two-column {
+    @apply grid min-w-0 gap-4 lg:grid-cols-2;
+  }
+
+  .app-three-column {
+    @apply grid min-w-0 gap-4 lg:grid-cols-3;
+  }
+
+  .app-four-column {
+    @apply grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .app-sticky-panel {
+    @apply lg:sticky lg:top-24;
+  }
+
+  .app-container :where(.text-muted-foreground) {
+    text-wrap: pretty;
+  }
+
+  .app-container :where(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
+  @media (max-width: 640px) {
+    .app-data-panel {
+      @apply p-4;
+    }
+
+    .app-data-stat-value {
+      @apply text-lg;
+    }
+
+    .app-json-panel {
+      max-height: 420px;
+      font-size: 0.75rem;
+      line-height: 1.45rem;
+    }
+
+    .app-json-panel-compact {
+      max-height: 300px;
+    }
+
+    .app-chip,
+    .app-chip-primary,
+    .app-chip-danger,
+    .app-chip-success {
+      @apply text-[0.7rem];
+    }
+  }
+}
