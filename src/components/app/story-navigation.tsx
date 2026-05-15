@@ -8,9 +8,9 @@ import {
   BookOpen,
   CalendarDays,
   Database,
-  Download,
   FileJson,
   FileText,
+  GitBranch,
   Gauge,
   HeartHandshake,
   Layers3,
@@ -27,12 +27,17 @@ interface StoryNavigationProps {
 const storyNavigationGroups = [
   {
     label: "Core",
-    description: "Import, inspect, analyze",
+    description: "Read, inspect, analyze",
     items: [
+      {
+        label: "Reader",
+        href: "reader",
+        icon: BookOpen,
+      },
       {
         label: "Workspace",
         href: "workspace",
-        icon: BookOpen,
+        icon: Layers3,
       },
       {
         label: "Analysis",
@@ -63,7 +68,7 @@ const storyNavigationGroups = [
       {
         label: "World",
         href: "world-tracker",
-        icon: Database,
+        icon: GitBranch,
       },
     ],
   },
@@ -96,11 +101,6 @@ const storyNavigationGroups = [
         label: "Data",
         href: "data-health",
         icon: Database,
-      },
-      {
-        label: "Export",
-        href: "export",
-        icon: Download,
       },
       {
         label: "Scale",
