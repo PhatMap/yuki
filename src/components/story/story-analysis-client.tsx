@@ -37,6 +37,12 @@ import {
   listAiPipelineProviders,
   runAiPipeline,
 } from "@/lib/ai/pipeline";
+import {
+  defaultAiProviderId,
+  readStoredAiProviderId,
+  saveStoredAiProviderId,
+  subscribeToAiProviderStorage,
+} from "@/lib/storage/ai-provider-storage";
 import type {
   AnalysisStatus,
   ChapterChunk,
@@ -75,71 +81,6 @@ interface AnalysisDashboardData {
   analysisResult?: StoryAnalysisResult;
 }
 
-const aiProviderStorageKeyPrefix = "ai-story-app:ai-provider";
-const aiProviderStorageEvent = "yuki-ai-provider-storage-change";
-
-function getAiProviderStorageKey(storyId: string) {
-  return `${aiProviderStorageKeyPrefix}:${storyId}`;
-}
-
-function isAiPipelineProviderId(value: string): value is AiPipelineProviderId {
-  return value === "mock" || value === "gemini-proxy";
-}
-
-function readStoredAiProviderId(storyId: string): AiPipelineProviderId {
-  if (typeof window === "undefined") return "mock";
-
-  try {
-    const storedValue = localStorage.getItem(getAiProviderStorageKey(storyId));
-
-    if (storedValue && isAiPipelineProviderId(storedValue)) {
-      return storedValue;
-    }
-  } catch (error) {
-    console.error(
-      "Failed to read AI provider selection from localStorage",
-      error,
-    );
-  }
-
-  return "mock";
-}
-
-function saveStoredAiProviderId(
-  storyId: string,
-  providerId: AiPipelineProviderId,
-) {
-  if (typeof window === "undefined") return;
-
-  try {
-    localStorage.setItem(getAiProviderStorageKey(storyId), providerId);
-    window.dispatchEvent(new Event(aiProviderStorageEvent));
-  } catch (error) {
-    console.error(
-      "Failed to save AI provider selection to localStorage",
-      error,
-    );
-  }
-}
-
-function subscribeToAiProviderStorage(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const handleStorageChange = () => {
-    onStoreChange();
-  };
-
-  window.addEventListener("storage", handleStorageChange);
-  window.addEventListener(aiProviderStorageEvent, handleStorageChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorageChange);
-    window.removeEventListener(aiProviderStorageEvent, handleStorageChange);
-  };
-}
-
 async function readIndexedDbDashboardData(storyId: string) {
   const [story, chapters, chunks, analysisStatus, analysisResult] =
     await Promise.all([
@@ -167,10 +108,11 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
+
   const selectedProviderId = useSyncExternalStore<AiPipelineProviderId>(
     subscribeToAiProviderStorage,
     () => readStoredAiProviderId(storyId),
-    () => "mock",
+    () => defaultAiProviderId,
   );
 
   useEffect(() => {
@@ -182,6 +124,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         chunks: [],
       };
       let indexedDbFailed = false;
+
       try {
         indexedDbData = await readIndexedDbDashboardData(storyId);
       } catch (error) {
@@ -212,9 +155,11 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
   const { story, chapters, chunks, analysisStatus, analysisResult } =
     dashboardData;
+
   const totalWordCount = useMemo(() => {
     return chapters.reduce((total, chapter) => total + chapter.wordCount, 0);
   }, [chapters]);
+
   const chunkCountsByChapterId = useMemo(() => {
     return chunks.reduce<Record<string, number>>((counts, chunk) => {
       counts[chunk.chapterId] = (counts[chunk.chapterId] ?? 0) + 1;
@@ -280,6 +225,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     const now = new Date().toISOString();
     const chunkedChapterCount = new Set(chunks.map((chunk) => chunk.chapterId))
       .size;
+
     const updatedStatus: AnalysisStatus = {
       storyId,
       totalChapters: chapters.length,
@@ -290,6 +236,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       createdAt: analysisStatus?.createdAt ?? now,
       updatedAt: now,
     };
+
     try {
       await saveAnalysisResult(storyId, result, updatedStatus);
     } catch (error) {
@@ -337,8 +284,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         />
 
         <p className="app-muted-text">
-          Reading story data from IndexedDB. Provider:{" "}
-          {pipelineProvider.label}. Gemini proxy:{" "}
+          Reading story data from IndexedDB. Provider: {pipelineProvider.label}.
+          Gemini proxy:{" "}
           {geminiProxyProvider.isConfigured?.()
             ? "configured"
             : "not configured"}
@@ -368,9 +315,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             </Select>
             <p className="app-muted-text">
               {pipelineProvider.description}
-
               {" Selection is saved locally for this story."}
-
               {selectedProviderId === "gemini-proxy" &&
               !geminiProxyProvider.isConfigured?.()
                 ? " NEXT_PUBLIC_AI_PROXY_ENDPOINT is not configured."
