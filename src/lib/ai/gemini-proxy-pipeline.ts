@@ -1,8 +1,5 @@
-import {
-  getPublicAiProxyEndpoint,
-  AI_PROXY_ENDPOINT_ENV_KEY,
-} from "@/lib/ai/proxy-config";
 import type {
+  AiPipelineExecutionContext,
   AiPipelineInput,
   AiPipelineProgress,
   AiPipelineProvider,
@@ -20,10 +17,11 @@ function createProgress(
   return [
     {
       status,
-      currentStep: status === "completed" ? "complete" : "prepare-input",
+      currentStep: status === "completed" ? "complete" : "call-provider",
       message,
-      completedSteps: status === "completed" ? ["complete"] : [],
-      totalSteps: 1,
+      completedSteps:
+        status === "completed" ? ["call-provider", "complete"] : [],
+      totalSteps: 2,
     },
   ];
 }
@@ -122,6 +120,7 @@ function extractAnalysisResult(
   value: unknown,
 ): StoryAnalysisResult | undefined {
   if (isStoryAnalysisResult(value)) return value;
+
   if (!value || typeof value !== "object") return undefined;
 
   const maybePipelineResult = value as Record<string, unknown>;
@@ -133,12 +132,25 @@ function extractAnalysisResult(
   return undefined;
 }
 
+function toPromptContext(context: AiPipelineExecutionContext) {
+  return {
+    templateId: context.renderedPrompt.template.id,
+    templateTitle: context.renderedPrompt.template.title,
+    systemIdentityTitle: context.renderedPrompt.systemIdentity?.title,
+    prompt: context.renderedPrompt.prompt,
+    missingVariables: context.renderedPrompt.missingVariables,
+    usedVariables: context.renderedPrompt.usedVariables,
+  };
+}
+
 function createFailureResult({
   startedAt,
   message,
+  context,
 }: {
   startedAt: string;
   message: string;
+  context: AiPipelineExecutionContext;
 }): AiPipelineResult {
   return {
     providerId,
@@ -148,6 +160,8 @@ function createFailureResult({
     steps: createProgress("failed", message),
     startedAt,
     completedAt: new Date().toISOString(),
+    runtime: context.runtime,
+    promptContext: toPromptContext(context),
   };
 }
 
@@ -155,18 +169,23 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
   id: providerId,
   label: providerLabel,
   description:
-    "Draft provider that calls a configured proxy endpoint instead of calling Gemini directly from the browser.",
+    "Provider that sends rendered prompt and IndexedDB story context to the configured Gemini proxy endpoint.",
   isConfigured() {
-    return Boolean(getPublicAiProxyEndpoint());
+    return true;
   },
-  async run(input: AiPipelineInput): Promise<AiPipelineResult> {
+  async run(
+    input: AiPipelineInput,
+    context: AiPipelineExecutionContext,
+  ): Promise<AiPipelineResult> {
     const startedAt = new Date().toISOString();
-    const endpoint = getPublicAiProxyEndpoint();
+    const endpoint = context.runtime.endpoint.trim();
 
-    if (!endpoint) {
+    if (!endpoint || endpoint === "not configured") {
       return createFailureResult({
         startedAt,
-        message: `Gemini proxy is disabled because ${AI_PROXY_ENDPOINT_ENV_KEY} is not configured.`,
+        context,
+        message:
+          "Gemini proxy endpoint is not configured. Open /settings and set a valid proxy endpoint.",
       });
     }
 
@@ -179,6 +198,18 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
         body: JSON.stringify({
           provider: providerId,
           task: "story-analysis",
+          model: context.runtime.model,
+          runtime: {
+            temperature: context.runtime.temperature,
+            maxOutputTokens: context.runtime.maxOutputTokens,
+          },
+          prompt: context.renderedPrompt.prompt,
+          promptTemplate: {
+            id: context.renderedPrompt.template.id,
+            title: context.renderedPrompt.template.title,
+            missingVariables: context.renderedPrompt.missingVariables,
+            usedVariables: context.renderedPrompt.usedVariables,
+          },
           input,
         }),
       });
@@ -186,6 +217,7 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
       if (!response.ok) {
         return createFailureResult({
           startedAt,
+          context,
           message: `Gemini proxy request failed with HTTP ${response.status}.`,
         });
       }
@@ -196,6 +228,7 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
       if (!analysisResult) {
         return createFailureResult({
           startedAt,
+          context,
           message:
             "Gemini proxy response did not include a valid StoryAnalysisResult.",
         });
@@ -209,10 +242,13 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
         steps: createProgress("completed", "Gemini proxy analysis completed."),
         startedAt,
         completedAt: new Date().toISOString(),
+        runtime: context.runtime,
+        promptContext: toPromptContext(context),
       };
     } catch (error) {
       return createFailureResult({
         startedAt,
+        context,
         message:
           error instanceof Error
             ? `Gemini proxy request failed: ${error.message}`

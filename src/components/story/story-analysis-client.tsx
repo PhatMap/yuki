@@ -7,7 +7,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
 } from "react";
 import {
   BarChart3,
@@ -19,6 +18,7 @@ import {
   PenLine,
   Play,
   ScrollText,
+  Settings,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -31,18 +31,15 @@ import {
   getStoryById,
   saveAnalysisResult,
 } from "@/lib/db/indexed-db";
+import { runAiPipeline } from "@/lib/ai/pipeline";
+import type { AiPipelineResult } from "@/lib/ai/types";
 import {
-  type AiPipelineProviderId,
-  getAiPipelineProvider,
-  listAiPipelineProviders,
-  runAiPipeline,
-} from "@/lib/ai/pipeline";
-import {
-  defaultAiProviderId,
-  readStoredAiProviderId,
-  saveStoredAiProviderId,
-  subscribeToAiProviderStorage,
-} from "@/lib/storage/ai-provider-storage";
+  getActiveRuntimeEndpoint,
+  getActiveRuntimeModel,
+  getAiRuntimeProviderLabel,
+  getAiRuntimeSettings,
+  type AiRuntimeSettings,
+} from "@/lib/settings/ai-runtime-settings";
 import type {
   AnalysisStatus,
   ChapterChunk,
@@ -61,13 +58,6 @@ import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface StoryAnalysisClientProps {
   storyId: string;
@@ -100,20 +90,22 @@ async function readIndexedDbDashboardData(storyId: string) {
   };
 }
 
+function formatRuntimeValue(value: string) {
+  return value || "not configured";
+}
+
 export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [dashboardData, setDashboardData] = useState<AnalysisDashboardData>({
     chapters: [],
     chunks: [],
   });
+  const [runtimeSettings, setRuntimeSettings] =
+    useState<AiRuntimeSettings | null>(null);
+  const [lastPipelineResult, setLastPipelineResult] =
+    useState<AiPipelineResult>();
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
-
-  const selectedProviderId = useSyncExternalStore<AiPipelineProviderId>(
-    subscribeToAiProviderStorage,
-    () => readStoredAiProviderId(storyId),
-    () => defaultAiProviderId,
-  );
 
   useEffect(() => {
     let isActive = true;
@@ -126,7 +118,16 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       let indexedDbFailed = false;
 
       try {
-        indexedDbData = await readIndexedDbDashboardData(storyId);
+        const [data, settings] = await Promise.all([
+          readIndexedDbDashboardData(storyId),
+          getAiRuntimeSettings(),
+        ]);
+
+        indexedDbData = data;
+
+        if (isActive) {
+          setRuntimeSettings(settings);
+        }
       } catch (error) {
         indexedDbFailed = true;
         console.error(
@@ -172,42 +173,37 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const parsedChapters = analysisStatus?.parsedChapters ?? chapters.length;
   const analyzedChapters = analysisStatus?.analyzedChapters ?? 0;
   const totalChunks = analysisStatus?.totalChunks ?? chunks.length;
-  const pipelineProviders = listAiPipelineProviders();
-  const pipelineProvider = getAiPipelineProvider(selectedProviderId);
-  const geminiProxyProvider = getAiPipelineProvider("gemini-proxy");
   const analysisProgress =
     totalChapters > 0
       ? Math.round((analyzedChapters / totalChapters) * 100)
       : 0;
   const chunkProgress = chunks.length > 0 ? 100 : 0;
   const hasDashboardData = Boolean(story) || chapters.length > 0;
+  const runtimeProviderLabel = runtimeSettings
+    ? getAiRuntimeProviderLabel(runtimeSettings.providerId)
+    : "Loading";
+  const runtimeModel = runtimeSettings
+    ? getActiveRuntimeModel(runtimeSettings)
+    : "Loading";
+  const runtimeEndpoint = runtimeSettings
+    ? getActiveRuntimeEndpoint(runtimeSettings)
+    : "Loading";
 
-  async function handleStartMockAnalysis() {
+  async function handleStartAnalysis() {
     if (isSavingAnalysis) return;
 
     setIsSavingAnalysis(true);
     setStorageError("");
+    setLastPipelineResult(undefined);
 
-    if (
-      selectedProviderId === "gemini-proxy" &&
-      !geminiProxyProvider.isConfigured?.()
-    ) {
-      setStorageError(
-        "Gemini proxy is not configured. Set NEXT_PUBLIC_AI_PROXY_ENDPOINT or choose Mock pipeline.",
-      );
-      setIsSavingAnalysis(false);
-      return;
-    }
+    const pipelineResult = await runAiPipeline({
+      storyId,
+      story,
+      chapters,
+      chunks,
+    });
 
-    const pipelineResult = await runAiPipeline(
-      {
-        storyId,
-        story,
-        chapters,
-        chunks,
-      },
-      selectedProviderId,
-    );
+    setLastPipelineResult(pipelineResult);
 
     if (
       pipelineResult.status !== "completed" ||
@@ -240,8 +236,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     try {
       await saveAnalysisResult(storyId, result, updatedStatus);
     } catch (error) {
-      console.error("Failed to save mock analysis to IndexedDB", error);
-      setStorageError("Could not save mock analysis to IndexedDB.");
+      console.error("Failed to save analysis to IndexedDB", error);
+      setStorageError("Could not save analysis to IndexedDB.");
       setIsSavingAnalysis(false);
       return;
     }
@@ -260,68 +256,69 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         <PageHeader
           eyebrow="Novel Analysis"
           title={story?.title ?? "Imported Novel"}
-          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Ready for analysis. Story data is loaded from IndexedDB.`}
+          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Analysis uses global runtime settings and Prompt Manager templates.`}
           action={
             <>
               <Button asChild variant="outline">
-                <Link href={`/stories/${storyId}/workspace`}>
+                <Link href={`/stories/${storyId}/reader`}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Open workspace
+                  Reader
                 </Link>
               </Button>
+
+              <Button asChild variant="outline">
+                <Link href="/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Runtime
+                </Link>
+              </Button>
+
               <Button
                 type="button"
-                onClick={handleStartMockAnalysis}
+                onClick={handleStartAnalysis}
                 disabled={
                   isLoading || chapters.length === 0 || isSavingAnalysis
                 }
               >
                 <Play className="mr-2 h-4 w-4" />
-                {isSavingAnalysis ? "Saving..." : "Start analysis"}
+                {isSavingAnalysis ? "Running..." : "Run analysis"}
               </Button>
             </>
           }
         />
 
-        <p className="app-muted-text">
-          Reading story data from IndexedDB. Provider: {pipelineProvider.label}.
-          Gemini proxy:{" "}
-          {geminiProxyProvider.isConfigured?.()
-            ? "configured"
-            : "not configured"}
-          .
-        </p>
-
-        <SectionCard title="AI provider">
-          <div className="grid gap-3 md:grid-cols-[280px_1fr] md:items-center">
-            <Select
-              value={selectedProviderId}
-              onValueChange={(value) => {
-                const providerId = value as AiPipelineProviderId;
-
-                saveStoredAiProviderId(storyId, providerId);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pipelineProviders.map((provider) => (
-                  <SelectItem key={provider.id} value={provider.id}>
-                    {provider.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="app-muted-text">
-              {pipelineProvider.description}
-              {" Selection is saved locally for this story."}
-              {selectedProviderId === "gemini-proxy" &&
-              !geminiProxyProvider.isConfigured?.()
-                ? " NEXT_PUBLIC_AI_PROXY_ENDPOINT is not configured."
-                : ""}
-            </p>
+        <SectionCard title="Runtime and Prompt Manager">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <RuntimeTile label="Provider" value={runtimeProviderLabel} />
+            <RuntimeTile label="Model" value={runtimeModel} />
+            <RuntimeTile
+              label="Endpoint"
+              value={formatRuntimeValue(runtimeEndpoint)}
+            />
+            <RuntimeTile
+              label="Prompt"
+              value={
+                lastPipelineResult?.promptContext?.templateTitle ??
+                "import-analysis"
+              }
+            />
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/settings">Open Runtime Settings</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/prompt-manager">Open Prompt Manager</Link>
+            </Button>
+          </div>
+
+          {lastPipelineResult?.promptContext?.missingVariables.length ? (
+            <p className="mt-3 text-sm text-destructive">
+              Missing prompt variables:{" "}
+              {lastPipelineResult.promptContext.missingVariables.join(", ")}
+            </p>
+          ) : null}
         </SectionCard>
 
         {storageError ? (
@@ -448,6 +445,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         )}
       </PageContainer>
     </PageShell>
+  );
+}
+
+function RuntimeTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-background p-3">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 break-all font-mono text-xs">{value}</p>
+    </div>
   );
 }
 

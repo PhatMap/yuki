@@ -94,13 +94,13 @@ export async function renderPromptTemplate({
       ? templates.find((item) => item.id === "story-system-identity")
       : undefined;
 
-  const editablePromptParts = [
+  const rawPrompt = [
     systemIdentity?.editablePrompt,
     template.editablePrompt,
     template.lockedContract,
-  ].filter(Boolean);
-
-  const rawPrompt = editablePromptParts.join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const rendered = interpolatePromptTemplate(rawPrompt, variables);
 

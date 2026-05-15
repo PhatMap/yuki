@@ -1,5 +1,6 @@
 import { runMockAnalysis } from "@/lib/mock-analysis";
 import type {
+  AiPipelineExecutionContext,
   AiPipelineInput,
   AiPipelineProgress,
   AiPipelineProvider,
@@ -14,6 +15,10 @@ const mockPipelineSteps: {
   {
     step: "prepare-input",
     message: "Preparing imported chapters for local mock analysis.",
+  },
+  {
+    step: "render-prompt",
+    message: "Rendering import-analysis prompt from Prompt Manager.",
   },
   {
     step: "analyze-characters",
@@ -49,12 +54,26 @@ function createProgressTimeline(): AiPipelineProgress[] {
   }));
 }
 
+function toPromptContext(context: AiPipelineExecutionContext) {
+  return {
+    templateId: context.renderedPrompt.template.id,
+    templateTitle: context.renderedPrompt.template.title,
+    systemIdentityTitle: context.renderedPrompt.systemIdentity?.title,
+    prompt: context.renderedPrompt.prompt,
+    missingVariables: context.renderedPrompt.missingVariables,
+    usedVariables: context.renderedPrompt.usedVariables,
+  };
+}
+
 export const mockAiPipelineProvider: AiPipelineProvider = {
   id: "mock",
   label: "Mock pipeline",
   description:
     "Local deterministic analysis provider used before real AI integration.",
-  async run(input: AiPipelineInput): Promise<AiPipelineResult> {
+  async run(
+    input: AiPipelineInput,
+    context: AiPipelineExecutionContext,
+  ): Promise<AiPipelineResult> {
     const startedAt = new Date().toISOString();
     const analysisResult = runMockAnalysis(input.storyId, input.chapters);
 
@@ -66,6 +85,8 @@ export const mockAiPipelineProvider: AiPipelineProvider = {
       steps: createProgressTimeline(),
       startedAt,
       completedAt: new Date().toISOString(),
+      runtime: context.runtime,
+      promptContext: toPromptContext(context),
     };
   },
 };
