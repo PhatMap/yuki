@@ -23,55 +23,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllStories } from "@/lib/db/indexed-db";
 import { stories as mockStories } from "@/lib/mock-data";
+import {
+  getLegacyStorySourceLabel,
+  type LegacyStorySource,
+  readLegacyStoryMetadataSnapshot,
+  sortStoriesByUpdatedAtDesc,
+} from "@/lib/storage/legacy-story-storage";
 import type { Story } from "@/lib/types";
 
-const storiesStorageKey = "ai-story-app:stories";
-
-type HomeStorySource = "indexeddb" | "legacy-local" | "mock";
-
 type HomeStory = Story & {
-  homeSource: HomeStorySource;
+  homeSource: LegacyStorySource;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isStory(value: unknown): value is Story {
-  if (!isRecord(value)) return false;
-
-  return (
-    typeof value.id === "string" &&
-    typeof value.title === "string" &&
-    typeof value.description === "string" &&
-    typeof value.createdAt === "string" &&
-    typeof value.updatedAt === "string"
-  );
-}
-
-function readLegacyLocalStoriesSnapshot() {
-  if (typeof window === "undefined") return [];
-
-  const rawValue = localStorage.getItem(storiesStorageKey);
-
-  try {
-    const parsedValue = rawValue ? (JSON.parse(rawValue) as unknown) : [];
-
-    return Array.isArray(parsedValue) ? parsedValue.filter(isStory) : [];
-  } catch (error) {
-    console.error("Failed to read legacy stories from localStorage", error);
-    return [];
-  }
-}
-
-function sortByUpdatedAtDesc(storyItems: Story[]) {
-  return [...storyItems].sort((firstStory, secondStory) => {
-    return (
-      new Date(secondStory.updatedAt).getTime() -
-      new Date(firstStory.updatedAt).getTime()
-    );
-  });
-}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -81,13 +43,13 @@ function formatDate(value: string) {
   return date.toLocaleDateString("vi-VN");
 }
 
-function mergeHomeStories(storedStories: Story[], source: HomeStorySource) {
-  const storedItems: HomeStory[] = sortByUpdatedAtDesc(storedStories).map(
-    (story) => ({
-      ...story,
-      homeSource: source,
-    }),
-  );
+function mergeHomeStories(storedStories: Story[], source: LegacyStorySource) {
+  const storedItems: HomeStory[] = sortStoriesByUpdatedAtDesc(
+    storedStories,
+  ).map((story) => ({
+    ...story,
+    homeSource: source,
+  }));
 
   const storedIds = new Set(storedItems.map((story) => story.id));
 
@@ -107,7 +69,8 @@ function mergeHomeStories(storedStories: Story[], source: HomeStorySource) {
 
 export function HomeDashboardClient() {
   const [storedStories, setStoredStories] = useState<Story[]>([]);
-  const [storySource, setStorySource] = useState<HomeStorySource>("indexeddb");
+  const [storySource, setStorySource] =
+    useState<LegacyStorySource>("indexeddb");
 
   useEffect(() => {
     let isActive = true;
@@ -127,9 +90,7 @@ export function HomeDashboardClient() {
         console.error("Failed to read stories from IndexedDB", error);
       }
 
-      // TEMP_COMPATIBILITY: read old story metadata only while existing
-      // browsers may still have records from the previous localStorage flow.
-      const legacyStories = readLegacyLocalStoriesSnapshot();
+      const legacyStories = readLegacyStoryMetadataSnapshot();
 
       if (!isActive) return;
 
@@ -354,16 +315,10 @@ function StoryCard({ story }: { story: HomeStory }) {
 
           <span
             className={
-              story.homeSource === "indexeddb"
-                ? "app-chip-primary"
-                : "app-chip"
+              story.homeSource === "indexeddb" ? "app-chip-primary" : "app-chip"
             }
           >
-            {story.homeSource === "indexeddb"
-              ? "IndexedDB"
-              : story.homeSource === "legacy-local"
-                ? "Legacy"
-                : "Starter"}
+            {getLegacyStorySourceLabel(story.homeSource)}
           </span>
         </div>
       </CardHeader>

@@ -14,42 +14,11 @@ import {
   chapters as mockChapters,
   stories as mockStories,
 } from "@/lib/mock-data";
+import {
+  type LegacyStorySource,
+  readLegacyStoryMetadataSnapshot,
+} from "@/lib/storage/legacy-story-storage";
 import type { Chapter, Story, StoryBranch } from "@/lib/types";
-
-const storiesStorageKey = "ai-story-app:stories";
-
-type StoryListSource = "indexeddb" | "legacy-local" | "mock";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isStory(value: unknown): value is Story {
-  if (!isRecord(value)) return false;
-
-  return (
-    typeof value.id === "string" &&
-    typeof value.title === "string" &&
-    typeof value.description === "string" &&
-    typeof value.createdAt === "string" &&
-    typeof value.updatedAt === "string"
-  );
-}
-
-function readLegacyLocalStoriesSnapshot() {
-  if (typeof window === "undefined") return [];
-
-  const rawValue = localStorage.getItem(storiesStorageKey);
-
-  try {
-    const parsedValue = rawValue ? (JSON.parse(rawValue) as unknown) : [];
-
-    return Array.isArray(parsedValue) ? parsedValue.filter(isStory) : [];
-  } catch (error) {
-    console.error("Failed to read legacy stories from localStorage", error);
-    return [];
-  }
-}
 
 function toStoryTreeChapter(chapter: {
   id: string;
@@ -72,7 +41,7 @@ function toStoryTreeChapter(chapter: {
 export default function StoriesPage() {
   const [storedStories, setStoredStories] = useState<Story[]>([]);
   const [storedChapters, setStoredChapters] = useState<Chapter[]>([]);
-  const [storySource, setStorySource] = useState<StoryListSource>("mock");
+  const [storySource, setStorySource] = useState<LegacyStorySource>("mock");
 
   useEffect(() => {
     let isActive = true;
@@ -105,9 +74,7 @@ export default function StoriesPage() {
         console.error("Failed to read stories from IndexedDB", error);
       }
 
-      // TEMP_COMPATIBILITY: read old story metadata only while existing
-      // browsers may still have records from the previous localStorage flow.
-      const legacyStories = readLegacyLocalStoriesSnapshot();
+      const legacyStories = readLegacyStoryMetadataSnapshot();
 
       if (!isActive) return;
 
@@ -123,11 +90,13 @@ export default function StoriesPage() {
     };
   }, []);
 
-  const displayedStories = storedStories.length > 0 ? storedStories : mockStories;
+  const displayedStories =
+    storedStories.length > 0 ? storedStories : mockStories;
   const displayedChapters =
     storedStories.length > 0 ? storedChapters : mockChapters;
   const displayedBranches: StoryBranch[] =
     storySource === "mock" ? mockBranches : [];
+
   const pageDescription = useMemo(() => {
     if (storySource === "indexeddb") {
       return "Browse story projects saved in IndexedDB and open the active workspace for planning, analysis, timeline, relationships, and rewrite work.";
