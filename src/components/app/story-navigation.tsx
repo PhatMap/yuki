@@ -8,6 +8,7 @@ import {
   BookOpen,
   CalendarDays,
   Database,
+  FileJson,
   FileText,
   GitBranch,
   Gauge,
@@ -26,6 +27,7 @@ interface StoryNavigationProps {
 const storyNavigationGroups = [
   {
     label: "Core",
+    description: "Import, inspect, analyze",
     items: [
       {
         label: "Workspace",
@@ -41,6 +43,7 @@ const storyNavigationGroups = [
   },
   {
     label: "Canon",
+    description: "World, timeline, relation",
     items: [
       {
         label: "Bible",
@@ -66,6 +69,7 @@ const storyNavigationGroups = [
   },
   {
     label: "Rewrite",
+    description: "Plan and draft changes",
     items: [
       {
         label: "Planner",
@@ -81,6 +85,7 @@ const storyNavigationGroups = [
   },
   {
     label: "System",
+    description: "Settings, data, proxy tools",
     items: [
       {
         label: "Settings",
@@ -93,14 +98,14 @@ const storyNavigationGroups = [
         icon: Database,
       },
       {
-        label: "Scale Test",
+        label: "Scale",
         href: "import-scale-test",
         icon: Gauge,
       },
       {
-        label: "AI Contract",
+        label: "Contract",
         href: "ai-contract",
-        icon: FileText,
+        icon: FileJson,
       },
       {
         label: "AI Test",
@@ -119,19 +124,29 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
       <div className="app-story-nav-scroll">
         <div className="app-story-nav-groups">
           {storyNavigationGroups.map((group) => {
-            const isGroupActive = group.items.some(
+            const activeItem = group.items.find(
               (item) => pathname === `/stories/${storyId}/${item.href}`,
             );
+            const isGroupActive = Boolean(activeItem);
 
             return (
               <section
                 key={group.label}
+                aria-label={`${group.label} story tools`}
                 className={cn(
                   "app-story-nav-group",
                   isGroupActive ? "app-story-nav-group-active" : "",
                 )}
               >
-                <p className="app-story-nav-group-label">{group.label}</p>
+                <div className="app-story-nav-group-heading">
+                  <div className="min-w-0">
+                    <p className="app-story-nav-group-label">{group.label}</p>
+                    <p className="app-story-nav-group-description">
+                      {activeItem ? activeItem.label : group.description}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="app-story-nav-list">
                   {group.items.map((item) => {
                     const href = `/stories/${storyId}/${item.href}`;
@@ -147,9 +162,13 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
                           isActive ? "app-story-nav-link-active" : "",
                         )}
                         href={href}
+                        prefetch
+                        title={item.label}
                       >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="app-story-nav-link-label">
+                          {item.label}
+                        </span>
                         <StoryNavigationPendingIndicator />
                       </Link>
                     );

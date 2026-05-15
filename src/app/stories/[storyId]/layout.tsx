@@ -20,15 +20,15 @@ export default async function StoryLayout({
       <div className="app-story-shell-nav">
         <div className="app-story-shell-nav-inner">
           <div className="app-story-shell-title">
-            <p className="app-page-eyebrow">Story Workspace</p>
-            <h1 className="text-base font-semibold leading-tight sm:text-lg">
-              Story tools
-            </h1>
+            <p className="app-story-shell-eyebrow">Yuki workspace</p>
+            <h2 className="app-story-shell-heading">Story tools</h2>
           </div>
+
           <StoryNavigation storyId={storyId} />
         </div>
       </div>
-      {children}
+
+      <div className="app-story-shell-body">{children}</div>
     </div>
   );
 }
