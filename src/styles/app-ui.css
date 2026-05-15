@@ -712,3 +712,129 @@
     }
   }
 }
+
+@layer components {
+  .app-container :where(button, a, [role="button"]) {
+    @apply transition;
+  }
+
+  .app-container :where(button:not(:disabled), a, [role="button"]:not([aria-disabled="true"])) {
+    @apply motion-safe:hover:-translate-y-0.5;
+  }
+
+  .app-container :where(button:disabled, [aria-disabled="true"]) {
+    @apply cursor-not-allowed opacity-60;
+  }
+
+  .app-container :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-ring/35 ring-offset-2 ring-offset-background;
+  }
+
+  .app-container :where(.rounded-2xl.border.bg-background, .rounded-xl.border.bg-background) {
+    @apply transition-colors transition-shadow;
+  }
+
+  .app-container :where(.rounded-2xl.border.bg-background):hover {
+    @apply border-primary/20;
+  }
+
+  .app-action-row {
+    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+
+  .app-action-row>* {
+    @apply w-full sm:w-auto;
+  }
+
+  .app-primary-action {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .app-secondary-action {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border bg-background px-4 py-2 text-sm font-semibold shadow-sm transition hover:bg-muted disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .app-ghost-action {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .app-danger-action {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive shadow-sm transition hover:bg-destructive/15 disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .app-link-card {
+    @apply block min-w-0 rounded-2xl border bg-background p-4 shadow-sm transition hover:border-primary/30 hover:bg-muted/30 hover:shadow-md;
+  }
+
+  .app-link-card-title {
+    @apply text-sm font-semibold tracking-tight;
+  }
+
+  .app-link-card-description {
+    @apply mt-1 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-soft-divider {
+    @apply h-px w-full bg-border;
+  }
+
+  .app-subtle-panel {
+    @apply rounded-2xl border bg-muted/30 p-4;
+  }
+
+  .app-subtle-panel-title {
+    @apply text-sm font-semibold tracking-tight;
+  }
+
+  .app-subtle-panel-body {
+    @apply mt-2 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-key-value-list {
+    @apply grid gap-2;
+  }
+
+  .app-key-value-row {
+    @apply flex min-w-0 flex-col gap-1 rounded-xl border bg-background px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .app-key-value-label {
+    @apply text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+  }
+
+  .app-key-value-value {
+    @apply min-w-0 break-words text-sm font-medium;
+  }
+
+  .app-toolbar {
+    @apply items-stretch;
+  }
+
+  .app-toolbar :where(button, a) {
+    @apply min-h-10;
+  }
+
+  @media (max-width: 640px) {
+    .app-container :where(button, a[role="button"]) {
+      min-height: 2.5rem;
+    }
+
+    .app-action-row {
+      @apply gap-2.5;
+    }
+
+    .app-primary-action,
+    .app-secondary-action,
+    .app-ghost-action,
+    .app-danger-action {
+      @apply w-full;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-container :where(button, a, [role="button"]) {
+      transform: none !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
