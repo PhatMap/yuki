@@ -1036,3 +1036,261 @@
     }
   }
 }
+
+@layer components {
+
+  .app-page,
+  .app-story-shell,
+  .app-workspace {
+    animation: app-page-enter 180ms ease-out;
+  }
+
+  .app-container>*,
+  .app-story-shell :where(main, section, article) {
+    animation: app-content-rise 220ms ease-out both;
+  }
+
+  .app-container>*:nth-child(1) {
+    animation-delay: 0ms;
+  }
+
+  .app-container>*:nth-child(2) {
+    animation-delay: 24ms;
+  }
+
+  .app-container>*:nth-child(3) {
+    animation-delay: 48ms;
+  }
+
+  .app-container>*:nth-child(4) {
+    animation-delay: 72ms;
+  }
+
+  .app-story-nav-link {
+    isolation: isolate;
+  }
+
+  .app-story-nav-link::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    opacity: 0;
+    background: radial-gradient(circle at center,
+        hsl(var(--primary) / 0.16),
+        transparent 68%);
+    transition: opacity 160ms ease;
+  }
+
+  .app-story-nav-link:hover::before {
+    opacity: 1;
+  }
+
+  .app-story-nav-link-active::before {
+    opacity: 0;
+  }
+
+  .app-story-nav-group {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  .app-story-nav-group:hover {
+    transform: translateY(-1px);
+  }
+
+  .app-story-nav-link {
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  .app-story-nav-link:not(.app-story-nav-link-active):hover {
+    transform: translateY(-1px);
+  }
+
+  .app-story-nav-link-active {
+    transform: translateY(-1px);
+  }
+
+  .app-story-shell-nav {
+    transition:
+      background-color 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .app-loading-panel,
+  .app-empty-state,
+  .app-error-callout,
+  .app-section-card,
+  .app-density-card,
+  .app-data-panel,
+  .app-readable-panel,
+  .app-editor-surface,
+  .app-comparison-panel {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  .app-loading-panel:hover,
+  .app-empty-state:hover,
+  .app-section-card:hover,
+  .app-density-card:hover,
+  .app-data-panel:hover,
+  .app-readable-panel:hover,
+  .app-editor-surface:hover,
+  .app-comparison-panel:hover {
+    transform: translateY(-1px);
+  }
+
+  .app-container :where(a, button, input, select, textarea) {
+    scroll-margin-top: 7rem;
+  }
+
+  .app-container :where([id]) {
+    scroll-margin-top: 7rem;
+  }
+
+  .app-container :where(button, a, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app-container :where(button:active, a:active, [role="button"]:active) {
+    transform: translateY(0);
+  }
+
+  .app-container :where(input, select, textarea) {
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .app-container :where(input, select, textarea):hover {
+    border-color: hsl(var(--primary) / 0.34);
+  }
+
+  .app-container :where(textarea):focus-visible {
+    transform: none;
+  }
+
+  .app-page-header,
+  .app-density-card,
+  .app-data-panel,
+  .app-readable-panel,
+  .app-editor-surface,
+  .app-comparison-panel,
+  .app-section-card {
+    will-change: transform;
+  }
+
+  .app-story-nav-scroll {
+    scroll-behavior: smooth;
+  }
+
+  .app-story-nav-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.34);
+  }
+
+  .app-story-nav-scroll:focus-within {
+    outline: none;
+  }
+
+  .app-story-nav-scroll:focus-within .app-story-nav-group-active {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.22),
+      0 8px 24px hsl(var(--primary) / 0.1);
+  }
+
+  @media (max-width: 640px) {
+
+    .app-page,
+    .app-story-shell,
+    .app-workspace {
+      animation-duration: 140ms;
+    }
+
+    .app-container>*,
+    .app-story-shell :where(main, section, article) {
+      animation-duration: 160ms;
+    }
+
+    .app-story-nav-group:hover,
+    .app-story-nav-link:not(.app-story-nav-link-active):hover,
+    .app-loading-panel:hover,
+    .app-empty-state:hover,
+    .app-section-card:hover,
+    .app-density-card:hover,
+    .app-data-panel:hover,
+    .app-readable-panel:hover,
+    .app-editor-surface:hover,
+    .app-comparison-panel:hover {
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .app-page,
+    .app-story-shell,
+    .app-workspace,
+    .app-container>*,
+    .app-story-shell :where(main, section, article) {
+      animation: none !important;
+    }
+
+    .app-story-nav-group,
+    .app-story-nav-link,
+    .app-story-shell-nav,
+    .app-loading-panel,
+    .app-empty-state,
+    .app-error-callout,
+    .app-section-card,
+    .app-density-card,
+    .app-data-panel,
+    .app-readable-panel,
+    .app-editor-surface,
+    .app-comparison-panel,
+    .app-container :where(input, select, textarea) {
+      transition-duration: 0.01ms !important;
+      transform: none !important;
+    }
+
+    .app-story-nav-scroll {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@keyframes app-page-enter {
+  from {
+    opacity: 0.96;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-content-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
