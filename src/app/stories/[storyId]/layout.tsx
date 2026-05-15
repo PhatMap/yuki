@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { StoryNavigation } from "@/components/app/story-navigation";
+import { StorySettingsProvider } from "@/components/app/story-settings-provider";
 
 interface StoryLayoutProps {
   children: ReactNode;
@@ -16,19 +17,21 @@ export default async function StoryLayout({
   const { storyId } = await params;
 
   return (
-    <div className="app-story-shell">
-      <div className="app-story-shell-nav">
-        <div className="app-story-shell-nav-inner">
-          <div className="app-story-shell-title">
-            <p className="app-story-shell-eyebrow">Yuki workspace</p>
-            <h2 className="app-story-shell-heading">Story tools</h2>
+    <StorySettingsProvider storyId={storyId}>
+      <div className="app-story-shell">
+        <div className="app-story-shell-nav">
+          <div className="app-story-shell-nav-inner">
+            <div className="app-story-shell-title">
+              <p className="app-story-shell-eyebrow">Yuki workspace</p>
+              <h2 className="app-story-shell-heading">Story tools</h2>
+            </div>
+
+            <StoryNavigation storyId={storyId} />
           </div>
-
-          <StoryNavigation storyId={storyId} />
         </div>
-      </div>
 
-      <div className="app-story-shell-body">{children}</div>
-    </div>
+        <div className="app-story-shell-body">{children}</div>
+      </div>
+    </StorySettingsProvider>
   );
 }

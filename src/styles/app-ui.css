@@ -1352,3 +1352,126 @@
     }
   }
 }
+
+@layer components {
+  .app-story-settings-scope {
+    @apply min-h-screen;
+  }
+
+  .app-story-font-small {
+    --yuki-story-body-size: 0.875rem;
+    --yuki-story-body-line-height: 1.65rem;
+    --yuki-story-muted-size: 0.8125rem;
+  }
+
+  .app-story-font-medium {
+    --yuki-story-body-size: 0.9375rem;
+    --yuki-story-body-line-height: 1.8rem;
+    --yuki-story-muted-size: 0.875rem;
+  }
+
+  .app-story-font-large {
+    --yuki-story-body-size: 1rem;
+    --yuki-story-body-line-height: 1.95rem;
+    --yuki-story-muted-size: 0.9375rem;
+  }
+
+  .app-story-width-compact {
+    --yuki-story-container-width: 64rem;
+    --yuki-story-readable-width: 68ch;
+  }
+
+  .app-story-width-comfortable {
+    --yuki-story-container-width: 80rem;
+    --yuki-story-readable-width: 78ch;
+  }
+
+  .app-story-width-wide {
+    --yuki-story-container-width: 92rem;
+    --yuki-story-readable-width: 92ch;
+  }
+
+  .app-story-density-compact {
+    --yuki-story-section-gap: 1rem;
+    --yuki-story-card-padding: 1rem;
+  }
+
+  .app-story-density-comfortable {
+    --yuki-story-section-gap: 1.375rem;
+    --yuki-story-card-padding: 1.25rem;
+  }
+
+  .app-story-settings-scope .app-container,
+  .app-story-settings-scope .app-story-shell-nav-inner {
+    max-width: var(--yuki-story-container-width);
+  }
+
+  .app-story-settings-scope .app-container {
+    gap: var(--yuki-story-section-gap);
+  }
+
+  .app-story-settings-scope .app-readable-text,
+  .app-story-settings-scope .app-readable-muted,
+  .app-story-settings-scope .app-reading-body {
+    max-width: var(--yuki-story-readable-width);
+    font-size: var(--yuki-story-body-size);
+    line-height: var(--yuki-story-body-line-height);
+  }
+
+  .app-story-settings-scope .app-muted-text,
+  .app-story-settings-scope .app-page-description,
+  .app-story-settings-scope .app-density-card-description,
+  .app-story-settings-scope .app-data-panel-description,
+  .app-story-settings-scope .app-status-item-body {
+    font-size: var(--yuki-story-muted-size);
+  }
+
+  .app-story-density-compact .app-page-header,
+  .app-story-density-compact .app-density-card-content,
+  .app-story-density-compact .app-data-panel,
+  .app-story-density-compact .app-readable-panel,
+  .app-story-density-compact .app-editor-surface,
+  .app-story-density-compact .app-comparison-panel,
+  .app-story-density-compact .app-section-card .p-4,
+  .app-story-density-compact .app-section-card .sm\:p-5 {
+    padding: var(--yuki-story-card-padding);
+  }
+
+  .app-story-density-compact .app-page-title {
+    @apply text-2xl;
+  }
+
+  .app-story-density-compact .app-page-description {
+    @apply mt-2;
+  }
+
+  .app-story-density-compact .app-grid-cards,
+  .app-story-density-compact .app-data-grid,
+  .app-story-density-compact .app-four-column {
+    @apply gap-2.5;
+  }
+
+  .app-story-font-large .app-editor-textarea {
+    font-size: 1rem;
+    line-height: 1.95rem;
+  }
+
+  .app-story-font-small .app-editor-textarea {
+    font-size: 0.875rem;
+    line-height: 1.65rem;
+  }
+
+  @media (max-width: 640px) {
+
+    .app-story-settings-scope .app-container,
+    .app-story-settings-scope .app-story-shell-nav-inner {
+      max-width: 100%;
+    }
+
+    .app-story-width-wide,
+    .app-story-width-comfortable,
+    .app-story-width-compact {
+      --yuki-story-readable-width: 100%;
+    }
+  }
+}
