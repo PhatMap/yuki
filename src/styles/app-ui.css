@@ -1713,3 +1713,210 @@
     }
   }
 }
+
+@layer components {
+  .app-container :where([data-slot="card"]) {
+    min-width: 0;
+    border-color: hsl(var(--border) / 0.82);
+    background-color: hsl(var(--background) / 0.96);
+    box-shadow:
+      0 1px 2px hsl(var(--foreground) / 0.04),
+      0 12px 32px hsl(var(--foreground) / 0.025);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .app-container :where([data-slot="card"]:hover) {
+    border-color: hsl(var(--primary) / 0.24);
+    box-shadow:
+      0 1px 2px hsl(var(--foreground) / 0.04),
+      0 16px 40px hsl(var(--foreground) / 0.045);
+  }
+
+  .app-container :where([data-slot="card-title"]) {
+    color: hsl(var(--foreground));
+    letter-spacing: -0.015em;
+  }
+
+  .app-container :where([data-slot="card-header"]) {
+    min-width: 0;
+  }
+
+  .app-container :where([data-slot="card-content"]) {
+    min-width: 0;
+  }
+
+  .app-container :where([data-slot="card-content"] p) {
+    overflow-wrap: anywhere;
+  }
+
+  .app-container :where([data-slot="badge"]) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app-container :where([data-slot="select-trigger"]) {
+    min-width: 0;
+  }
+
+  .app-container :where([data-slot="select-value"]) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-container :where([data-slot="button"]) {
+    min-width: 0;
+  }
+
+  .app-container :where([data-slot="button"] svg) {
+    flex-shrink: 0;
+  }
+
+  .app-container :where([data-slot="button"] span) {
+    min-width: 0;
+  }
+
+  .app-dashboard-card {
+    @apply min-w-0 rounded-2xl border bg-background p-4 shadow-sm transition sm:p-5;
+  }
+
+  .app-dashboard-card:hover {
+    @apply border-primary/30 shadow-md;
+  }
+
+  .app-dashboard-card-header {
+    @apply mb-3 flex min-w-0 items-start justify-between gap-3;
+  }
+
+  .app-dashboard-card-title {
+    @apply min-w-0 text-base font-semibold tracking-tight;
+  }
+
+  .app-dashboard-card-description {
+    @apply mt-1 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-dashboard-card-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-muted/50 text-muted-foreground;
+  }
+
+  .app-dashboard-list {
+    @apply grid min-w-0 gap-3;
+  }
+
+  .app-dashboard-list-item {
+    @apply min-w-0 rounded-xl border bg-background p-3.5 shadow-sm transition hover:border-primary/25 hover:bg-muted/30;
+  }
+
+  .app-dashboard-list-title {
+    @apply break-words text-sm font-semibold;
+  }
+
+  .app-dashboard-list-description {
+    @apply mt-1 line-clamp-3 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-dashboard-list-meta {
+    @apply mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground;
+  }
+
+  .app-dashboard-empty-inline {
+    @apply rounded-xl border border-dashed bg-muted/30 p-4 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-dashboard-section {
+    @apply grid min-w-0 gap-4;
+  }
+
+  .app-dashboard-section-heading {
+    @apply flex min-w-0 flex-col gap-1;
+  }
+
+  .app-dashboard-section-title {
+    @apply text-lg font-semibold tracking-tight;
+  }
+
+  .app-dashboard-section-description {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-dashboard-metric-row {
+    @apply grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5;
+  }
+
+  .app-dashboard-metric {
+    @apply min-w-0 rounded-2xl border bg-background p-4 shadow-sm;
+  }
+
+  .app-dashboard-metric-label {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .app-dashboard-metric-value {
+    @apply mt-2 break-words text-2xl font-semibold tracking-tight;
+  }
+
+  .app-dashboard-metric-note {
+    @apply mt-2 text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-container :where(.line-clamp-2, .line-clamp-3) {
+    overflow-wrap: anywhere;
+  }
+
+  .app-container :where(.space-y-3 > *, .space-y-4 > *, .space-y-5 > *) {
+    min-width: 0;
+  }
+
+  .app-container :where(.grid > *, .flex > *) {
+    min-width: 0;
+  }
+
+  .app-container :where(.font-medium, .font-semibold) {
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 640px) {
+
+    .app-dashboard-card,
+    .app-dashboard-metric {
+      @apply rounded-xl p-4;
+    }
+
+    .app-dashboard-card-title,
+    .app-dashboard-section-title {
+      @apply text-base;
+    }
+
+    .app-dashboard-metric-value {
+      @apply text-xl;
+    }
+
+    .app-container :where([data-slot="card"]) {
+      border-radius: 1rem;
+    }
+
+    .app-container :where([data-slot="card-header"]) {
+      padding: 1rem;
+    }
+
+    .app-container :where([data-slot="card-content"]) {
+      padding: 1rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .app-container :where([data-slot="card"]),
+    .app-dashboard-card,
+    .app-dashboard-list-item {
+      transition-duration: 0.01ms !important;
+      transform: none !important;
+    }
+  }
+}
