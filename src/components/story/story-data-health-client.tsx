@@ -12,6 +12,14 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { EmptyState } from "@/components/app/empty-state";
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
+import { StatCard } from "@/components/app/stat-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   getAnalysisResult,
   getAnalysisStatus,
@@ -22,6 +30,8 @@ import {
   getImportedChapters,
   getRewriteDrafts,
   getStoryById,
+  saveLegacyStoryMigrationData,
+  type StorySetupData,
 } from "@/lib/db/indexed-db";
 import { stories } from "@/lib/mock-data";
 import type {
@@ -36,14 +46,6 @@ import type {
   StoryBranchV2,
   StoryLocalSettings,
 } from "@/lib/types";
-import { EmptyState } from "@/components/app/empty-state";
-import { PageContainer } from "@/components/app/page-container";
-import { PageHeader } from "@/components/app/page-header";
-import { PageShell } from "@/components/app/page-shell";
-import { SectionCard } from "@/components/app/section-card";
-import { StatCard } from "@/components/app/stat-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface StoryDataHealthClientProps {
   storyId: string;
@@ -98,12 +100,10 @@ const legacyFallbackKeys = {
   analysisResult: (storyId: string) =>
     `ai-story-app:analysis-result:${storyId}`,
   branches: (storyId: string) => `ai-story-app:branches:${storyId}`,
-  branchChanges: (storyId: string) =>
-    `ai-story-app:branch-changes:${storyId}`,
+  branchChanges: (storyId: string) => `ai-story-app:branch-changes:${storyId}`,
   continuityIssues: (storyId: string) =>
     `ai-story-app:continuity-issues:${storyId}`,
-  rewriteDrafts: (storyId: string) =>
-    `ai-story-app:rewrite-drafts:${storyId}`,
+  rewriteDrafts: (storyId: string) => `ai-story-app:rewrite-drafts:${storyId}`,
   settings: (storyId: string) => `ai-story-app:settings:${storyId}`,
   storySetup: (storyId: string) => `ai-story-app:story-setup:${storyId}`,
 };
@@ -151,7 +151,71 @@ function localStoryForId(storyId: string, storiesValue: Story[] | null) {
   return storiesValue?.find((story) => story.id === storyId);
 }
 
-async function inspectStoryData(storyId: string): Promise<DataHealthInspection> {
+function legacyStorySetupToIndexedDbSetup(
+  storyId: string,
+  value: unknown,
+): StorySetupData | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return {
+    storyId,
+    originalTitle:
+      typeof record.originalTitle === "string" ? record.originalTitle : "",
+    originalAuthor:
+      typeof record.originalAuthor === "string" ? record.originalAuthor : "",
+    mustKeep: typeof record.mustKeep === "string" ? record.mustKeep : "",
+    mustChange: typeof record.mustChange === "string" ? record.mustChange : "",
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function removeStoryFromLegacyStories(storyId: string) {
+  const parsedStories = readLegacyFallbackValue<Story[]>(
+    legacyFallbackKeys.stories,
+  );
+
+  if (!parsedStories.value?.length) return;
+
+  const remainingStories = parsedStories.value.filter(
+    (story) => story.id !== storyId,
+  );
+
+  if (remainingStories.length === 0) {
+    localStorage.removeItem(legacyFallbackKeys.stories);
+    return;
+  }
+
+  localStorage.setItem(
+    legacyFallbackKeys.stories,
+    JSON.stringify(remainingStories),
+  );
+}
+
+function clearLegacyStoryDataKeys(storyId: string) {
+  [
+    legacyFallbackKeys.chapters(storyId),
+    legacyFallbackKeys.chunks(storyId),
+    legacyFallbackKeys.analysisStatus(storyId),
+    legacyFallbackKeys.analysisResult(storyId),
+    legacyFallbackKeys.branches(storyId),
+    legacyFallbackKeys.branchChanges(storyId),
+    legacyFallbackKeys.continuityIssues(storyId),
+    legacyFallbackKeys.rewriteDrafts(storyId),
+    legacyFallbackKeys.storySetup(storyId),
+  ].forEach((key) => {
+    localStorage.removeItem(key);
+  });
+
+  removeStoryFromLegacyStories(storyId);
+}
+
+async function inspectStoryData(
+  storyId: string,
+): Promise<DataHealthInspection> {
   let indexedDbError: string | undefined;
   const indexedDb: DataHealthInspection["indexedDb"] = {
     chapters: [],
@@ -233,6 +297,7 @@ async function inspectStoryData(storyId: string): Promise<DataHealthInspection> 
       legacyFallbackKeys.storySetup(storyId),
     ),
   };
+
   const warnings = buildWarnings({
     storyId,
     indexedDb,
@@ -264,8 +329,12 @@ function buildWarnings({
   const localStory = localStoryForId(storyId, legacyFallback.stories.value);
 
   if (indexedDbError) warnings.push(`IndexedDB read error: ${indexedDbError}`);
-  if (!indexedDb.story && !localStory) warnings.push("Story record is missing.");
-  if (indexedDb.chapters.length === 0 && !legacyFallback.chapters.value?.length) {
+  if (!indexedDb.story && !localStory)
+    warnings.push("Story record is missing.");
+  if (
+    indexedDb.chapters.length === 0 &&
+    !legacyFallback.chapters.value?.length
+  ) {
     warnings.push("Story has no imported chapters.");
   }
   if (!indexedDb.analysisResult && !legacyFallback.analysisResult.value) {
@@ -289,7 +358,9 @@ function buildWarnings({
   ) {
     warnings.push("Rewrite drafts are missing or empty.");
   }
-  if (!legacyFallback.settings.exists) warnings.push("Story settings are missing.");
+  if (!legacyFallback.settings.exists) {
+    warnings.push("Story settings are missing.");
+  }
 
   Object.values(legacyFallback).forEach((item) => {
     if (item.status === "error") {
@@ -298,9 +369,14 @@ function buildWarnings({
   });
 
   if (!indexedDb.story && localStory) {
-    warnings.push("Legacy story fallback exists but IndexedDB story is missing.");
+    warnings.push(
+      "Legacy story fallback exists but IndexedDB story is missing.",
+    );
   }
-  if (indexedDb.chapters.length === 0 && legacyFallback.chapters.value?.length) {
+  if (
+    indexedDb.chapters.length === 0 &&
+    legacyFallback.chapters.value?.length
+  ) {
     warnings.push(
       "Legacy chapter fallback exists but IndexedDB chapters are missing.",
     );
@@ -322,7 +398,10 @@ function buildWarnings({
   return warnings;
 }
 
-function getStateForRecord(exists: boolean, fallbackExists = false): HealthState {
+function getStateForRecord(
+  exists: boolean,
+  fallbackExists = false,
+): HealthState {
   if (exists) return "healthy";
   if (fallbackExists) return "partial";
 
@@ -361,6 +440,7 @@ function getStateBadgeVariant(state: HealthState) {
 export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
   const [inspection, setInspection] = useState<DataHealthInspection>();
   const [isLoading, setIsLoading] = useState(false);
+  const [isMigratingLegacyData, setIsMigratingLegacyData] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
 
   async function handleRefreshInspection() {
@@ -391,6 +471,68 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
     localStorage.removeItem(legacyFallbackKeys.settings(storyId));
     await handleRefreshInspection();
     setActionMessage("Story settings key cleared.");
+  }
+
+  async function handleMigrateLegacyData() {
+    if (!inspection || isMigratingLegacyData) return;
+
+    setIsMigratingLegacyData(true);
+    setActionMessage("");
+
+    const localStory = localStoryForId(
+      storyId,
+      inspection.legacyFallback.stories.value,
+    );
+    const storyToMigrate = inspection.indexedDb.story ?? localStory;
+    const setupToMigrate = legacyStorySetupToIndexedDbSetup(
+      storyId,
+      inspection.legacyFallback.storySetup.value,
+    );
+
+    const hasLegacyData =
+      Boolean(localStory) ||
+      Boolean(setupToMigrate) ||
+      Boolean(inspection.legacyFallback.chapters.value?.length) ||
+      Boolean(inspection.legacyFallback.chunks.value?.length) ||
+      Boolean(inspection.legacyFallback.analysisStatus.value) ||
+      Boolean(inspection.legacyFallback.analysisResult.value) ||
+      Boolean(inspection.legacyFallback.branches.value?.length) ||
+      Boolean(inspection.legacyFallback.branchChanges.value?.length) ||
+      Boolean(inspection.legacyFallback.continuityIssues.value?.length) ||
+      Boolean(inspection.legacyFallback.rewriteDrafts.value?.length);
+
+    if (!hasLegacyData) {
+      setActionMessage("No legacy story data found for this story.");
+      setIsMigratingLegacyData(false);
+      return;
+    }
+
+    try {
+      await saveLegacyStoryMigrationData({
+        story: storyToMigrate,
+        setup: setupToMigrate,
+        chapters: inspection.legacyFallback.chapters.value ?? [],
+        chunks: inspection.legacyFallback.chunks.value ?? [],
+        analysisStatus:
+          inspection.legacyFallback.analysisStatus.value ?? undefined,
+        analysisResult:
+          inspection.legacyFallback.analysisResult.value ?? undefined,
+        branches: inspection.legacyFallback.branches.value ?? [],
+        branchChanges: inspection.legacyFallback.branchChanges.value ?? [],
+        continuityIssues:
+          inspection.legacyFallback.continuityIssues.value ?? [],
+        rewriteDrafts: inspection.legacyFallback.rewriteDrafts.value ?? [],
+      });
+
+      clearLegacyStoryDataKeys(storyId);
+      await handleRefreshInspection();
+      setActionMessage("Legacy story data migrated to IndexedDB and cleared.");
+    } catch (error) {
+      console.error("Failed to migrate legacy story data", error);
+      setActionMessage("Failed to migrate legacy story data.");
+    } finally {
+      setIsMigratingLegacyData(false);
+    }
   }
 
   const localStory = localStoryForId(
@@ -432,7 +574,6 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
             </>
           }
         />
-
 
         {!inspection ? (
           <EmptyState
@@ -569,7 +710,8 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="Branch changes count"
                       state={getCountState(
                         inspection.indexedDb.branchChanges.length,
-                        inspection.legacyFallback.branchChanges.value?.length ?? 0,
+                        inspection.legacyFallback.branchChanges.value?.length ??
+                          0,
                       )}
                       value={`${inspection.indexedDb.branchChanges.length} IndexedDB / ${inspection.legacyFallback.branchChanges.value?.length ?? 0} legacy`}
                     />
@@ -577,8 +719,8 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="Continuity issues count"
                       state={getCountState(
                         inspection.indexedDb.continuityIssues.length,
-                        inspection.legacyFallback.continuityIssues.value?.length ??
-                          0,
+                        inspection.legacyFallback.continuityIssues.value
+                          ?.length ?? 0,
                       )}
                       value={`${inspection.indexedDb.continuityIssues.length} IndexedDB / ${inspection.legacyFallback.continuityIssues.value?.length ?? 0} legacy`}
                     />
@@ -586,7 +728,8 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="Rewrite drafts count"
                       state={getCountState(
                         inspection.indexedDb.rewriteDrafts.length,
-                        inspection.legacyFallback.rewriteDrafts.value?.length ?? 0,
+                        inspection.legacyFallback.rewriteDrafts.value?.length ??
+                          0,
                       )}
                       value={`${inspection.indexedDb.rewriteDrafts.length} IndexedDB / ${inspection.legacyFallback.rewriteDrafts.value?.length ?? 0} legacy`}
                     />
@@ -639,6 +782,23 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
 
                 <SectionCard title="Safe actions">
                   <div className="space-y-3">
+                    <Button
+                      className="w-full"
+                      type="button"
+                      disabled={isMigratingLegacyData}
+                      onClick={handleMigrateLegacyData}
+                    >
+                      <Database className="mr-2 h-4 w-4" />
+                      {isMigratingLegacyData
+                        ? "Migrating legacy data..."
+                        : "Migrate legacy story data to IndexedDB"}
+                    </Button>
+                    <p className="app-muted-text">
+                      Migrates legacy story metadata/setup/data for this story
+                      into IndexedDB, then clears only those legacy story keys.
+                      UI settings are preserved.
+                    </p>
+
                     <Button
                       className="w-full"
                       type="button"

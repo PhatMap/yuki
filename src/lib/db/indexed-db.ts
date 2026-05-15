@@ -28,6 +28,19 @@ interface SaveImportedStoryDataParams {
   analysisStatus: AnalysisStatus;
 }
 
+interface SaveLegacyStoryMigrationDataParams {
+  story?: Story;
+  setup?: StorySetupData;
+  chapters?: ImportedChapter[];
+  chunks?: ChapterChunk[];
+  analysisStatus?: AnalysisStatus;
+  analysisResult?: StoryAnalysisResult;
+  branches?: StoryBranchV2[];
+  branchChanges?: BranchChange[];
+  continuityIssues?: BranchContinuityIssue[];
+  rewriteDrafts?: RewriteDraft[];
+}
+
 export class AiStoryDatabase extends Dexie {
   stories!: Table<Story, string>;
   storySetups!: Table<StorySetupData, string>;
@@ -136,6 +149,76 @@ export async function saveImportedStoryData({
   );
 }
 
+export async function saveLegacyStoryMigrationData({
+  story,
+  setup,
+  chapters = [],
+  chunks = [],
+  analysisStatus,
+  analysisResult,
+  branches = [],
+  branchChanges = [],
+  continuityIssues = [],
+  rewriteDrafts = [],
+}: SaveLegacyStoryMigrationDataParams) {
+  await db.transaction(
+    "rw",
+    [
+      db.stories,
+      db.storySetups,
+      db.importedChapters,
+      db.chapterChunks,
+      db.analysisStatuses,
+      db.analysisResults,
+      db.branches,
+      db.branchChanges,
+      db.continuityIssues,
+      db.rewriteDrafts,
+    ],
+    async () => {
+      if (story) {
+        await db.stories.put(story);
+      }
+
+      if (setup) {
+        await db.storySetups.put(setup);
+      }
+
+      if (chapters.length > 0) {
+        await db.importedChapters.bulkPut(chapters);
+      }
+
+      if (chunks.length > 0) {
+        await db.chapterChunks.bulkPut(chunks);
+      }
+
+      if (analysisStatus) {
+        await db.analysisStatuses.put(analysisStatus);
+      }
+
+      if (analysisResult) {
+        await db.analysisResults.put(analysisResult);
+      }
+
+      if (branches.length > 0) {
+        await db.branches.bulkPut(branches);
+      }
+
+      if (branchChanges.length > 0) {
+        await db.branchChanges.bulkPut(branchChanges);
+      }
+
+      if (continuityIssues.length > 0) {
+        await db.continuityIssues.bulkPut(continuityIssues);
+      }
+
+      if (rewriteDrafts.length > 0) {
+        await db.rewriteDrafts.bulkPut(rewriteDrafts);
+      }
+    },
+  );
+}
+
 export async function getStoryById(storyId: string) {
   return db.stories.get(storyId);
 }
@@ -177,6 +260,7 @@ export async function saveAnalysisResult(
         ...result,
         storyId,
       });
+
       await db.analysisStatuses.put({
         ...status,
         storyId,
@@ -192,6 +276,7 @@ export async function getBranches(storyId: string) {
 export async function saveBranches(storyId: string, branches: StoryBranchV2[]) {
   await db.transaction("rw", db.branches, async () => {
     await db.branches.where("storyId").equals(storyId).delete();
+
     await db.branches.bulkPut(
       branches.map((branch) => ({
         ...branch,
@@ -211,6 +296,7 @@ export async function saveBranchChanges(
 ) {
   await db.transaction("rw", db.branchChanges, async () => {
     await db.branchChanges.where("storyId").equals(storyId).delete();
+
     await db.branchChanges.bulkPut(
       changes.map((change) => ({
         ...change,
@@ -230,6 +316,7 @@ export async function saveContinuityIssues(
 ) {
   await db.transaction("rw", db.continuityIssues, async () => {
     await db.continuityIssues.where("storyId").equals(storyId).delete();
+
     await db.continuityIssues.bulkPut(
       issues.map((issue) => ({
         ...issue,
