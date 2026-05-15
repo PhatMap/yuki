@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
 import { getAiProxySmokeTestEndpoint } from "@/lib/ai/proxy-config";
 
 interface StoryAiProxyTestClientProps {
@@ -155,128 +159,116 @@ export function StoryAiProxyTestClient({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 rounded-2xl border bg-background p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-muted-foreground">Step 36</p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            AI Proxy Smoke Test
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Test the local server-side proxy route without writing story data,
-            exposing API keys, or calling Gemini directly from the browser.
-          </p>
-        </div>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Step 36"
+          title="AI Proxy Smoke Test"
+          description="Test the local server-side proxy route without writing story data, exposing API keys, or calling Gemini directly from the browser."
+        />
 
-      </header>
+        {errorMessage ? (
+          <section className="app-warning-box border-destructive/40 bg-destructive/10 text-destructive">
+            {errorMessage}
+          </section>
+        ) : null}
 
-      {errorMessage ? (
-        <section className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-          {errorMessage}
+        <section className="app-three-column">
+          <InfoCard title="Proxy route" value={endpoint} />
+          <InfoCard title="Provider" value="gemini-proxy" />
+          <InfoCard title="Task" value="story-analysis" />
         </section>
-      ) : null}
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <InfoCard title="Proxy route" value={endpoint} />
-        <InfoCard title="Provider" value="gemini-proxy" />
-        <InfoCard title="Task" value="story-analysis" />
-      </section>
+        <section className="app-two-column">
+          <SectionCard
+            title="GET status check"
+            description="Calls the proxy route with GET to verify that the route is reachable and reports whether Gemini is configured server-side."
+          >
+            <button
+              type="button"
+              onClick={handleCheckStatus}
+              disabled={isCheckingStatus}
+              className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isCheckingStatus ? "Checking..." : "Check proxy status"}
+            </button>
+          </SectionCard>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border bg-background p-5 shadow-sm">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">GET status check</h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Calls the proxy route with GET to verify that the route is
-              reachable and reports whether Gemini is configured server-side.
+          <SectionCard
+            title="POST smoke test"
+            description="Sends a minimal valid AiPipelineInput. If GEMINI_API_KEY is not configured, a safe failed response is expected."
+          >
+            <button
+              type="button"
+              onClick={handlePostSmokeTest}
+              disabled={isPostingTest}
+              className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPostingTest ? "Running..." : "Run POST smoke test"}
+            </button>
+          </SectionCard>
+        </section>
+
+        <ContractBlock
+          title="POST request payload"
+          description="This payload is generated locally and does not read real story data."
+          code={formatJson(samplePayload)}
+        />
+
+        {statusResponse ? (
+          <ContractBlock
+            title={`GET response — HTTP ${statusResponse.status}`}
+            description={`Received at ${new Date(
+              statusResponse.receivedAt,
+            ).toLocaleString()}. ok=${String(statusResponse.ok)}`}
+            code={formatJson(statusResponse.body)}
+          />
+        ) : null}
+
+        {postResponse ? (
+          <ContractBlock
+            title={`POST response — HTTP ${postResponse.status}`}
+            description={`Received at ${new Date(
+              postResponse.receivedAt,
+            ).toLocaleString()}. ok=${String(postResponse.ok)}`}
+            code={formatJson(postResponse.body)}
+          />
+        ) : null}
+
+        <SectionCard title="Expected result">
+          <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+            <p>
+              Without{" "}
+              <code className="rounded bg-muted px-1 py-0.5">
+                GEMINI_API_KEY
+              </code>
+              , the POST test should fail safely and return a provider error
+              body.
+            </p>
+            <p>
+              With{" "}
+              <code className="rounded bg-muted px-1 py-0.5">
+                GEMINI_API_KEY
+              </code>
+              , the route may attempt the server-side Gemini call, depending on
+              the current proxy implementation.
+            </p>
+            <p>
+              This page does not save anything to IndexedDB or localStorage.
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={handleCheckStatus}
-            disabled={isCheckingStatus}
-            className="mt-5 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isCheckingStatus ? "Checking..." : "Check proxy status"}
-          </button>
-        </article>
-
-        <article className="rounded-2xl border bg-background p-5 shadow-sm">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">POST smoke test</h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Sends a minimal valid AiPipelineInput. If GEMINI_API_KEY is not
-              configured, a safe failed response is expected.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handlePostSmokeTest}
-            disabled={isPostingTest}
-            className="mt-5 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPostingTest ? "Running..." : "Run POST smoke test"}
-          </button>
-        </article>
-      </section>
-
-      <ContractBlock
-        title="POST request payload"
-        description="This payload is generated locally and does not read real story data."
-        code={formatJson(samplePayload)}
-      />
-
-      {statusResponse ? (
-        <ContractBlock
-          title={`GET response — HTTP ${statusResponse.status}`}
-          description={`Received at ${new Date(
-            statusResponse.receivedAt,
-          ).toLocaleString()}. ok=${String(statusResponse.ok)}`}
-          code={formatJson(statusResponse.body)}
-        />
-      ) : null}
-
-      {postResponse ? (
-        <ContractBlock
-          title={`POST response — HTTP ${postResponse.status}`}
-          description={`Received at ${new Date(
-            postResponse.receivedAt,
-          ).toLocaleString()}. ok=${String(postResponse.ok)}`}
-          code={formatJson(postResponse.body)}
-        />
-      ) : null}
-
-      <section className="rounded-2xl border bg-background p-5 shadow-sm">
-        <h2 className="text-lg font-semibold">Expected result</h2>
-        <div className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
-          <p>
-            Without{" "}
-            <code className="rounded bg-muted px-1 py-0.5">GEMINI_API_KEY</code>
-            , the POST test should fail safely and return a provider error body.
-          </p>
-          <p>
-            With{" "}
-            <code className="rounded bg-muted px-1 py-0.5">GEMINI_API_KEY</code>
-            , the route may attempt the server-side Gemini call, depending on
-            the current proxy implementation.
-          </p>
-          <p>This page does not save anything to IndexedDB or localStorage.</p>
-        </div>
-      </section>
-    </main>
+        </SectionCard>
+      </PageContainer>
+    </PageShell>
   );
 }
 
 function InfoCard({ title, value }: { title: string; value: string }) {
   return (
-    <article className="rounded-2xl border bg-background p-4 shadow-sm">
+    <SectionCard contentClassName="space-y-2">
       <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="mt-2 break-words font-mono text-sm font-semibold">
-        {value}
-      </p>
-    </article>
+      <p className="break-words font-mono text-sm font-semibold">{value}</p>
+    </SectionCard>
   );
 }
 
@@ -290,15 +282,10 @@ function ContractBlock({
   code: string;
 }) {
   return (
-    <section className="rounded-2xl border bg-background p-5 shadow-sm">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
-
-      <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl border bg-muted p-4 text-xs leading-5">
+    <SectionCard title={title} description={description}>
+      <pre className="app-json-panel">
         <code>{code}</code>
       </pre>
-    </section>
+    </SectionCard>
   );
 }

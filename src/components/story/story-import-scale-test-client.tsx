@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
 
 type ScalePreset = 1500 | 3000;
 
@@ -177,157 +182,145 @@ export function StoryImportScaleTestClient({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 rounded-2xl border bg-background p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">Step 28</p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Import Scale Test
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Test browser-side handling for 1500–3000 mock chapters without
-            touching real story import data.
-          </p>
-        </div>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Step 28"
+          title="Import Scale Test"
+          description="Test browser-side handling for 1500–3000 mock chapters without touching real story import data."
+          action={
+            <nav className="app-chip-row" aria-label="Story utility links">
+              {storyLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="app-chip">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          }
+        />
 
-        <nav className="flex flex-wrap gap-2">
-          {storyLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-full border px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </header>
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <SectionCard
+            title="Scale preset"
+            description="Generate mock chapter content, parse it, then test localStorage write/read timing using a separate diagnostic key."
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
+                <input
+                  type="radio"
+                  name="preset"
+                  checked={preset === 1500}
+                  onChange={() => setPreset(1500)}
+                />
+                1500 chapters
+              </label>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-2xl border bg-background p-5 shadow-sm">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">Scale preset</h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Generate mock chapter content, parse it, then test localStorage
-              write/read timing using a separate diagnostic key.
+              <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
+                <input
+                  type="radio"
+                  name="preset"
+                  checked={preset === 3000}
+                  onChange={() => setPreset(3000)}
+                />
+                3000 chapters
+              </label>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={runScaleTest}
+                disabled={isRunning}
+                className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRunning ? "Running test..." : "Run scale test"}
+              </button>
+
+              <button
+                type="button"
+                onClick={clearScaleData}
+                disabled={isRunning}
+                className="rounded-xl border px-4 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Clear scale test data
+              </button>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Storage key" className="app-sticky-panel">
+            <p className="app-code-block">{storageKey}</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              This page does not overwrite real import, chapters, chunks,
+              analysis, branch, or rewrite draft data.
             </p>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
-              <input
-                type="radio"
-                name="preset"
-                checked={preset === 1500}
-                onChange={() => setPreset(1500)}
-              />
-              1500 chapters
-            </label>
-
-            <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
-              <input
-                type="radio"
-                name="preset"
-                checked={preset === 3000}
-                onChange={() => setPreset(3000)}
-              />
-              3000 chapters
-            </label>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={runScaleTest}
-              disabled={isRunning}
-              className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isRunning ? "Running test..." : "Run scale test"}
-            </button>
-
-            <button
-              type="button"
-              onClick={clearScaleData}
-              disabled={isRunning}
-              className="rounded-xl border px-4 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Clear scale test data
-            </button>
-          </div>
-        </div>
-
-        <aside className="rounded-2xl border bg-background p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Storage key</h2>
-          <p className="mt-2 break-all rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-            {storageKey}
-          </p>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            This page does not overwrite real import, chapters, chunks,
-            analysis, branch, or rewrite draft data.
-          </p>
-        </aside>
-      </section>
-
-      {result ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Stat
-            label="Parsed chapters"
-            value={result.chapters.toLocaleString()}
-          />
-          <Stat label="Characters" value={result.characters.toLocaleString()} />
-          <Stat label="Approx payload" value={`${result.approxSizeMb} MB`} />
-          <Stat label="Parse time" value={`${result.parseMs} ms`} />
-          <Stat label="Generate time" value={`${result.generateMs} ms`} />
-          <Stat
-            label="localStorage write"
-            value={
-              result.localStorageWriteMs === null
-                ? "Failed"
-                : `${result.localStorageWriteMs} ms`
-            }
-          />
-          <Stat
-            label="localStorage read"
-            value={
-              result.localStorageReadMs === null
-                ? "Failed"
-                : `${result.localStorageReadMs} ms`
-            }
-          />
-          <Stat
-            label="Created at"
-            value={new Date(result.createdAt).toLocaleString()}
-          />
+          </SectionCard>
         </section>
-      ) : (
-        <section className="rounded-2xl border border-dashed bg-background p-8 text-center">
-          <h2 className="text-lg font-semibold">No scale test result yet</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Select a preset and run the test to inspect browser-side import
-            scale behavior.
-          </p>
-        </section>
-      )}
 
-      {result?.warnings.length ? (
-        <section className="rounded-2xl border bg-background p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Warnings</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-            {result.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </main>
+        {result ? (
+          <section className="app-data-grid">
+            <Stat
+              label="Parsed chapters"
+              value={result.chapters.toLocaleString()}
+            />
+            <Stat
+              label="Characters"
+              value={result.characters.toLocaleString()}
+            />
+            <Stat label="Approx payload" value={`${result.approxSizeMb} MB`} />
+            <Stat label="Parse time" value={`${result.parseMs} ms`} />
+            <Stat label="Generate time" value={`${result.generateMs} ms`} />
+            <Stat
+              label="localStorage write"
+              value={
+                result.localStorageWriteMs === null
+                  ? "Failed"
+                  : `${result.localStorageWriteMs} ms`
+              }
+            />
+            <Stat
+              label="localStorage read"
+              value={
+                result.localStorageReadMs === null
+                  ? "Failed"
+                  : `${result.localStorageReadMs} ms`
+              }
+            />
+            <Stat
+              label="Created at"
+              value={new Date(result.createdAt).toLocaleString()}
+            />
+          </section>
+        ) : (
+          <section className="app-empty-state text-center">
+            <h2 className="text-lg font-semibold text-foreground">
+              No scale test result yet
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Select a preset and run the test to inspect browser-side import
+              scale behavior.
+            </p>
+          </section>
+        )}
+
+        {result?.warnings.length ? (
+          <SectionCard title="Warnings">
+            <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+              {result.warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </SectionCard>
+        ) : null}
+      </PageContainer>
+    </PageShell>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border bg-background p-4 shadow-sm">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 break-words text-xl font-semibold">{value}</p>
-    </div>
+    <article className="app-data-stat">
+      <p className="app-data-stat-label">{label}</p>
+      <p className="app-data-stat-value">{value}</p>
+    </article>
   );
 }

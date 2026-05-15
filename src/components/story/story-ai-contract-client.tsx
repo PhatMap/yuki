@@ -1,5 +1,9 @@
 "use client";
 
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
 
 const proxyEndpointEnvKey = "NEXT_PUBLIC_AI_PROXY_ENDPOINT";
 
@@ -185,103 +189,86 @@ function formatJson(value: unknown) {
 
 export function StoryAiContractClient() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 rounded-2xl border bg-background p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-muted-foreground">Step 33</p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            AI Proxy Contract Preview
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Documentation-only preview for the Gemini proxy request and response
-            shape. This page does not call AI and does not create a backend.
-          </p>
-        </div>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Step 33"
+          title="AI Proxy Contract Preview"
+          description="Documentation-only preview for the Gemini proxy request and response shape. This page does not call AI and does not create a backend."
+        />
 
-      </header>
+        <section className="app-three-column">
+          <InfoCard title="Provider" value="gemini-proxy" />
+          <InfoCard title="Method" value="POST" />
+          <InfoCard title="Env key" value={proxyEndpointEnvKey} />
+        </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <InfoCard title="Provider" value="gemini-proxy" />
-        <InfoCard title="Method" value="POST" />
-        <InfoCard title="Env key" value={proxyEndpointEnvKey} />
-      </section>
+        <SectionCard
+          title="Contract rules"
+          description="These rules describe the minimum backend/proxy contract required by the current frontend pipeline."
+        >
+          <ul className="grid gap-3 md:grid-cols-2">
+            {contractChecks.map((check) => (
+              <li key={check} className="app-status-item">
+                <p className="app-status-item-body mt-0">{check}</p>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
 
-      <section className="rounded-2xl border bg-background p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">Contract rules</h2>
-          <p className="text-sm leading-6 text-muted-foreground">
-            These rules describe the minimum backend/proxy contract required by
-            the current frontend pipeline.
-          </p>
-        </div>
+        <ContractBlock
+          title="Request body example"
+          description="The frontend provider sends this shape to NEXT_PUBLIC_AI_PROXY_ENDPOINT."
+          code={formatJson(requestBodyExample)}
+        />
 
-        <ul className="mt-4 grid gap-3 md:grid-cols-2">
-          {contractChecks.map((check) => (
-            <li
-              key={check}
-              className="rounded-xl border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground"
-            >
-              {check}
-            </li>
-          ))}
-        </ul>
-      </section>
+        <ContractBlock
+          title="Valid response example: raw StoryAnalysisResult"
+          description="The proxy may return StoryAnalysisResult directly."
+          code={formatJson(rawStoryAnalysisResultExample)}
+        />
 
-      <ContractBlock
-        title="Request body example"
-        description="The frontend provider sends this shape to NEXT_PUBLIC_AI_PROXY_ENDPOINT."
-        code={formatJson(requestBodyExample)}
-      />
+        <ContractBlock
+          title="Valid response example: pipeline wrapper"
+          description="The proxy may also return an object containing analysisResult."
+          code={formatJson(wrappedPipelineResponseExample)}
+        />
 
-      <ContractBlock
-        title="Valid response example: raw StoryAnalysisResult"
-        description="The proxy may return StoryAnalysisResult directly."
-        code={formatJson(rawStoryAnalysisResultExample)}
-      />
+        <ContractBlock
+          title="Error response example"
+          description="The frontend should handle failed provider status safely without breaking storage or UI."
+          code={formatJson(errorResponseExample)}
+        />
 
-      <ContractBlock
-        title="Valid response example: pipeline wrapper"
-        description="The proxy may also return an object containing analysisResult."
-        code={formatJson(wrappedPipelineResponseExample)}
-      />
-
-      <ContractBlock
-        title="Error response example"
-        description="The frontend should handle failed provider status safely without breaking storage or UI."
-        code={formatJson(errorResponseExample)}
-      />
-
-      <section className="rounded-2xl border bg-background p-5 shadow-sm">
-        <h2 className="text-lg font-semibold">Implementation notes</h2>
-        <div className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
-          <p>
-            Backend/proxy implementation is intentionally not included in this
-            step. The current app only documents the expected contract so the
-            later endpoint can be implemented without changing UI pages.
-          </p>
-          <p>
-            The response must remain compatible with the current
-            StoryAnalysisResult fields: characters, events, items, terms,
-            locations, writingStyleProfiles, storyId, and updatedAt.
-          </p>
-          <p>
-            API keys must stay on the server side only. The browser should know
-            only the proxy URL from {proxyEndpointEnvKey}.
-          </p>
-        </div>
-      </section>
-    </main>
+        <SectionCard title="Implementation notes">
+          <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+            <p>
+              Backend/proxy implementation is intentionally not included in this
+              step. The current app only documents the expected contract so the
+              later endpoint can be implemented without changing UI pages.
+            </p>
+            <p>
+              The response must remain compatible with the current
+              StoryAnalysisResult fields: characters, events, items, terms,
+              locations, writingStyleProfiles, storyId, and updatedAt.
+            </p>
+            <p>
+              API keys must stay on the server side only. The browser should
+              know only the proxy URL from {proxyEndpointEnvKey}.
+            </p>
+          </div>
+        </SectionCard>
+      </PageContainer>
+    </PageShell>
   );
 }
 
 function InfoCard({ title, value }: { title: string; value: string }) {
   return (
-    <article className="rounded-2xl border bg-background p-4 shadow-sm">
+    <SectionCard contentClassName="space-y-2">
       <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="mt-2 break-words font-mono text-sm font-semibold">
-        {value}
-      </p>
-    </article>
+      <p className="break-words font-mono text-sm font-semibold">{value}</p>
+    </SectionCard>
   );
 }
 
@@ -295,15 +282,10 @@ function ContractBlock({
   code: string;
 }) {
   return (
-    <section className="rounded-2xl border bg-background p-5 shadow-sm">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
-
-      <pre className="mt-4 max-h-[520px] overflow-auto rounded-xl border bg-muted p-4 text-xs leading-5">
+    <SectionCard title={title} description={description}>
+      <pre className="app-json-panel">
         <code>{code}</code>
       </pre>
-    </section>
+    </SectionCard>
   );
 }
