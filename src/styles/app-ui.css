@@ -838,3 +838,201 @@
     }
   }
 }
+
+@layer components {
+
+  .app-page,
+  .app-story-shell,
+  .app-workspace {
+    background:
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 28rem),
+      linear-gradient(to bottom, hsl(var(--muted) / 0.45), hsl(var(--background)));
+  }
+
+  .app-page-header,
+  .app-density-card,
+  .app-data-panel,
+  .app-readable-panel,
+  .app-editor-surface,
+  .app-comparison-panel,
+  .app-loading-panel,
+  .app-empty-state,
+  .app-error-callout,
+  .app-section-card,
+  .app-container :where(.rounded-2xl.border.bg-background) {
+    background-color: hsl(var(--background) / 0.96);
+    backdrop-filter: blur(8px);
+  }
+
+  .app-page-header,
+  .app-density-card,
+  .app-data-panel,
+  .app-readable-panel,
+  .app-editor-surface,
+  .app-comparison-panel,
+  .app-loading-panel,
+  .app-empty-state,
+  .app-section-card {
+    @apply shadow-sm;
+  }
+
+  .app-page-header:hover,
+  .app-density-card:hover,
+  .app-data-panel:hover,
+  .app-readable-panel:hover,
+  .app-editor-surface:hover,
+  .app-comparison-panel:hover,
+  .app-section-card:hover {
+    @apply shadow-md;
+  }
+
+  .app-story-shell-nav {
+    background:
+      linear-gradient(to right, hsl(var(--background) / 0.98), hsl(var(--background) / 0.92)),
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 24rem);
+  }
+
+  .app-story-nav-group {
+    background-color: hsl(var(--background) / 0.86);
+  }
+
+  .app-story-nav-group-active {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.18),
+      0 8px 24px hsl(var(--primary) / 0.08);
+  }
+
+  .app-story-nav-link {
+    @apply border border-transparent;
+  }
+
+  .app-story-nav-link:not(.app-story-nav-link-active):hover {
+    @apply border-border bg-muted/70;
+  }
+
+  .app-story-nav-link-active {
+    box-shadow:
+      inset 0 1px 0 hsl(var(--primary-foreground) / 0.25),
+      0 6px 16px hsl(var(--primary) / 0.18);
+  }
+
+  .app-page-eyebrow,
+  .app-data-stat-label,
+  .app-key-value-label {
+    letter-spacing: 0.16em;
+  }
+
+  .app-page-title,
+  .app-density-card-title,
+  .app-data-panel-title,
+  .app-reading-title,
+  .app-editor-title,
+  .app-comparison-title,
+  .app-section-title {
+    color: hsl(var(--foreground));
+  }
+
+  .app-muted-text,
+  .app-page-description,
+  .app-density-card-description,
+  .app-data-panel-description,
+  .app-readable-muted,
+  .app-data-stat-description,
+  .app-status-item-body,
+  .app-link-card-description,
+  .app-subtle-panel-body {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .app-container :where(.border) {
+    border-color: hsl(var(--border) / 0.82);
+  }
+
+  .app-container :where(.bg-muted, .bg-muted\/30, .bg-muted\/40, .bg-muted\/50, .bg-muted\/60, .bg-muted\/70) {
+    background-color: hsl(var(--muted) / 0.58);
+  }
+
+  .app-code-block,
+  .app-json-panel,
+  .app-json-panel-compact,
+  .app-comparison-content,
+  .app-container :where(pre) {
+    background:
+      linear-gradient(to bottom, hsl(var(--muted) / 0.68), hsl(var(--muted) / 0.42));
+  }
+
+  .app-chip,
+  .app-badge-muted {
+    background-color: hsl(var(--muted) / 0.68);
+  }
+
+  .app-chip-primary,
+  .app-badge-strong {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.08);
+  }
+
+  .app-primary-action,
+  .app-secondary-action,
+  .app-danger-action {
+    @apply shadow-sm;
+  }
+
+  .app-primary-action:hover,
+  .app-secondary-action:hover,
+  .app-danger-action:hover,
+  .app-link-card:hover {
+    @apply shadow-md;
+  }
+
+  .app-container :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    background-color: hsl(var(--background) / 0.96);
+  }
+
+  .app-container :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea)::placeholder {
+    color: hsl(var(--muted-foreground) / 0.72);
+  }
+
+  .app-editor-textarea:focus-visible,
+  .app-container :where(textarea):focus-visible {
+    box-shadow:
+      0 0 0 3px hsl(var(--ring) / 0.14),
+      0 12px 32px hsl(var(--foreground) / 0.04);
+  }
+
+  .app-soft-divider {
+    background: linear-gradient(to right,
+        transparent,
+        hsl(var(--border)),
+        transparent);
+  }
+
+  .app-subtle-panel {
+    background:
+      linear-gradient(to bottom right, hsl(var(--muted) / 0.48), hsl(var(--background) / 0.82));
+  }
+
+  .app-key-value-row {
+    background-color: hsl(var(--background) / 0.9);
+  }
+
+  @media (max-width: 640px) {
+
+    .app-page,
+    .app-story-shell,
+    .app-workspace {
+      background:
+        radial-gradient(circle at top, hsl(var(--primary) / 0.08), transparent 18rem),
+        linear-gradient(to bottom, hsl(var(--muted) / 0.42), hsl(var(--background)));
+    }
+
+    .app-page-header,
+    .app-density-card,
+    .app-data-panel,
+    .app-readable-panel,
+    .app-editor-surface,
+    .app-comparison-panel,
+    .app-section-card {
+      border-radius: 1rem;
+    }
+  }
+}
