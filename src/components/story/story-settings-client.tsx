@@ -8,7 +8,6 @@ import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
-import { notifyStorySettingsChanged } from "@/components/app/story-settings-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,27 +27,16 @@ import {
   type StorySetupData,
 } from "@/lib/db/indexed-db";
 import { stories } from "@/lib/mock-data";
-import { readJsonFromLocalStorage } from "@/lib/storage/safe-local-storage";
+import {
+  createDefaultStoryLocalSettings,
+  getStorySettingsStorageKey,
+  readStoryLocalSettings,
+  saveStoryLocalSettings,
+} from "@/lib/storage/story-settings-storage";
 import type { Story, StoryLocalSettings } from "@/lib/types";
 
 interface StorySettingsClientProps {
   storyId: string;
-}
-
-const settingsStorageKey = (storyId: string) =>
-  `ai-story-app:settings:${storyId}`;
-
-function createDefaultSettings(storyId: string): StoryLocalSettings {
-  return {
-    storyId,
-    fontSize: "medium",
-    readingWidth: "comfortable",
-    density: "comfortable",
-    showMetadata: true,
-    autoSaveDrafts: true,
-    mockAiMode: "balanced",
-    updatedAt: new Date().toISOString(),
-  };
 }
 
 function createDefaultSetup(storyId: string): StorySetupData {
@@ -62,24 +50,9 @@ function createDefaultSetup(storyId: string): StorySetupData {
   };
 }
 
-function readLocalSettings(storyId: string) {
-  return readJsonFromLocalStorage<StoryLocalSettings>(
-    settingsStorageKey(storyId),
-    createDefaultSettings(storyId),
-  );
-}
-
-function saveLocalSettings(settings: StoryLocalSettings) {
-  localStorage.setItem(
-    settingsStorageKey(settings.storyId),
-    JSON.stringify(settings),
-  );
-  notifyStorySettingsChanged();
-}
-
 export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
   const [settings, setSettings] = useState<StoryLocalSettings>(() =>
-    readLocalSettings(storyId),
+    readStoryLocalSettings(storyId),
   );
   const [story, setStory] = useState<Story | undefined>(() =>
     stories.find((item) => item.id === storyId),
@@ -172,15 +145,15 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
       updatedAt: new Date().toISOString(),
     };
 
-    saveLocalSettings(nextSettings);
+    saveStoryLocalSettings(nextSettings);
     setSettings(nextSettings);
     setSaveMessage("Settings saved locally.");
   }
 
   function handleResetSettings() {
-    const defaultSettings = createDefaultSettings(storyId);
+    const defaultSettings = createDefaultStoryLocalSettings(storyId);
 
-    saveLocalSettings(defaultSettings);
+    saveStoryLocalSettings(defaultSettings);
     setSettings(defaultSettings);
     setSaveMessage("Settings reset to defaults.");
   }
@@ -427,7 +400,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                 <p className="app-muted-text">
                   UI settings:{" "}
                   <span className="font-mono">
-                    ai-story-app:settings:{storyId}
+                    {getStorySettingsStorageKey(storyId)}
                   </span>
                 </p>
 
