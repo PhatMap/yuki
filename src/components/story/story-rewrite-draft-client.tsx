@@ -77,10 +77,6 @@ function readJsonValue<T>(key: string, fallback: T): T {
   }
 }
 
-function writeJsonValue<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
 function readLocalStory(storyId: string) {
   return readJsonValue<Story[]>(storyStorageKey, []).find(
     (story) => story.id === storyId,
@@ -245,17 +241,14 @@ function findExistingDraft({
   );
 }
 
-async function saveDraftWithFallback({
-  storyId,
+async function saveDraftToStorage({
   draft,
   existingDrafts,
 }: {
-  storyId: string;
   draft: RewriteDraft;
   existingDrafts: RewriteDraft[];
 }) {
   let indexedDbSaved = false;
-  let localStorageSaved = false;
   const nextDrafts = [
     draft,
     ...existingDrafts.filter((item) => item.id !== draft.id),
@@ -268,15 +261,8 @@ async function saveDraftWithFallback({
     console.error("Failed to save rewrite draft to IndexedDB", error);
   }
 
-  try {
-    writeJsonValue(rewriteDraftsStorageKey(storyId), nextDrafts);
-    localStorageSaved = true;
-  } catch (error) {
-    console.error("Failed to save rewrite draft to localStorage", error);
-  }
-
   return {
-    saved: indexedDbSaved || localStorageSaved,
+    saved: indexedDbSaved,
     nextDrafts,
   };
 }
@@ -469,8 +455,7 @@ export function StoryRewriteDraftClient({
       createdAt: existingDraft?.createdAt ?? now,
       updatedAt: now,
     };
-    const { saved, nextDrafts } = await saveDraftWithFallback({
-      storyId,
+    const { saved, nextDrafts } = await saveDraftToStorage({
       draft,
       existingDrafts: draftData.rewriteDrafts,
     });
@@ -482,7 +467,7 @@ export function StoryRewriteDraftClient({
       }));
       setSaveMessage("Rewrite draft saved locally.");
     } else {
-      setSaveMessage("Could not save rewrite draft to IndexedDB or localStorage.");
+      setSaveMessage("Could not save rewrite draft to IndexedDB.");
     }
 
     setIsSaving(false);
@@ -521,8 +506,8 @@ export function StoryRewriteDraftClient({
 
 
         <p className="app-muted-text">
-          Rewrite Draft Workspace reads from IndexedDB first, with localStorage
-          fallback.
+          Rewrite Draft Workspace reads from IndexedDB first, with legacy
+          localStorage fallback.
         </p>
 
         {storageError ? (

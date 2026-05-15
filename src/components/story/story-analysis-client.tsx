@@ -347,34 +347,11 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       createdAt: analysisStatus?.createdAt ?? now,
       updatedAt: now,
     };
-    let localStorageSaved = false;
-    let indexedDbSaved = false;
-
-    try {
-      localStorage.setItem(
-        `ai-story-app:analysis-result:${storyId}`,
-        JSON.stringify(result),
-      );
-      localStorage.setItem(
-        `ai-story-app:analysis-status:${storyId}`,
-        JSON.stringify(updatedStatus),
-      );
-      localStorageSaved = true;
-    } catch (error) {
-      console.error("Failed to save mock analysis to localStorage", error);
-    }
-
     try {
       await saveAnalysisResult(storyId, result, updatedStatus);
-      indexedDbSaved = true;
     } catch (error) {
       console.error("Failed to save mock analysis to IndexedDB", error);
-    }
-
-    if (!localStorageSaved && !indexedDbSaved) {
-      setStorageError(
-        "Could not save mock analysis to IndexedDB or localStorage.",
-      );
+      setStorageError("Could not save mock analysis to IndexedDB.");
       setIsSavingAnalysis(false);
       return;
     }

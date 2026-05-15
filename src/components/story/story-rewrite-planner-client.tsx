@@ -132,10 +132,6 @@ function readJsonValue<T>(key: string, fallback: T): T {
   }
 }
 
-function writeJsonValue<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
 function readLocalStory(storyId: string) {
   return readJsonValue<Story[]>(storyStorageKey, []).find(
     (story) => story.id === storyId,
@@ -364,26 +360,14 @@ async function savePlannerData({
   branchChanges: BranchChange[];
   continuityIssues: BranchContinuityIssue[];
 }) {
-  let localStorageSaved = false;
-  let indexedDbSaved = false;
-
-  try {
-    writeJsonValue(branchChangesStorageKey(storyId), branchChanges);
-    writeJsonValue(continuityIssuesStorageKey(storyId), continuityIssues);
-    localStorageSaved = true;
-  } catch (error) {
-    console.error("Failed to save rewrite planner data to localStorage", error);
-  }
-
   try {
     await saveBranchChanges(storyId, branchChanges);
     await saveContinuityIssues(storyId, continuityIssues);
-    indexedDbSaved = true;
+    return true;
   } catch (error) {
     console.error("Failed to save rewrite planner data to IndexedDB", error);
+    return false;
   }
-
-  return localStorageSaved || indexedDbSaved;
 }
 
 export function StoryRewritePlannerClient({
@@ -631,7 +615,7 @@ export function StoryRewritePlannerClient({
       }));
       setSaveMessage("Rewrite proposal saved as a draft branch change.");
     } else {
-      setSaveMessage("Could not save rewrite proposal to IndexedDB or localStorage.");
+      setSaveMessage("Could not save rewrite proposal to IndexedDB.");
     }
 
     setIsSaving(false);
@@ -682,7 +666,8 @@ export function StoryRewritePlannerClient({
 
 
         <p className="app-muted-text">
-          Rewrite Planner reads from IndexedDB first, with localStorage fallback.
+          Rewrite Planner reads from IndexedDB first, with legacy localStorage
+          fallback.
         </p>
 
         {storageError ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useMemo, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -21,22 +21,17 @@ import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAllStories } from "@/lib/db/indexed-db";
 import { stories as mockStories } from "@/lib/mock-data";
 import type { Story } from "@/lib/types";
 
 const storiesStorageKey = "ai-story-app:stories";
-const homeStoriesStorageEvent = "yuki-home-stories-storage-change";
 
-type HomeStorySource = "local" | "mock";
+type HomeStorySource = "indexeddb" | "legacy-local" | "mock";
 
 type HomeStory = Story & {
   homeSource: HomeStorySource;
 };
-
-const emptyStoriesSnapshot: Story[] = [];
-
-let cachedStoriesRawValue: string | null = null;
-let cachedStoriesSnapshot: Story[] = emptyStoriesSnapshot;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -54,47 +49,19 @@ function isStory(value: unknown): value is Story {
   );
 }
 
-function readLocalStoriesSnapshot() {
-  if (typeof window === "undefined") return emptyStoriesSnapshot;
+function readLegacyLocalStoriesSnapshot() {
+  if (typeof window === "undefined") return [];
 
   const rawValue = localStorage.getItem(storiesStorageKey);
-
-  if (rawValue === cachedStoriesRawValue) {
-    return cachedStoriesSnapshot;
-  }
-
-  cachedStoriesRawValue = rawValue;
 
   try {
     const parsedValue = rawValue ? (JSON.parse(rawValue) as unknown) : [];
 
-    cachedStoriesSnapshot = Array.isArray(parsedValue)
-      ? parsedValue.filter(isStory)
-      : emptyStoriesSnapshot;
+    return Array.isArray(parsedValue) ? parsedValue.filter(isStory) : [];
   } catch (error) {
-    console.error("Failed to read local stories from localStorage", error);
-    cachedStoriesSnapshot = emptyStoriesSnapshot;
+    console.error("Failed to read legacy stories from localStorage", error);
+    return [];
   }
-
-  return cachedStoriesSnapshot;
-}
-
-function subscribeToStoriesStorage(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const handleStorageChange = () => {
-    onStoreChange();
-  };
-
-  window.addEventListener("storage", handleStorageChange);
-  window.addEventListener(homeStoriesStorageEvent, handleStorageChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorageChange);
-    window.removeEventListener(homeStoriesStorageEvent, handleStorageChange);
-  };
 }
 
 function sortByUpdatedAtDesc(storyItems: Story[]) {
@@ -114,40 +81,72 @@ function formatDate(value: string) {
   return date.toLocaleDateString("vi-VN");
 }
 
-function mergeHomeStories(localStories: Story[]) {
-  const localItems: HomeStory[] = sortByUpdatedAtDesc(localStories).map(
+function mergeHomeStories(storedStories: Story[], source: HomeStorySource) {
+  const storedItems: HomeStory[] = sortByUpdatedAtDesc(storedStories).map(
     (story) => ({
       ...story,
-      homeSource: "local",
+      homeSource: source,
     }),
   );
 
-  const localIds = new Set(localItems.map((story) => story.id));
+  const storedIds = new Set(storedItems.map((story) => story.id));
 
   const starterItems: HomeStory[] = mockStories
-    .filter((story) => !localIds.has(story.id))
+    .filter((story) => !storedIds.has(story.id))
     .map((story) => ({
       ...story,
       homeSource: "mock",
     }));
 
   return {
-    localItems,
+    storedItems,
     starterItems,
-    allItems: [...localItems, ...starterItems],
+    allItems: [...storedItems, ...starterItems],
   };
 }
 
 export function HomeDashboardClient() {
-  const localStories = useSyncExternalStore(
-    subscribeToStoriesStorage,
-    readLocalStoriesSnapshot,
-    () => emptyStoriesSnapshot,
-  );
+  const [storedStories, setStoredStories] = useState<Story[]>([]);
+  const [storySource, setStorySource] = useState<HomeStorySource>("indexeddb");
 
-  const { localItems, starterItems, allItems } = useMemo(
-    () => mergeHomeStories(localStories),
-    [localStories],
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadStories() {
+      try {
+        const indexedDbStories = await getAllStories();
+
+        if (!isActive) return;
+
+        if (indexedDbStories.length > 0) {
+          setStoredStories(indexedDbStories);
+          setStorySource("indexeddb");
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to read stories from IndexedDB", error);
+      }
+
+      // TEMP_COMPATIBILITY: read old story metadata only while existing
+      // browsers may still have records from the previous localStorage flow.
+      const legacyStories = readLegacyLocalStoriesSnapshot();
+
+      if (!isActive) return;
+
+      setStoredStories(legacyStories);
+      setStorySource(legacyStories.length > 0 ? "legacy-local" : "indexeddb");
+    }
+
+    void loadStories();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const { storedItems, starterItems, allItems } = useMemo(
+    () => mergeHomeStories(storedStories, storySource),
+    [storedStories, storySource],
   );
 
   const primaryStory = allItems[0];
@@ -183,9 +182,13 @@ export function HomeDashboardClient() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={<Library className="h-4 w-4" />}
-            title="Local stories"
-            value={localItems.length.toLocaleString("vi-VN")}
-            description="Stories found in browser localStorage."
+            title="IndexedDB stories"
+            value={storedItems.length.toLocaleString("vi-VN")}
+            description={
+              storySource === "legacy-local"
+                ? "Temporary legacy localStorage metadata fallback."
+                : "Story metadata loaded from IndexedDB."
+            }
           />
           <StatCard
             icon={<Sparkles className="h-4 w-4" />}
@@ -264,12 +267,16 @@ export function HomeDashboardClient() {
         </section>
 
         <SectionCard
-          title="Local stories"
-          description="Stories imported or saved in this browser."
+          title="Stored stories"
+          description={
+            storySource === "legacy-local"
+              ? "Temporary compatibility view for old localStorage story metadata."
+              : "Stories saved in IndexedDB on this browser."
+          }
         >
-          {localItems.length > 0 ? (
+          {storedItems.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {localItems.map((story) => (
+              {storedItems.map((story) => (
                 <StoryCard key={story.id} story={story} />
               ))}
             </div>
@@ -347,10 +354,16 @@ function StoryCard({ story }: { story: HomeStory }) {
 
           <span
             className={
-              story.homeSource === "local" ? "app-chip-primary" : "app-chip"
+              story.homeSource === "indexeddb"
+                ? "app-chip-primary"
+                : "app-chip"
             }
           >
-            {story.homeSource === "local" ? "Local" : "Starter"}
+            {story.homeSource === "indexeddb"
+              ? "IndexedDB"
+              : story.homeSource === "legacy-local"
+                ? "Legacy"
+                : "Starter"}
           </span>
         </div>
       </CardHeader>

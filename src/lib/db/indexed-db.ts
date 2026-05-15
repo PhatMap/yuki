@@ -102,6 +102,10 @@ export async function getAllStories() {
   return db.stories.orderBy("updatedAt").reverse().toArray();
 }
 
+export async function saveStory(story: Story) {
+  await db.stories.put(story);
+}
+
 export async function getImportedChapters(storyId: string) {
   return db.importedChapters
     .where("storyId")

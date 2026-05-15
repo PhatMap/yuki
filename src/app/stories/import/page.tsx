@@ -19,22 +19,9 @@ import {
   createInitialAnalysisStatus,
   detectChaptersFromText,
 } from "@/lib/novel-processing";
-import {
-  readJsonFromLocalStorage,
-  writeLocalStorageBatch,
-} from "@/lib/storage/safe-local-storage";
 import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 
-const storyStorageKey = "ai-story-app:stories";
 const tempStoryId = "preview-import-story";
-
-function isStoryArray(value: unknown): value is Story[] {
-  return Array.isArray(value);
-}
-
-function readLocalStories() {
-  return readJsonFromLocalStorage<Story[]>(storyStorageKey, [], isStoryArray);
-}
 
 export default function ImportNovelPage() {
   const router = useRouter();
@@ -111,27 +98,6 @@ export default function ImportNovelPage() {
       updatedAt: now,
     };
 
-    const localStorageSaved = writeLocalStorageBatch([
-      {
-        key: storyStorageKey,
-        value: JSON.stringify([newStory, ...readLocalStories()]),
-      },
-      {
-        key: `ai-story-app:chapters:${storyId}`,
-        value: JSON.stringify(importedChapters),
-      },
-      {
-        key: `ai-story-app:chunks:${storyId}`,
-        value: JSON.stringify(chunks),
-      },
-      {
-        key: `ai-story-app:analysis-status:${storyId}`,
-        value: JSON.stringify(analysisStatus),
-      },
-    ]);
-
-    let indexedDbSaved = false;
-
     try {
       await saveImportedStoryData({
         story: newStory,
@@ -139,15 +105,9 @@ export default function ImportNovelPage() {
         chunks,
         analysisStatus,
       });
-      indexedDbSaved = true;
     } catch (error) {
       console.error("Failed to save imported novel to IndexedDB", error);
-    }
-
-    if (!localStorageSaved && !indexedDbSaved) {
-      setCreateError(
-        "Không thể lưu truyện import vào IndexedDB hoặc localStorage. Vui lòng thử lại.",
-      );
+      setCreateError("Could not save imported story data to IndexedDB.");
       setIsCreating(false);
       return;
     }
@@ -168,14 +128,15 @@ export default function ImportNovelPage() {
           <div className="app-warning-box max-w-3xl">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p>
-              Với truyện rất dài, bản localStorage chỉ dùng cho prototype. Bản
-              production cần database và background processing.
+              IndexedDB is the source of truth for long story, chapter, and
+              chunk data in this local-first prototype.
             </p>
           </div>
           <div className="flex max-w-3xl gap-3 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
             <FileText className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p>
-              Prototype hiện lưu song song IndexedDB và localStorage fallback.
+              localStorage is reserved for small UI preferences and temporary
+              compatibility reads, not new large imports.
             </p>
           </div>
         </div>

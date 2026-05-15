@@ -131,29 +131,14 @@ function readStoredArray<T>(key: string): T[] {
   return readJsonValue<T[]>(key, []);
 }
 
-function writeStoredArray<T>(key: string, value: T[]) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
 async function saveBranchesToStorage(storyId: string, branches: StoryBranchV2[]) {
-  let localStorageSaved = false;
-  let indexedDbSaved = false;
-
-  try {
-    writeStoredArray(branchesStorageKey(storyId), branches);
-    localStorageSaved = true;
-  } catch (error) {
-    console.error("Failed to save branches to localStorage", error);
-  }
-
   try {
     await saveBranches(storyId, branches);
-    indexedDbSaved = true;
+    return true;
   } catch (error) {
     console.error("Failed to save branches to IndexedDB", error);
+    return false;
   }
-
-  return localStorageSaved || indexedDbSaved;
 }
 
 async function saveBranchChangesToStorage({
@@ -165,26 +150,14 @@ async function saveBranchChangesToStorage({
   changes: BranchChange[];
   issues: BranchContinuityIssue[];
 }) {
-  let localStorageSaved = false;
-  let indexedDbSaved = false;
-
-  try {
-    writeStoredArray(branchChangesStorageKey(storyId), changes);
-    writeStoredArray(continuityIssuesStorageKey(storyId), issues);
-    localStorageSaved = true;
-  } catch (error) {
-    console.error("Failed to save branch changes to localStorage", error);
-  }
-
   try {
     await saveBranchChanges(storyId, changes);
     await saveContinuityIssues(storyId, issues);
-    indexedDbSaved = true;
+    return true;
   } catch (error) {
     console.error("Failed to save branch changes to IndexedDB", error);
+    return false;
   }
-
-  return localStorageSaved || indexedDbSaved;
 }
 
 async function readIndexedDbWorkspaceData(
@@ -498,9 +471,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     const saved = await saveBranchesToStorage(storyId, nextBranches);
 
     if (!saved) {
-      setBranchStorageError(
-        "Could not save branch data to IndexedDB or localStorage.",
-      );
+      setBranchStorageError("Could not save branch data to IndexedDB.");
     }
 
     setIsSavingBranchData(false);
@@ -576,9 +547,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     });
 
     if (!branchSaved || !changesSaved) {
-      setBranchStorageError(
-        "Could not save branch changes to IndexedDB or localStorage.",
-      );
+      setBranchStorageError("Could not save branch changes to IndexedDB.");
     }
 
     setIsSavingBranchData(false);
@@ -746,7 +715,8 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Branch data is saved to IndexedDB with localStorage fallback.
+                  Branch data is saved to IndexedDB. Legacy localStorage is
+                  read only as temporary fallback data.
                 </p>
                 {isSavingBranchData ? (
                   <p className="text-xs text-muted-foreground">

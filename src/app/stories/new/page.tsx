@@ -20,10 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  readJsonFromLocalStorage,
-  writeLocalStorageBatch,
-} from "@/lib/storage/safe-local-storage";
+import { saveStory } from "@/lib/db/indexed-db";
 import type { CanonAdherence, Story, StoryGenre, StoryTone } from "@/lib/types";
 
 interface CreateStoryForm {
@@ -39,8 +36,6 @@ interface CreateStoryForm {
   mustChange: string;
 }
 
-const STORIES_STORAGE_KEY = "ai-story-app:stories";
-
 const initialForm: CreateStoryForm = {
   title: "",
   description: "",
@@ -53,10 +48,6 @@ const initialForm: CreateStoryForm = {
   mustKeep: "",
   mustChange: "",
 };
-
-function isStoryArray(value: unknown): value is Story[] {
-  return Array.isArray(value);
-}
 
 export default function NewStoryPage() {
   const router = useRouter();
@@ -73,7 +64,7 @@ export default function NewStoryPage() {
     }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
 
@@ -88,39 +79,16 @@ export default function NewStoryPage() {
       tone: form.tone,
       canonAdherence: form.canonAdherence,
       isFanwork: form.isFanwork,
+      source: "manual",
       createdAt: now,
       updatedAt: now,
     };
 
-    const existingStories = readJsonFromLocalStorage<Story[]>(
-      STORIES_STORAGE_KEY,
-      [],
-      isStoryArray,
-    );
-
-    const projectSetup = {
-      storyId,
-      originalTitle: form.originalTitle,
-      originalAuthor: form.originalAuthor,
-      mustKeep: form.mustKeep,
-      mustChange: form.mustChange,
-    };
-
-    const saved = writeLocalStorageBatch([
-      {
-        key: STORIES_STORAGE_KEY,
-        value: JSON.stringify([newStory, ...existingStories]),
-      },
-      {
-        key: `ai-story-app:story-setup:${storyId}`,
-        value: JSON.stringify(projectSetup),
-      },
-    ]);
-
-    if (!saved) {
-      setErrorMessage(
-        "Không thể lưu project mới vào localStorage. Vui lòng thử lại.",
-      );
+    try {
+      await saveStory(newStory);
+    } catch (error) {
+      console.error("Failed to save new story to IndexedDB", error);
+      setErrorMessage("Could not save the new story to IndexedDB.");
       return;
     }
 
