@@ -51,7 +51,7 @@ interface StoryDataHealthClientProps {
 
 type HealthState = "healthy" | "missing" | "partial" | "error";
 
-interface ParsedLocalStorageValue<T> {
+interface ParsedLegacyFallbackValue<T> {
   key: string;
   exists: boolean;
   status: HealthState;
@@ -73,23 +73,23 @@ interface DataHealthInspection {
     continuityIssues: BranchContinuityIssue[];
     rewriteDrafts: RewriteDraft[];
   };
-  localStorage: {
-    stories: ParsedLocalStorageValue<Story[]>;
-    chapters: ParsedLocalStorageValue<ImportedChapter[]>;
-    chunks: ParsedLocalStorageValue<ChapterChunk[]>;
-    analysisStatus: ParsedLocalStorageValue<AnalysisStatus>;
-    analysisResult: ParsedLocalStorageValue<StoryAnalysisResult>;
-    branches: ParsedLocalStorageValue<StoryBranchV2[]>;
-    branchChanges: ParsedLocalStorageValue<BranchChange[]>;
-    continuityIssues: ParsedLocalStorageValue<BranchContinuityIssue[]>;
-    rewriteDrafts: ParsedLocalStorageValue<RewriteDraft[]>;
-    settings: ParsedLocalStorageValue<StoryLocalSettings>;
-    storySetup: ParsedLocalStorageValue<unknown>;
+  legacyFallback: {
+    stories: ParsedLegacyFallbackValue<Story[]>;
+    chapters: ParsedLegacyFallbackValue<ImportedChapter[]>;
+    chunks: ParsedLegacyFallbackValue<ChapterChunk[]>;
+    analysisStatus: ParsedLegacyFallbackValue<AnalysisStatus>;
+    analysisResult: ParsedLegacyFallbackValue<StoryAnalysisResult>;
+    branches: ParsedLegacyFallbackValue<StoryBranchV2[]>;
+    branchChanges: ParsedLegacyFallbackValue<BranchChange[]>;
+    continuityIssues: ParsedLegacyFallbackValue<BranchContinuityIssue[]>;
+    rewriteDrafts: ParsedLegacyFallbackValue<RewriteDraft[]>;
+    settings: ParsedLegacyFallbackValue<StoryLocalSettings>;
+    storySetup: ParsedLegacyFallbackValue<unknown>;
   };
   warnings: string[];
 }
 
-const localStorageKeys = {
+const legacyFallbackKeys = {
   stories: "ai-story-app:stories",
   chapters: (storyId: string) => `ai-story-app:chapters:${storyId}`,
   chunks: (storyId: string) => `ai-story-app:chunks:${storyId}`,
@@ -108,7 +108,7 @@ const localStorageKeys = {
   storySetup: (storyId: string) => `ai-story-app:story-setup:${storyId}`,
 };
 
-function readLocalStorageValue<T>(key: string): ParsedLocalStorageValue<T> {
+function readLegacyFallbackValue<T>(key: string): ParsedLegacyFallbackValue<T> {
   if (typeof window === "undefined") {
     return {
       key,
@@ -200,51 +200,51 @@ async function inspectStoryData(storyId: string): Promise<DataHealthInspection> 
     console.error("Failed to inspect IndexedDB story data", error);
   }
 
-  const localStorage = {
-    stories: readLocalStorageValue<Story[]>(localStorageKeys.stories),
-    chapters: readLocalStorageValue<ImportedChapter[]>(
-      localStorageKeys.chapters(storyId),
+  const legacyFallback = {
+    stories: readLegacyFallbackValue<Story[]>(legacyFallbackKeys.stories),
+    chapters: readLegacyFallbackValue<ImportedChapter[]>(
+      legacyFallbackKeys.chapters(storyId),
     ),
-    chunks: readLocalStorageValue<ChapterChunk[]>(
-      localStorageKeys.chunks(storyId),
+    chunks: readLegacyFallbackValue<ChapterChunk[]>(
+      legacyFallbackKeys.chunks(storyId),
     ),
-    analysisStatus: readLocalStorageValue<AnalysisStatus>(
-      localStorageKeys.analysisStatus(storyId),
+    analysisStatus: readLegacyFallbackValue<AnalysisStatus>(
+      legacyFallbackKeys.analysisStatus(storyId),
     ),
-    analysisResult: readLocalStorageValue<StoryAnalysisResult>(
-      localStorageKeys.analysisResult(storyId),
+    analysisResult: readLegacyFallbackValue<StoryAnalysisResult>(
+      legacyFallbackKeys.analysisResult(storyId),
     ),
-    branches: readLocalStorageValue<StoryBranchV2[]>(
-      localStorageKeys.branches(storyId),
+    branches: readLegacyFallbackValue<StoryBranchV2[]>(
+      legacyFallbackKeys.branches(storyId),
     ),
-    branchChanges: readLocalStorageValue<BranchChange[]>(
-      localStorageKeys.branchChanges(storyId),
+    branchChanges: readLegacyFallbackValue<BranchChange[]>(
+      legacyFallbackKeys.branchChanges(storyId),
     ),
-    continuityIssues: readLocalStorageValue<BranchContinuityIssue[]>(
-      localStorageKeys.continuityIssues(storyId),
+    continuityIssues: readLegacyFallbackValue<BranchContinuityIssue[]>(
+      legacyFallbackKeys.continuityIssues(storyId),
     ),
-    rewriteDrafts: readLocalStorageValue<RewriteDraft[]>(
-      localStorageKeys.rewriteDrafts(storyId),
+    rewriteDrafts: readLegacyFallbackValue<RewriteDraft[]>(
+      legacyFallbackKeys.rewriteDrafts(storyId),
     ),
-    settings: readLocalStorageValue<StoryLocalSettings>(
-      localStorageKeys.settings(storyId),
+    settings: readLegacyFallbackValue<StoryLocalSettings>(
+      legacyFallbackKeys.settings(storyId),
     ),
-    storySetup: readLocalStorageValue<unknown>(
-      localStorageKeys.storySetup(storyId),
+    storySetup: readLegacyFallbackValue<unknown>(
+      legacyFallbackKeys.storySetup(storyId),
     ),
   };
   const warnings = buildWarnings({
     storyId,
     indexedDb,
     indexedDbError,
-    localStorage,
+    legacyFallback,
   });
 
   return {
     inspectedAt: new Date().toISOString(),
     indexedDbError,
     indexedDb,
-    localStorage,
+    legacyFallback,
     warnings,
   };
 }
@@ -253,69 +253,69 @@ function buildWarnings({
   storyId,
   indexedDb,
   indexedDbError,
-  localStorage,
+  legacyFallback,
 }: {
   storyId: string;
   indexedDb: DataHealthInspection["indexedDb"];
   indexedDbError?: string;
-  localStorage: DataHealthInspection["localStorage"];
+  legacyFallback: DataHealthInspection["legacyFallback"];
 }) {
   const warnings: string[] = [];
-  const localStory = localStoryForId(storyId, localStorage.stories.value);
+  const localStory = localStoryForId(storyId, legacyFallback.stories.value);
 
   if (indexedDbError) warnings.push(`IndexedDB read error: ${indexedDbError}`);
   if (!indexedDb.story && !localStory) warnings.push("Story record is missing.");
-  if (indexedDb.chapters.length === 0 && !localStorage.chapters.value?.length) {
+  if (indexedDb.chapters.length === 0 && !legacyFallback.chapters.value?.length) {
     warnings.push("Story has no imported chapters.");
   }
-  if (!indexedDb.analysisResult && !localStorage.analysisResult.value) {
+  if (!indexedDb.analysisResult && !legacyFallback.analysisResult.value) {
     warnings.push("Analysis result is missing.");
   }
   if (
     indexedDb.branchChanges.length === 0 &&
-    !localStorage.branchChanges.value?.length
+    !legacyFallback.branchChanges.value?.length
   ) {
     warnings.push("Branch changes are missing or empty.");
   }
   if (
     indexedDb.continuityIssues.length === 0 &&
-    !localStorage.continuityIssues.value?.length
+    !legacyFallback.continuityIssues.value?.length
   ) {
     warnings.push("Continuity issues are missing or empty.");
   }
   if (
     indexedDb.rewriteDrafts.length === 0 &&
-    !localStorage.rewriteDrafts.value?.length
+    !legacyFallback.rewriteDrafts.value?.length
   ) {
     warnings.push("Rewrite drafts are missing or empty.");
   }
-  if (!localStorage.settings.exists) warnings.push("Story settings are missing.");
+  if (!legacyFallback.settings.exists) warnings.push("Story settings are missing.");
 
-  Object.values(localStorage).forEach((item) => {
+  Object.values(legacyFallback).forEach((item) => {
     if (item.status === "error") {
-      warnings.push(`Invalid JSON in localStorage key: ${item.key}`);
+      warnings.push(`Invalid JSON in legacy fallback key: ${item.key}`);
     }
   });
 
   if (!indexedDb.story && localStory) {
-    warnings.push("localStorage story fallback exists but IndexedDB story is missing.");
+    warnings.push("Legacy story fallback exists but IndexedDB story is missing.");
   }
-  if (indexedDb.chapters.length === 0 && localStorage.chapters.value?.length) {
+  if (indexedDb.chapters.length === 0 && legacyFallback.chapters.value?.length) {
     warnings.push(
-      "localStorage chapter fallback exists but IndexedDB chapters are missing.",
+      "Legacy chapter fallback exists but IndexedDB chapters are missing.",
     );
   }
-  if (!indexedDb.analysisResult && localStorage.analysisResult.value) {
+  if (!indexedDb.analysisResult && legacyFallback.analysisResult.value) {
     warnings.push(
-      "localStorage analysis fallback exists but IndexedDB analysis is missing.",
+      "Legacy analysis fallback exists but IndexedDB analysis is missing.",
     );
   }
   if (
     indexedDb.rewriteDrafts.length === 0 &&
-    localStorage.rewriteDrafts.value?.length
+    legacyFallback.rewriteDrafts.value?.length
   ) {
     warnings.push(
-      "localStorage rewrite draft fallback exists but IndexedDB drafts are missing.",
+      "Legacy rewrite draft fallback exists but IndexedDB drafts are missing.",
     );
   }
 
@@ -388,14 +388,14 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
   }
 
   async function handleClearSettings() {
-    localStorage.removeItem(localStorageKeys.settings(storyId));
+    localStorage.removeItem(legacyFallbackKeys.settings(storyId));
     await handleRefreshInspection();
-    setActionMessage("Story settings localStorage key cleared.");
+    setActionMessage("Story settings key cleared.");
   }
 
   const localStory = localStoryForId(
     storyId,
-    inspection?.localStorage.stories.value ?? null,
+    inspection?.legacyFallback.stories.value ?? null,
   );
   const story =
     inspection?.indexedDb.story ??
@@ -409,7 +409,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
         <PageHeader
           eyebrow="Data Health"
           title={story?.title ?? "Storage Inspector"}
-          description="Inspect local story data across IndexedDB and localStorage fallback keys."
+          description="Inspect local story data across IndexedDB and legacy fallback keys."
           action={
             <>
               <Button
@@ -437,7 +437,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
         {!inspection ? (
           <EmptyState
             title="No inspection loaded yet."
-            description="Refresh inspection to read IndexedDB and localStorage data for this story."
+            description="Refresh inspection to read IndexedDB and legacy fallback data for this story."
             action={
               <Button type="button" onClick={handleRefreshInspection}>
                 <Database className="mr-2 h-4 w-4" />
@@ -457,13 +457,13 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                 icon={<BookOpen className="h-4 w-4" />}
                 title="Chapters"
                 value={inspection.indexedDb.chapters.length}
-                description={`${inspection.localStorage.chapters.value?.length ?? 0} in localStorage fallback`}
+                description={`${inspection.legacyFallback.chapters.value?.length ?? 0} in legacy fallback`}
               />
               <StatCard
                 icon={<GitBranchIcon />}
                 title="Branch changes"
                 value={inspection.indexedDb.branchChanges.length}
-                description={`${inspection.localStorage.branchChanges.value?.length ?? 0} in localStorage fallback`}
+                description={`${inspection.legacyFallback.branchChanges.value?.length ?? 0} in legacy fallback`}
               />
               <StatCard
                 icon={<AlertTriangle className="h-4 w-4" />}
@@ -484,7 +484,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       }
                     />
                     <HealthRow
-                      label="localStorage"
+                      label="Legacy fallback"
                       state="healthy"
                       value="Readable for this browser"
                     />
@@ -513,9 +513,9 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                     />
                     <HealthRow
                       label="Settings status"
-                      state={inspection.localStorage.settings.status}
+                      state={inspection.legacyFallback.settings.status}
                       value={
-                        inspection.localStorage.settings.exists
+                        inspection.legacyFallback.settings.exists
                           ? "Settings key exists"
                           : "Settings missing"
                       }
@@ -524,7 +524,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="Analysis result"
                       state={getStateForRecord(
                         Boolean(inspection.indexedDb.analysisResult),
-                        Boolean(inspection.localStorage.analysisResult.value),
+                        Boolean(inspection.legacyFallback.analysisResult.value),
                       )}
                       value={
                         inspection.indexedDb.analysisResult
@@ -536,7 +536,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="Analysis status"
                       state={getStateForRecord(
                         Boolean(inspection.indexedDb.analysisStatus),
-                        Boolean(inspection.localStorage.analysisStatus.value),
+                        Boolean(inspection.legacyFallback.analysisStatus.value),
                       )}
                       value={
                         inspection.indexedDb.analysisStatus
@@ -553,57 +553,57 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="Chapters count"
                       state={getCountState(
                         inspection.indexedDb.chapters.length,
-                        inspection.localStorage.chapters.value?.length ?? 0,
+                        inspection.legacyFallback.chapters.value?.length ?? 0,
                       )}
-                      value={`${inspection.indexedDb.chapters.length} IndexedDB / ${inspection.localStorage.chapters.value?.length ?? 0} localStorage`}
+                      value={`${inspection.indexedDb.chapters.length} IndexedDB / ${inspection.legacyFallback.chapters.value?.length ?? 0} legacy`}
                     />
                     <HealthRow
                       label="Chunks count"
                       state={getCountState(
                         inspection.indexedDb.chunks.length,
-                        inspection.localStorage.chunks.value?.length ?? 0,
+                        inspection.legacyFallback.chunks.value?.length ?? 0,
                       )}
-                      value={`${inspection.indexedDb.chunks.length} IndexedDB / ${inspection.localStorage.chunks.value?.length ?? 0} localStorage`}
+                      value={`${inspection.indexedDb.chunks.length} IndexedDB / ${inspection.legacyFallback.chunks.value?.length ?? 0} legacy`}
                     />
                     <HealthRow
                       label="Branch changes count"
                       state={getCountState(
                         inspection.indexedDb.branchChanges.length,
-                        inspection.localStorage.branchChanges.value?.length ?? 0,
+                        inspection.legacyFallback.branchChanges.value?.length ?? 0,
                       )}
-                      value={`${inspection.indexedDb.branchChanges.length} IndexedDB / ${inspection.localStorage.branchChanges.value?.length ?? 0} localStorage`}
+                      value={`${inspection.indexedDb.branchChanges.length} IndexedDB / ${inspection.legacyFallback.branchChanges.value?.length ?? 0} legacy`}
                     />
                     <HealthRow
                       label="Continuity issues count"
                       state={getCountState(
                         inspection.indexedDb.continuityIssues.length,
-                        inspection.localStorage.continuityIssues.value?.length ??
+                        inspection.legacyFallback.continuityIssues.value?.length ??
                           0,
                       )}
-                      value={`${inspection.indexedDb.continuityIssues.length} IndexedDB / ${inspection.localStorage.continuityIssues.value?.length ?? 0} localStorage`}
+                      value={`${inspection.indexedDb.continuityIssues.length} IndexedDB / ${inspection.legacyFallback.continuityIssues.value?.length ?? 0} legacy`}
                     />
                     <HealthRow
                       label="Rewrite drafts count"
                       state={getCountState(
                         inspection.indexedDb.rewriteDrafts.length,
-                        inspection.localStorage.rewriteDrafts.value?.length ?? 0,
+                        inspection.legacyFallback.rewriteDrafts.value?.length ?? 0,
                       )}
-                      value={`${inspection.indexedDb.rewriteDrafts.length} IndexedDB / ${inspection.localStorage.rewriteDrafts.value?.length ?? 0} localStorage`}
+                      value={`${inspection.indexedDb.rewriteDrafts.length} IndexedDB / ${inspection.legacyFallback.rewriteDrafts.value?.length ?? 0} legacy`}
                     />
                     <HealthRow
                       label="Branches count"
                       state={getCountState(
                         inspection.indexedDb.branches.length,
-                        inspection.localStorage.branches.value?.length ?? 0,
+                        inspection.legacyFallback.branches.value?.length ?? 0,
                       )}
-                      value={`${inspection.indexedDb.branches.length} IndexedDB / ${inspection.localStorage.branches.value?.length ?? 0} localStorage`}
+                      value={`${inspection.indexedDb.branches.length} IndexedDB / ${inspection.legacyFallback.branches.value?.length ?? 0} legacy`}
                     />
                   </div>
                 </SectionCard>
 
-                <SectionCard title="localStorage fallback keys">
+                <SectionCard title="Legacy fallback keys">
                   <div className="space-y-2">
-                    {Object.values(inspection.localStorage).map((item) => (
+                    {Object.values(inspection.legacyFallback).map((item) => (
                       <StorageKeyRow key={item.key} item={item} />
                     ))}
                   </div>
@@ -651,7 +651,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                     <p className="app-muted-text">
                       This only removes{" "}
                       <span className="font-mono">
-                        {localStorageKeys.settings(storyId)}
+                        {legacyFallbackKeys.settings(storyId)}
                       </span>
                       . No delete-all control is provided here.
                     </p>
@@ -706,7 +706,7 @@ function HealthRow({
   );
 }
 
-function StorageKeyRow<T>({ item }: { item: ParsedLocalStorageValue<T> }) {
+function StorageKeyRow<T>({ item }: { item: ParsedLegacyFallbackValue<T> }) {
   return (
     <div className="app-list-item">
       <div className="flex flex-wrap items-start justify-between gap-3">

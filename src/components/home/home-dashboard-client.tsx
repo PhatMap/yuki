@@ -186,7 +186,7 @@ export function HomeDashboardClient() {
             value={storedItems.length.toLocaleString("vi-VN")}
             description={
               storySource === "legacy-local"
-                ? "Temporary legacy localStorage metadata fallback."
+                ? "Temporary legacy metadata fallback."
                 : "Story metadata loaded from IndexedDB."
             }
           />
@@ -206,7 +206,7 @@ export function HomeDashboardClient() {
             icon={<Database className="h-4 w-4" />}
             title="Storage"
             value="Local"
-            description="IndexedDB-first pages with localStorage fallback."
+            description="IndexedDB-first pages with legacy compatibility reads."
           />
         </section>
 
@@ -270,7 +270,7 @@ export function HomeDashboardClient() {
           title="Stored stories"
           description={
             storySource === "legacy-local"
-              ? "Temporary compatibility view for old localStorage story metadata."
+              ? "Temporary compatibility view for old legacy story metadata."
               : "Stories saved in IndexedDB on this browser."
           }
         >

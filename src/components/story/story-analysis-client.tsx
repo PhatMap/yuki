@@ -75,7 +75,6 @@ interface AnalysisDashboardData {
   analysisResult?: StoryAnalysisResult;
 }
 
-const storyStorageKey = "ai-story-app:stories";
 const aiProviderStorageKeyPrefix = "ai-story-app:ai-provider";
 const aiProviderStorageEvent = "yuki-ai-provider-storage-change";
 
@@ -141,43 +140,6 @@ function subscribeToAiProviderStorage(onStoreChange: () => void) {
   };
 }
 
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  const stories = readJsonValue<Story[]>(storyStorageKey, []);
-
-  return stories.find((story) => story.id === storyId);
-}
-
-function readLocalDashboardData(storyId: string): AnalysisDashboardData {
-  return {
-    story: readLocalStory(storyId),
-    chapters: readJsonValue<ImportedChapter[]>(
-      `ai-story-app:chapters:${storyId}`,
-      [],
-    ),
-    chunks: readJsonValue<ChapterChunk[]>(`ai-story-app:chunks:${storyId}`, []),
-    analysisStatus: readJsonValue<AnalysisStatus | undefined>(
-      `ai-story-app:analysis-status:${storyId}`,
-      undefined,
-    ),
-    analysisResult: readJsonValue<StoryAnalysisResult | undefined>(
-      `ai-story-app:analysis-result:${storyId}`,
-      undefined,
-    ),
-  };
-}
-
 async function readIndexedDbDashboardData(storyId: string) {
   const [story, chapters, chunks, analysisStatus, analysisResult] =
     await Promise.all([
@@ -194,23 +156,6 @@ async function readIndexedDbDashboardData(storyId: string) {
     chunks,
     analysisStatus,
     analysisResult,
-  };
-}
-
-function mergeDashboardData(
-  indexedDbData: AnalysisDashboardData,
-  localData: AnalysisDashboardData,
-): AnalysisDashboardData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    chapters:
-      indexedDbData.chapters.length > 0
-        ? indexedDbData.chapters
-        : localData.chapters,
-    chunks:
-      indexedDbData.chunks.length > 0 ? indexedDbData.chunks : localData.chunks,
-    analysisStatus: indexedDbData.analysisStatus ?? localData.analysisStatus,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
   };
 }
 
@@ -237,8 +182,6 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         chunks: [],
       };
       let indexedDbFailed = false;
-      const localData = readLocalDashboardData(storyId);
-
       try {
         indexedDbData = await readIndexedDbDashboardData(storyId);
       } catch (error) {
@@ -251,10 +194,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
       if (!isActive) return;
 
-      setDashboardData(mergeDashboardData(indexedDbData, localData));
+      setDashboardData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. Story data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -370,7 +313,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         <PageHeader
           eyebrow="Novel Analysis"
           title={story?.title ?? "Imported Novel"}
-          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Ready for analysis. Reading from IndexedDB first, with localStorage fallback.`}
+          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Ready for analysis. Story data is loaded from IndexedDB.`}
           action={
             <>
               <Button asChild variant="outline">
@@ -394,7 +337,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         />
 
         <p className="app-muted-text">
-          Reading from IndexedDB first, with localStorage fallback. Provider:{" "}
+          Reading story data from IndexedDB. Provider:{" "}
           {pipelineProvider.label}. Gemini proxy:{" "}
           {geminiProxyProvider.isConfigured?.()
             ? "configured"
@@ -445,13 +388,13 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         {isLoading ? (
           <SectionCard title="Loading analysis data">
             <p className="app-muted-text">
-              Reading imported story data from IndexedDB and localStorage...
+              Reading imported story data from IndexedDB...
             </p>
           </SectionCard>
         ) : !hasDashboardData ? (
           <EmptyState
             title="No analysis data found"
-            description="No imported story data was found in IndexedDB or localStorage for this story."
+            description="No imported story data was found in IndexedDB for this story."
           />
         ) : (
           <>
@@ -525,7 +468,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               ) : (
                 <EmptyState
                   title="Chưa có imported chapters"
-                  description="Chưa có dữ liệu trong IndexedDB hoặc localStorage cho story này."
+                  description="Chưa có dữ liệu trong IndexedDB cho story này."
                 />
               )}
             </SectionCard>

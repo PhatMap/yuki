@@ -135,8 +135,8 @@ export default function ImportNovelPage() {
           <div className="flex max-w-3xl gap-3 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
             <FileText className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p>
-              localStorage is reserved for small UI preferences and temporary
-              compatibility reads, not new large imports.
+              Browser key-value storage is reserved for small UI preferences
+              and temporary compatibility reads, not new large imports.
             </p>
           </div>
         </div>

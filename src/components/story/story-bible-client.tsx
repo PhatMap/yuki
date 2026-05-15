@@ -54,48 +54,6 @@ interface StoryBibleData {
   continuityIssues: BranchContinuityIssue[];
 }
 
-const storyStorageKey = "ai-story-app:stories";
-
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storyStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalBibleData(storyId: string): StoryBibleData {
-  return {
-    story: readLocalStory(storyId),
-    analysisResult: readJsonValue<StoryAnalysisResult | null>(
-      `ai-story-app:analysis-result:${storyId}`,
-      null,
-    ),
-    branches: readJsonValue<StoryBranchV2[]>(
-      `ai-story-app:branches:${storyId}`,
-      [],
-    ),
-    branchChanges: readJsonValue<BranchChange[]>(
-      `ai-story-app:branch-changes:${storyId}`,
-      [],
-    ),
-    continuityIssues: readJsonValue<BranchContinuityIssue[]>(
-      `ai-story-app:continuity-issues:${storyId}`,
-      [],
-    ),
-  };
-}
-
 async function readIndexedDbBibleData(
   storyId: string,
 ): Promise<StoryBibleData> {
@@ -117,28 +75,6 @@ async function readIndexedDbBibleData(
   };
 }
 
-function mergeBibleData(
-  indexedDbData: StoryBibleData,
-  localData: StoryBibleData,
-): StoryBibleData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branches:
-      indexedDbData.branches.length > 0
-        ? indexedDbData.branches
-        : localData.branches,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
-  };
-}
-
 export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
   const [bibleData, setBibleData] = useState<StoryBibleData>({
     analysisResult: null,
@@ -153,7 +89,6 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
     let isActive = true;
 
     async function loadBibleData() {
-      const localData = readLocalBibleData(storyId);
       let indexedDbData: StoryBibleData = {
         analysisResult: null,
         branches: [],
@@ -171,10 +106,10 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
 
       if (!isActive) return;
 
-      setBibleData(mergeBibleData(indexedDbData, localData));
+      setBibleData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. Story Bible data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -242,7 +177,7 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
 
 
         <p className="app-muted-text">
-          Story Bible reads from IndexedDB first, with localStorage fallback.
+          Story Bible reads from IndexedDB as the source of truth.
         </p>
 
         {storageError ? (
@@ -254,7 +189,7 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
         {isLoading ? (
           <SectionCard title="Loading Story Bible">
             <p className="app-muted-text">
-              Reading Story Bible data from IndexedDB and localStorage...
+              Reading Story Bible data from IndexedDB...
             </p>
           </SectionCard>
         ) : !result ? (

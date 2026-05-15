@@ -81,56 +81,6 @@ type WorkspaceStorageData = {
   continuityIssues: BranchContinuityIssue[];
 };
 
-const localStoriesKey = "ai-story-app:stories";
-
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(localStoriesKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalImportedChapters(storyId: string) {
-  return readJsonValue<ImportedChapter[]>(
-    `ai-story-app:chapters:${storyId}`,
-    [],
-  );
-}
-
-function readLocalAnalysisResult(storyId: string) {
-  return readJsonValue<StoryAnalysisResult | null>(
-    `ai-story-app:analysis-result:${storyId}`,
-    null,
-  );
-}
-
-function branchesStorageKey(storyId: string) {
-  return `ai-story-app:branches:${storyId}`;
-}
-
-function branchChangesStorageKey(storyId: string) {
-  return `ai-story-app:branch-changes:${storyId}`;
-}
-
-function continuityIssuesStorageKey(storyId: string) {
-  return `ai-story-app:continuity-issues:${storyId}`;
-}
-
-function readStoredArray<T>(key: string): T[] {
-  return readJsonValue<T[]>(key, []);
-}
-
 async function saveBranchesToStorage(storyId: string, branches: StoryBranchV2[]) {
   try {
     await saveBranches(storyId, branches);
@@ -189,47 +139,6 @@ async function readIndexedDbWorkspaceData(
   };
 }
 
-function readLocalWorkspaceData(storyId: string): WorkspaceStorageData {
-  return {
-    story: readLocalStory(storyId),
-    importedChapters: readLocalImportedChapters(storyId),
-    analysisResult: readLocalAnalysisResult(storyId),
-    branches: readStoredArray<StoryBranchV2>(branchesStorageKey(storyId)),
-    branchChanges: readStoredArray<BranchChange>(
-      branchChangesStorageKey(storyId),
-    ),
-    continuityIssues: readStoredArray<BranchContinuityIssue>(
-      continuityIssuesStorageKey(storyId),
-    ),
-  };
-}
-
-function mergeWorkspaceData(
-  indexedDbData: WorkspaceStorageData,
-  localData: WorkspaceStorageData,
-): WorkspaceStorageData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    importedChapters:
-      indexedDbData.importedChapters.length > 0
-        ? indexedDbData.importedChapters
-        : localData.importedChapters,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branches:
-      indexedDbData.branches.length > 0
-        ? indexedDbData.branches
-        : localData.branches,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
-  };
-}
-
 function normalizeImportedChapter(chapter: ImportedChapter): WorkspaceChapter {
   return {
     id: chapter.id,
@@ -274,7 +183,6 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     let isActive = true;
 
     async function loadWorkspaceData() {
-      const localData = readLocalWorkspaceData(storyId);
       let indexedDbData: WorkspaceStorageData = {
         importedChapters: [],
         analysisResult: null,
@@ -293,10 +201,10 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
       if (!isActive) return;
 
-      setStorageData(mergeWorkspaceData(indexedDbData, localData));
+      setStorageData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage or mock fallback data."
+          ? "IndexedDB read failed. Workspace data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -575,7 +483,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               {story.isFanwork ? "Fanwork" : "Original"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Workspace reads from IndexedDB first, with localStorage fallback.
+              Workspace reads from IndexedDB as the source of truth.
             </p>
           </div>
 
@@ -636,7 +544,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             </CardHeader>
             <CardContent>
               <p className="app-muted-text">
-                Reading workspace data from IndexedDB and localStorage...
+                Reading workspace data from IndexedDB...
               </p>
             </CardContent>
           </Card>
@@ -715,8 +623,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Branch data is saved to IndexedDB. Legacy localStorage is
-                  read only as temporary fallback data.
+                  Branch data is saved to IndexedDB.
                 </p>
                 {isSavingBranchData ? (
                   <p className="text-xs text-muted-foreground">

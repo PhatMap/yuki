@@ -254,7 +254,8 @@ export function StoryAiProxyTestClient({
               the current proxy implementation.
             </p>
             <p>
-              This page does not save anything to IndexedDB or localStorage.
+              This page does not save anything to IndexedDB or browser
+              key-value storage.
             </p>
           </div>
         </SectionCard>

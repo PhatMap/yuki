@@ -16,8 +16,6 @@ type ScaleResult = {
   approxSizeMb: number;
   generateMs: number;
   parseMs: number;
-  localStorageWriteMs: number | null;
-  localStorageReadMs: number | null;
   warnings: string[];
   createdAt: string;
 };
@@ -25,8 +23,6 @@ type ScaleResult = {
 type StoryImportScaleTestClientProps = {
   storyId: string;
 };
-
-const STORAGE_KEY_PREFIX = "ai-story-app:scale-test";
 
 function createMockChapter(index: number) {
   const chapterNumber = index + 1;
@@ -83,7 +79,6 @@ export function StoryImportScaleTestClient({
   const [preset, setPreset] = useState<ScalePreset>(1500);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<ScaleResult | null>(null);
-  const storageKey = `${STORAGE_KEY_PREFIX}:${storyId}`;
 
   const storyLinks = useMemo(
     () => [
@@ -109,40 +104,13 @@ export function StoryImportScaleTestClient({
       const chapters = parseMockNovel(rawText);
       const parseEnd = nowMs();
 
-      const payload = {
+      const serialized = JSON.stringify({
         storyId,
         preset,
         chapters,
         createdAt: new Date().toISOString(),
-      };
-
-      const serialized = JSON.stringify(payload);
+      });
       const approxSizeMb = bytesToMb(new Blob([serialized]).size);
-
-      let localStorageWriteMs: number | null = null;
-      let localStorageReadMs: number | null = null;
-
-      try {
-        const writeStart = nowMs();
-        localStorage.setItem(storageKey, serialized);
-        const writeEnd = nowMs();
-        localStorageWriteMs = Number((writeEnd - writeStart).toFixed(2));
-
-        const readStart = nowMs();
-        const saved = localStorage.getItem(storageKey);
-        const readEnd = nowMs();
-        localStorageReadMs = Number((readEnd - readStart).toFixed(2));
-
-        if (!saved) {
-          warnings.push("localStorage read returned empty data.");
-        }
-      } catch (error) {
-        warnings.push(
-          error instanceof Error
-            ? `localStorage write/read failed: ${error.message}`
-            : "localStorage write/read failed.",
-        );
-      }
 
       if (chapters.length !== preset) {
         warnings.push(
@@ -152,12 +120,8 @@ export function StoryImportScaleTestClient({
 
       if (approxSizeMb > 20) {
         warnings.push(
-          "Generated payload is large for localStorage. IndexedDB should be preferred.",
+          "Generated payload is large. IndexedDB should remain the primary storage target.",
         );
-      }
-
-      if (localStorageWriteMs !== null && localStorageWriteMs > 1000) {
-        warnings.push("localStorage write took more than 1000ms.");
       }
 
       setResult({
@@ -166,8 +130,6 @@ export function StoryImportScaleTestClient({
         approxSizeMb,
         generateMs: Number((generateEnd - generateStart).toFixed(2)),
         parseMs: Number((parseEnd - parseStart).toFixed(2)),
-        localStorageWriteMs,
-        localStorageReadMs,
         warnings,
         createdAt: new Date().toISOString(),
       });
@@ -177,7 +139,6 @@ export function StoryImportScaleTestClient({
   }
 
   function clearScaleData() {
-    localStorage.removeItem(storageKey);
     setResult(null);
   }
 
@@ -202,7 +163,7 @@ export function StoryImportScaleTestClient({
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <SectionCard
             title="Scale preset"
-            description="Generate mock chapter content, parse it, then test localStorage write/read timing using a separate diagnostic key."
+            description="Generate mock chapter content and parse it without writing large diagnostic payloads to browser key-value storage."
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
@@ -247,8 +208,8 @@ export function StoryImportScaleTestClient({
             </div>
           </SectionCard>
 
-          <SectionCard title="Storage key" className="app-sticky-panel">
-            <p className="app-code-block">{storageKey}</p>
+          <SectionCard title="Storage policy" className="app-sticky-panel">
+            <p className="app-code-block">IndexedDB primary</p>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               This page does not overwrite real import, chapters, chunks,
               analysis, branch, or rewrite draft data.
@@ -269,22 +230,6 @@ export function StoryImportScaleTestClient({
             <Stat label="Approx payload" value={`${result.approxSizeMb} MB`} />
             <Stat label="Parse time" value={`${result.parseMs} ms`} />
             <Stat label="Generate time" value={`${result.generateMs} ms`} />
-            <Stat
-              label="localStorage write"
-              value={
-                result.localStorageWriteMs === null
-                  ? "Failed"
-                  : `${result.localStorageWriteMs} ms`
-              }
-            />
-            <Stat
-              label="localStorage read"
-              value={
-                result.localStorageReadMs === null
-                  ? "Failed"
-                  : `${result.localStorageReadMs} ms`
-              }
-            />
             <Stat
               label="Created at"
               value={new Date(result.createdAt).toLocaleString()}

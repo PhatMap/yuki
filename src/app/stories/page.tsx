@@ -134,7 +134,7 @@ export default function StoriesPage() {
     }
 
     if (storySource === "legacy-local") {
-      return "Browse legacy localStorage story metadata while the app keeps IndexedDB as the primary store for new story data.";
+      return "Browse legacy story metadata while the app keeps IndexedDB as the primary store for new story data.";
     }
 
     return "Browse starter story projects and open the active workspace for planning, analysis, timeline, relationships, and rewrite work.";

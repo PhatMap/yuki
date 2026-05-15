@@ -331,7 +331,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
 
             <SectionCard
               title="Story setup"
-              description="Fanwork/source setup is stored in IndexedDB, not localStorage."
+              description="Fanwork/source setup is stored in IndexedDB, not browser key-value storage."
             >
               <div className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">

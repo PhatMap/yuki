@@ -50,53 +50,12 @@ interface StoryTimelineData {
 type ImportanceFilter = "all" | "medium+" | "high+" | "critical";
 type SeverityFilter = "all" | "medium+" | "high+" | "critical";
 
-const storyStorageKey = "ai-story-app:stories";
 const importanceRank = {
   low: 1,
   medium: 2,
   high: 3,
   critical: 4,
 } as const;
-
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storyStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalTimelineData(storyId: string): StoryTimelineData {
-  return {
-    story: readLocalStory(storyId),
-    analysisResult: readJsonValue<StoryAnalysisResult | null>(
-      `ai-story-app:analysis-result:${storyId}`,
-      null,
-    ),
-    branches: readJsonValue<StoryBranchV2[]>(
-      `ai-story-app:branches:${storyId}`,
-      [],
-    ),
-    branchChanges: readJsonValue<BranchChange[]>(
-      `ai-story-app:branch-changes:${storyId}`,
-      [],
-    ),
-    continuityIssues: readJsonValue<BranchContinuityIssue[]>(
-      `ai-story-app:continuity-issues:${storyId}`,
-      [],
-    ),
-  };
-}
 
 async function readIndexedDbTimelineData(
   storyId: string,
@@ -116,28 +75,6 @@ async function readIndexedDbTimelineData(
     branches,
     branchChanges,
     continuityIssues,
-  };
-}
-
-function mergeTimelineData(
-  indexedDbData: StoryTimelineData,
-  localData: StoryTimelineData,
-): StoryTimelineData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branches:
-      indexedDbData.branches.length > 0
-        ? indexedDbData.branches
-        : localData.branches,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
   };
 }
 
@@ -216,7 +153,6 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
     let isActive = true;
 
     async function loadTimelineData() {
-      const localData = readLocalTimelineData(storyId);
       let indexedDbData: StoryTimelineData = {
         analysisResult: null,
         branches: [],
@@ -234,10 +170,10 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
 
       if (!isActive) return;
 
-      setTimelineData(mergeTimelineData(indexedDbData, localData));
+      setTimelineData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. Timeline data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -351,7 +287,7 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
 
 
         <p className="app-muted-text">
-          Timeline reads from IndexedDB first, with localStorage fallback.
+          Timeline reads from IndexedDB as the source of truth.
         </p>
 
         {storageError ? (
@@ -363,7 +299,7 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
         {isLoading ? (
           <SectionCard title="Loading timeline">
             <p className="app-muted-text">
-              Reading timeline data from IndexedDB and localStorage...
+              Reading timeline data from IndexedDB...
             </p>
           </SectionCard>
         ) : !result ? (

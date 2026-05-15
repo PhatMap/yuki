@@ -59,44 +59,6 @@ interface DerivedRelationship {
   highRiskIssues: BranchContinuityIssue[];
 }
 
-const storyStorageKey = "ai-story-app:stories";
-
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storyStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalRelationshipsData(storyId: string): StoryRelationshipsData {
-  return {
-    story: readLocalStory(storyId),
-    analysisResult: readJsonValue<StoryAnalysisResult | null>(
-      `ai-story-app:analysis-result:${storyId}`,
-      null,
-    ),
-    branchChanges: readJsonValue<BranchChange[]>(
-      `ai-story-app:branch-changes:${storyId}`,
-      [],
-    ),
-    continuityIssues: readJsonValue<BranchContinuityIssue[]>(
-      `ai-story-app:continuity-issues:${storyId}`,
-      [],
-    ),
-  };
-}
-
 async function readIndexedDbRelationshipsData(
   storyId: string,
 ): Promise<StoryRelationshipsData> {
@@ -113,24 +75,6 @@ async function readIndexedDbRelationshipsData(
     analysisResult: analysisResult ?? null,
     branchChanges,
     continuityIssues,
-  };
-}
-
-function mergeRelationshipsData(
-  indexedDbData: StoryRelationshipsData,
-  localData: StoryRelationshipsData,
-): StoryRelationshipsData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
   };
 }
 
@@ -272,7 +216,6 @@ export function StoryRelationshipsClient({
     let isActive = true;
 
     async function loadRelationshipsData() {
-      const localData = readLocalRelationshipsData(storyId);
       let indexedDbData: StoryRelationshipsData = {
         analysisResult: null,
         branchChanges: [],
@@ -292,12 +235,10 @@ export function StoryRelationshipsClient({
 
       if (!isActive) return;
 
-      setRelationshipsData(
-        mergeRelationshipsData(indexedDbData, localData),
-      );
+      setRelationshipsData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. Relationship data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -406,8 +347,7 @@ export function StoryRelationshipsClient({
 
 
         <p className="app-muted-text">
-          Relationship Tracker reads from IndexedDB first, with localStorage
-          fallback.
+          Relationship Tracker reads from IndexedDB as the source of truth.
         </p>
 
         {storageError ? (
@@ -419,7 +359,7 @@ export function StoryRelationshipsClient({
         {isLoading ? (
           <SectionCard title="Loading relationships">
             <p className="app-muted-text">
-              Reading relationship data from IndexedDB and localStorage...
+              Reading relationship data from IndexedDB...
             </p>
           </SectionCard>
         ) : !result ? (

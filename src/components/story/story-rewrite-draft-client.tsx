@@ -61,54 +61,6 @@ interface DraftChapter {
   source: "imported" | "mock";
 }
 
-const storyStorageKey = "ai-story-app:stories";
-const rewriteDraftsStorageKey = (storyId: string) =>
-  `ai-story-app:rewrite-drafts:${storyId}`;
-
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storyStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalRewriteDraftData(storyId: string): RewriteDraftData {
-  return {
-    story: readLocalStory(storyId),
-    analysisResult: readJsonValue<StoryAnalysisResult | null>(
-      `ai-story-app:analysis-result:${storyId}`,
-      null,
-    ),
-    branchChanges: readJsonValue<BranchChange[]>(
-      `ai-story-app:branch-changes:${storyId}`,
-      [],
-    ),
-    continuityIssues: readJsonValue<BranchContinuityIssue[]>(
-      `ai-story-app:continuity-issues:${storyId}`,
-      [],
-    ),
-    importedChapters: readJsonValue<ImportedChapter[]>(
-      `ai-story-app:chapters:${storyId}`,
-      [],
-    ),
-    rewriteDrafts: readJsonValue<RewriteDraft[]>(
-      rewriteDraftsStorageKey(storyId),
-      [],
-    ),
-  };
-}
-
 async function readIndexedDbRewriteDraftData(
   storyId: string,
 ): Promise<RewriteDraftData> {
@@ -135,32 +87,6 @@ async function readIndexedDbRewriteDraftData(
     continuityIssues,
     importedChapters,
     rewriteDrafts,
-  };
-}
-
-function mergeRewriteDraftData(
-  indexedDbData: RewriteDraftData,
-  localData: RewriteDraftData,
-): RewriteDraftData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
-    importedChapters:
-      indexedDbData.importedChapters.length > 0
-        ? indexedDbData.importedChapters
-        : localData.importedChapters,
-    rewriteDrafts:
-      indexedDbData.rewriteDrafts.length > 0
-        ? indexedDbData.rewriteDrafts
-        : localData.rewriteDrafts,
   };
 }
 
@@ -292,7 +218,6 @@ export function StoryRewriteDraftClient({
     let isActive = true;
 
     async function loadRewriteDraftData() {
-      const localData = readLocalRewriteDraftData(storyId);
       let indexedDbData: RewriteDraftData = {
         analysisResult: null,
         branchChanges: [],
@@ -311,7 +236,7 @@ export function StoryRewriteDraftClient({
 
       if (!isActive) return;
 
-      const mergedData = mergeRewriteDraftData(indexedDbData, localData);
+      const mergedData = indexedDbData;
       const resolvedStory =
         mergedData.story ?? stories.find((item) => item.id === storyId);
       const resolvedChapters = buildDraftChapters({
@@ -344,7 +269,7 @@ export function StoryRewriteDraftClient({
       setStatus(initialDraft?.status ?? "draft");
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. Rewrite draft data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -506,8 +431,7 @@ export function StoryRewriteDraftClient({
 
 
         <p className="app-muted-text">
-          Rewrite Draft Workspace reads from IndexedDB first, with legacy
-          localStorage fallback.
+          Rewrite Draft Workspace reads from IndexedDB as the source of truth.
         </p>
 
         {storageError ? (

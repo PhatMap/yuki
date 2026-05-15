@@ -58,7 +58,6 @@ type WorldTrackerCategory =
   | "power-system"
   | "impacted";
 
-const storyStorageKey = "ai-story-app:stories";
 const powerSystemKeywords = [
   "cảnh giới",
   "linh khí",
@@ -79,42 +78,6 @@ const worldRiskKeywords = [
   "cảnh giới",
 ];
 
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storyStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalWorldTrackerData(storyId: string): StoryWorldTrackerData {
-  return {
-    story: readLocalStory(storyId),
-    analysisResult: readJsonValue<StoryAnalysisResult | null>(
-      `ai-story-app:analysis-result:${storyId}`,
-      null,
-    ),
-    branchChanges: readJsonValue<BranchChange[]>(
-      `ai-story-app:branch-changes:${storyId}`,
-      [],
-    ),
-    continuityIssues: readJsonValue<BranchContinuityIssue[]>(
-      `ai-story-app:continuity-issues:${storyId}`,
-      [],
-    ),
-  };
-}
-
 async function readIndexedDbWorldTrackerData(
   storyId: string,
 ): Promise<StoryWorldTrackerData> {
@@ -131,24 +94,6 @@ async function readIndexedDbWorldTrackerData(
     analysisResult: analysisResult ?? null,
     branchChanges,
     continuityIssues,
-  };
-}
-
-function mergeWorldTrackerData(
-  indexedDbData: StoryWorldTrackerData,
-  localData: StoryWorldTrackerData,
-): StoryWorldTrackerData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
   };
 }
 
@@ -248,7 +193,6 @@ export function StoryWorldTrackerClient({
     let isActive = true;
 
     async function loadWorldTrackerData() {
-      const localData = readLocalWorldTrackerData(storyId);
       let indexedDbData: StoryWorldTrackerData = {
         analysisResult: null,
         branchChanges: [],
@@ -265,10 +209,10 @@ export function StoryWorldTrackerClient({
 
       if (!isActive) return;
 
-      setWorldTrackerData(mergeWorldTrackerData(indexedDbData, localData));
+      setWorldTrackerData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. World tracker data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -379,7 +323,7 @@ export function StoryWorldTrackerClient({
 
 
         <p className="app-muted-text">
-          World Tracker reads from IndexedDB first, with localStorage fallback.
+          World Tracker reads from IndexedDB as the source of truth.
         </p>
 
         {storageError ? (
@@ -391,7 +335,7 @@ export function StoryWorldTrackerClient({
         {isLoading ? (
           <SectionCard title="Loading World Tracker">
             <p className="app-muted-text">
-              Reading world tracker data from IndexedDB and localStorage...
+              Reading world tracker data from IndexedDB...
             </p>
           </SectionCard>
         ) : !result ? (

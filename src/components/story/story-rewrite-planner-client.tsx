@@ -95,11 +95,6 @@ interface ContinuityIssuePreview {
   suggestedFix: string;
 }
 
-const storyStorageKey = "ai-story-app:stories";
-const branchChangesStorageKey = (storyId: string) =>
-  `ai-story-app:branch-changes:${storyId}`;
-const continuityIssuesStorageKey = (storyId: string) =>
-  `ai-story-app:continuity-issues:${storyId}`;
 const rewriteTypes: { value: RewriteType; label: string }[] = [
   { value: "plot-change", label: "Plot change" },
   { value: "character-decision-change", label: "Character decision change" },
@@ -120,42 +115,6 @@ const impactCategories: { value: ImpactCategory; label: string }[] = [
   { value: "writing-style", label: "Writing style" },
 ];
 
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storyStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
-}
-
-function readLocalRewritePlannerData(storyId: string): StoryRewritePlannerData {
-  return {
-    story: readLocalStory(storyId),
-    analysisResult: readJsonValue<StoryAnalysisResult | null>(
-      `ai-story-app:analysis-result:${storyId}`,
-      null,
-    ),
-    branchChanges: readJsonValue<BranchChange[]>(
-      branchChangesStorageKey(storyId),
-      [],
-    ),
-    continuityIssues: readJsonValue<BranchContinuityIssue[]>(
-      continuityIssuesStorageKey(storyId),
-      [],
-    ),
-  };
-}
-
 async function readIndexedDbRewritePlannerData(
   storyId: string,
 ): Promise<StoryRewritePlannerData> {
@@ -172,24 +131,6 @@ async function readIndexedDbRewritePlannerData(
     analysisResult: analysisResult ?? null,
     branchChanges,
     continuityIssues,
-  };
-}
-
-function mergeRewritePlannerData(
-  indexedDbData: StoryRewritePlannerData,
-  localData: StoryRewritePlannerData,
-): StoryRewritePlannerData {
-  return {
-    story: indexedDbData.story ?? localData.story,
-    analysisResult: indexedDbData.analysisResult ?? localData.analysisResult,
-    branchChanges:
-      indexedDbData.branchChanges.length > 0
-        ? indexedDbData.branchChanges
-        : localData.branchChanges,
-    continuityIssues:
-      indexedDbData.continuityIssues.length > 0
-        ? indexedDbData.continuityIssues
-        : localData.continuityIssues,
   };
 }
 
@@ -388,7 +329,6 @@ export function StoryRewritePlannerClient({
     let isActive = true;
 
     async function loadRewritePlannerData() {
-      const localData = readLocalRewritePlannerData(storyId);
       let indexedDbData: StoryRewritePlannerData = {
         analysisResult: null,
         branchChanges: [],
@@ -408,13 +348,13 @@ export function StoryRewritePlannerClient({
 
       if (!isActive) return;
 
-      const mergedData = mergeRewritePlannerData(indexedDbData, localData);
+      const mergedData = indexedDbData;
 
       setPlannerData(mergedData);
       setForm(createInitialForm(mergedData.analysisResult));
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Showing localStorage fallback data."
+          ? "IndexedDB read failed. Rewrite planner data may be unavailable."
           : "",
       );
       setIsLoading(false);
@@ -666,8 +606,7 @@ export function StoryRewritePlannerClient({
 
 
         <p className="app-muted-text">
-          Rewrite Planner reads from IndexedDB first, with legacy localStorage
-          fallback.
+          Rewrite Planner reads from IndexedDB as the source of truth.
         </p>
 
         {storageError ? (
@@ -679,7 +618,7 @@ export function StoryRewritePlannerClient({
         {isLoading ? (
           <SectionCard title="Loading Rewrite Planner">
             <p className="app-muted-text">
-              Reading rewrite planner data from IndexedDB and localStorage...
+              Reading rewrite planner data from IndexedDB...
             </p>
           </SectionCard>
         ) : !result ? (
