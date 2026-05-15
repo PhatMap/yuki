@@ -1,18 +1,18 @@
 @layer components {
   .app-page {
-    @apply min-h-screen bg-muted/30;
+    @apply min-h-screen bg-muted/30 text-foreground;
   }
 
   .app-container {
-    @apply mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8;
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:gap-6 lg:py-7;
   }
 
   .app-page-header {
-    @apply flex flex-col gap-4 rounded-lg border bg-background p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between;
+    @apply flex flex-col gap-4 rounded-2xl border bg-background/95 p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between;
   }
 
   .app-page-eyebrow {
-    @apply mb-2 text-sm font-medium text-muted-foreground;
+    @apply mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground;
   }
 
   .app-page-title {
@@ -20,27 +20,31 @@
   }
 
   .app-page-description {
-    @apply mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base;
+    @apply mt-3 max-w-3xl text-sm leading-6 text-muted-foreground;
   }
 
   .app-toolbar {
     @apply flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end;
   }
 
+  .app-toolbar>* {
+    @apply min-w-0;
+  }
+
   .app-grid-cards {
-    @apply grid gap-4 md:grid-cols-2 xl:grid-cols-4;
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
   }
 
   .app-section {
-    @apply mt-10;
+    @apply mt-8;
   }
 
   .app-section-header {
-    @apply mb-4 flex items-center gap-2;
+    @apply mb-3 flex flex-col gap-1 sm:mb-4;
   }
 
   .app-section-title {
-    @apply text-lg font-semibold sm:text-xl;
+    @apply text-base font-semibold tracking-tight sm:text-lg;
   }
 
   .app-muted-text {
@@ -48,19 +52,19 @@
   }
 
   .app-card-hover {
-    @apply transition hover:shadow-md;
+    @apply transition hover:border-primary/30 hover:shadow-md;
   }
 
   .app-form-grid {
-    @apply grid gap-4 md:grid-cols-2;
+    @apply grid gap-3 md:grid-cols-2;
   }
 
   .app-warning-box {
-    @apply flex gap-3 rounded-lg border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground;
+    @apply flex gap-3 rounded-xl border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground;
   }
 
   .app-empty-state {
-    @apply rounded-lg border border-dashed bg-background p-6 text-sm leading-6 text-muted-foreground;
+    @apply rounded-2xl border border-dashed bg-background p-6 text-sm leading-6 text-muted-foreground;
   }
 
   .app-workspace {
@@ -68,31 +72,81 @@
   }
 
   .app-workspace-topbar {
-    @apply border-b bg-background shadow-sm;
+    @apply border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80;
   }
 
   .app-workspace-grid {
-    @apply mx-auto grid max-w-7xl gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)_320px] lg:py-6;
+    @apply mx-auto grid max-w-7xl gap-4 px-4 py-4 sm:px-6 lg:py-6;
+  }
+
+  @media (min-width: 1024px) {
+    .app-workspace-grid {
+      grid-template-columns: 260px minmax(0, 1fr) 320px;
+    }
   }
 
   .app-panel {
-    @apply space-y-4;
+    @apply space-y-3;
   }
 
   .app-panel-title {
-    @apply flex items-center gap-2 text-base;
+    @apply flex items-center gap-2 text-base font-semibold tracking-tight;
   }
 
   .app-list-button {
-    @apply flex w-full items-center justify-between gap-2 rounded-md border bg-background px-3 py-2.5 text-left text-sm leading-5 transition hover:bg-muted;
+    @apply flex w-full items-center justify-between gap-2 rounded-xl border bg-background px-3 py-2.5 text-left text-sm leading-5 transition hover:border-primary/30 hover:bg-muted/60;
   }
 
   .app-list-item {
-    @apply rounded-md border bg-background p-3.5;
+    @apply rounded-xl border bg-background p-3.5 shadow-sm;
   }
 
   .app-code-block {
-    @apply whitespace-pre-wrap break-words rounded-md bg-muted/30 p-3 text-sm leading-6 text-muted-foreground;
+    @apply whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-3.5 font-mono text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6;
+  }
+
+  .app-readable-panel {
+    @apply rounded-2xl border bg-background p-4 shadow-sm sm:p-5;
+  }
+
+  .app-readable-text {
+    @apply max-w-[78ch] text-sm leading-7 text-foreground/90 sm:text-base;
+  }
+
+  .app-readable-muted {
+    @apply max-w-[78ch] text-sm leading-7 text-muted-foreground;
+  }
+
+  .app-editor-textarea {
+    @apply min-h-[280px] w-full resize-y rounded-xl border bg-background px-3.5 py-3 font-mono text-sm leading-6 shadow-sm outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30;
+  }
+
+  .app-table-wrap {
+    @apply overflow-x-auto rounded-xl border bg-background;
+  }
+
+  .app-table {
+    @apply w-full min-w-[760px] text-left text-sm;
+  }
+
+  .app-table thead {
+    @apply bg-muted/70 text-xs uppercase tracking-wide text-muted-foreground;
+  }
+
+  .app-table th {
+    @apply px-3 py-2.5 font-semibold;
+  }
+
+  .app-table td {
+    @apply border-t px-3 py-2.5 align-top leading-6;
+  }
+
+  .app-badge-muted {
+    @apply inline-flex items-center rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground;
+  }
+
+  .app-badge-strong {
+    @apply inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary;
   }
 
   .app-story-shell {
@@ -120,6 +174,18 @@
     scrollbar-width: thin;
   }
 
+  .app-story-nav-scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .app-story-nav-scroll::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .app-story-nav-scroll::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-muted-foreground/20;
+  }
+
   .app-story-nav-groups {
     @apply flex min-w-max gap-2 xl:min-w-0 xl:flex-1 xl:grid-cols-[1fr_2fr_1fr_2.5fr] xl:gap-3;
   }
@@ -131,15 +197,15 @@
   }
 
   .app-story-nav-group {
-    @apply rounded-lg border bg-background p-1.5 transition;
+    @apply rounded-xl border bg-background p-1.5 transition;
   }
 
   .app-story-nav-group-active {
-    @apply border-primary/40 bg-primary/5;
+    @apply border-primary/40 bg-primary/5 shadow-sm;
   }
 
   .app-story-nav-group-label {
-    @apply px-2 pb-1 text-[0.68rem] font-semibold uppercase leading-none text-muted-foreground;
+    @apply px-2 pb-1 text-[0.68rem] font-semibold uppercase leading-none tracking-[0.14em] text-muted-foreground;
   }
 
   .app-story-nav-list {
@@ -147,7 +213,7 @@
   }
 
   .app-story-nav-link {
-    @apply relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    @apply relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
   }
 
   .app-story-nav-link-active {
@@ -164,11 +230,32 @@
   }
 
   .app-story-loading-panel {
-    @apply grid gap-5 rounded-lg border bg-background p-5 shadow-sm;
+    @apply grid gap-5 rounded-2xl border bg-background p-5 shadow-sm;
+  }
+
+  .app-density-card {
+    @apply rounded-2xl border bg-background shadow-sm;
+  }
+
+  .app-density-card-header {
+    @apply flex flex-col gap-1 border-b p-4 sm:p-5;
+  }
+
+  .app-density-card-title {
+    @apply text-base font-semibold tracking-tight;
+  }
+
+  .app-density-card-description {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-density-card-content {
+    @apply p-4 sm:p-5;
   }
 }
 
 @keyframes app-story-nav-pulse {
+
   0%,
   100% {
     transform: scale(0.8);

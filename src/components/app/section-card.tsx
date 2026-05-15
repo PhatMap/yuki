@@ -22,22 +22,35 @@ export function SectionCard({
   className,
   contentClassName,
 }: SectionCardProps) {
+  const hasHeader = Boolean(title || description || icon);
+
   return (
-    <Card className={className}>
-      {title || description || icon ? (
-        <CardHeader>
+    <Card className={cn("overflow-hidden rounded-2xl shadow-sm", className)}>
+      {hasHeader ? (
+        <CardHeader className="gap-1 border-b px-4 py-4 sm:px-5">
           {title ? (
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight">
               {icon}
               {title}
             </CardTitle>
           ) : null}
+
           {description ? (
-            <p className="app-muted-text">{description}</p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </CardHeader>
       ) : null}
-      <CardContent className={cn(contentClassName)}>{children}</CardContent>
+
+      <CardContent
+        className={cn(
+          hasHeader ? "p-4 sm:p-5" : "p-4 sm:p-5",
+          contentClassName,
+        )}
+      >
+        {children}
+      </CardContent>
     </Card>
   );
 }
