@@ -19,56 +19,21 @@ import {
   createInitialAnalysisStatus,
   detectChaptersFromText,
 } from "@/lib/novel-processing";
+import {
+  readJsonFromLocalStorage,
+  writeLocalStorageBatch,
+} from "@/lib/storage/safe-local-storage";
 import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 
 const storyStorageKey = "ai-story-app:stories";
 const tempStoryId = "preview-import-story";
 
-type LocalStorageEntry = {
-  key: string;
-  value: string;
-};
-
-function readLocalStories() {
-  try {
-    const parsedStories = JSON.parse(
-      localStorage.getItem(storyStorageKey) || "[]",
-    ) as Story[];
-
-    return Array.isArray(parsedStories) ? parsedStories : [];
-  } catch {
-    return [];
-  }
+function isStoryArray(value: unknown): value is Story[] {
+  return Array.isArray(value);
 }
 
-function writeLocalStorageBatch(entries: LocalStorageEntry[]) {
-  const previousValues = entries.map((entry) => ({
-    key: entry.key,
-    value: localStorage.getItem(entry.key),
-  }));
-
-  try {
-    entries.forEach((entry) => {
-      localStorage.setItem(entry.key, entry.value);
-    });
-
-    return true;
-  } catch (error) {
-    previousValues.forEach((entry) => {
-      try {
-        if (entry.value === null) {
-          localStorage.removeItem(entry.key);
-        } else {
-          localStorage.setItem(entry.key, entry.value);
-        }
-      } catch {
-        // Best-effort rollback only.
-      }
-    });
-
-    console.error("Failed to save imported novel to localStorage", error);
-    return false;
-  }
+function readLocalStories() {
+  return readJsonFromLocalStorage<Story[]>(storyStorageKey, [], isStoryArray);
 }
 
 export default function ImportNovelPage() {

@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { readJsonFromLocalStorage } from "@/lib/storage/safe-local-storage";
+import { writeLocalStorageBatch } from "@/lib/storage/safe-local-storage";
 import type { CanonAdherence, Story, StoryGenre, StoryTone } from "@/lib/types";
 
 interface CreateStoryForm {
@@ -47,32 +49,12 @@ const initialForm: CreateStoryForm = {
   mustChange: "",
 };
 
-function readStoredStories(): Story[] {
-  try {
-    const rawStories = localStorage.getItem(STORIES_STORAGE_KEY);
-
-    if (!rawStories) {
-      return [];
-    }
-
-    const parsedStories = JSON.parse(rawStories) as unknown;
-
-    if (!Array.isArray(parsedStories)) {
-      return [];
-    }
-
-    return parsedStories as Story[];
-  } catch {
-    return [];
-  }
+function isStoryArray(value: unknown): value is Story[] {
+  return Array.isArray(value);
 }
 
-function createStorageErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return `Không thể lưu project mới: ${error.message}`;
-  }
-
-  return "Không thể lưu project mới do localStorage không khả dụng.";
+function createStorageErrorMessage() {
+  return "Không thể lưu project mới vào localStorage. Vui lòng thử lại.";
 }
 
 export default function NewStoryPage() {
@@ -109,6 +91,12 @@ export default function NewStoryPage() {
       updatedAt: now,
     };
 
+    const existingStories = readJsonFromLocalStorage<Story[]>(
+      STORIES_STORAGE_KEY,
+      [],
+      isStoryArray,
+    );
+
     const projectSetup = {
       storyId,
       originalTitle: form.originalTitle,
@@ -117,20 +105,19 @@ export default function NewStoryPage() {
       mustChange: form.mustChange,
     };
 
-    try {
-      const existingStories = readStoredStories();
+    const saved = writeLocalStorageBatch([
+      {
+        key: STORIES_STORAGE_KEY,
+        value: JSON.stringify([newStory, ...existingStories]),
+      },
+      {
+        key: `ai-story-app:story-setup:${storyId}`,
+        value: JSON.stringify(projectSetup),
+      },
+    ]);
 
-      localStorage.setItem(
-        STORIES_STORAGE_KEY,
-        JSON.stringify([newStory, ...existingStories]),
-      );
-
-      localStorage.setItem(
-        `ai-story-app:story-setup:${storyId}`,
-        JSON.stringify(projectSetup),
-      );
-    } catch (error) {
-      setErrorMessage(createStorageErrorMessage(error));
+    if (!saved) {
+      setErrorMessage(createStorageErrorMessage());
       return;
     }
 
