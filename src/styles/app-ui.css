@@ -252,6 +252,26 @@
   .app-density-card-content {
     @apply p-4 sm:p-5;
   }
+
+  .app-loading-panel {
+    @apply rounded-2xl border bg-background p-5 shadow-sm;
+  }
+
+  .app-loading-skeleton {
+    @apply animate-pulse rounded-full bg-muted;
+  }
+
+  .app-error-callout {
+    @apply rounded-2xl border border-destructive/30 bg-destructive/10 p-4 shadow-sm;
+  }
+
+  .app-success-callout {
+    @apply rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-700 shadow-sm dark:text-emerald-300;
+  }
+
+  .app-info-callout {
+    @apply rounded-2xl border border-primary/25 bg-primary/10 p-4 text-sm leading-6 text-primary shadow-sm;
+  }
 }
 
 @keyframes app-story-nav-pulse {

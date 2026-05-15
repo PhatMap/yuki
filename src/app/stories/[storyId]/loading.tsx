@@ -1,17 +1,12 @@
+import { LoadingPanel } from "@/components/app/loading-panel";
+
 export default function StoryLoading() {
   return (
-    <main className="app-page">
-      <div className="app-container">
-        <section className="app-story-loading-panel">
-          <div className="h-5 w-36 rounded-md bg-muted" />
-          <div className="h-8 w-full max-w-md rounded-md bg-muted" />
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="h-28 rounded-lg bg-muted" />
-            <div className="h-28 rounded-lg bg-muted" />
-            <div className="h-28 rounded-lg bg-muted" />
-          </div>
-        </section>
-      </div>
-    </main>
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+      <LoadingPanel
+        title="Loading story workspace"
+        description="Preparing the selected story page and local workspace state."
+      />
+    </div>
   );
 }
