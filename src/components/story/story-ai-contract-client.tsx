@@ -1,10 +1,5 @@
 "use client";
 
-import { StoryNavigation } from "@/components/app/story-navigation";
-
-interface StoryAiContractClientProps {
-  storyId: string;
-}
 
 const proxyEndpointEnvKey = "NEXT_PUBLIC_AI_PROXY_ENDPOINT";
 
@@ -188,7 +183,7 @@ function formatJson(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
-export function StoryAiContractClient({ storyId }: StoryAiContractClientProps) {
+export function StoryAiContractClient() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 rounded-2xl border bg-background p-5 shadow-sm">
@@ -203,7 +198,6 @@ export function StoryAiContractClient({ storyId }: StoryAiContractClientProps) {
           </p>
         </div>
 
-        <StoryNavigation storyId={storyId} />
       </header>
 
       <section className="grid gap-4 lg:grid-cols-3">

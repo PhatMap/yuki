@@ -35,7 +35,6 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
-import { StoryNavigation } from "@/components/app/story-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -520,7 +519,6 @@ export function StoryRewriteDraftClient({
           }
         />
 
-        <StoryNavigation storyId={storyId} />
 
         <p className="app-muted-text">
           Rewrite Draft Workspace reads from IndexedDB first, with localStorage

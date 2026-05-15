@@ -10,7 +10,6 @@ import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
-import { StoryNavigation } from "@/components/app/story-navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -154,7 +153,6 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
           }
         />
 
-        <StoryNavigation storyId={storyId} />
 
         <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
             <div className="space-y-4">

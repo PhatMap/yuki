@@ -53,7 +53,6 @@ import type {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/app/page-shell";
-import { StoryNavigation } from "@/components/app/story-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -658,10 +657,6 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             </Button>
           </div>
         </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
-        <StoryNavigation storyId={storyId} />
       </div>
 
       {isLoading ? (

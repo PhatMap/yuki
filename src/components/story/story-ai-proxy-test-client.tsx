@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { StoryNavigation } from "@/components/app/story-navigation";
 import { getAiProxySmokeTestEndpoint } from "@/lib/ai/proxy-config";
 
 interface StoryAiProxyTestClientProps {
@@ -169,7 +168,6 @@ export function StoryAiProxyTestClient({
           </p>
         </div>
 
-        <StoryNavigation storyId={storyId} />
       </header>
 
       {errorMessage ? (

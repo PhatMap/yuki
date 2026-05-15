@@ -95,19 +95,86 @@
     @apply whitespace-pre-wrap break-words rounded-md bg-muted/30 p-3 text-sm leading-6 text-muted-foreground;
   }
 
+  .app-story-shell {
+    @apply min-h-screen bg-muted/30;
+  }
+
+  .app-story-shell-nav {
+    @apply sticky top-0 z-30 border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80;
+  }
+
+  .app-story-shell-nav-inner {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 xl:flex-row xl:items-center xl:gap-5;
+  }
+
+  .app-story-shell-title {
+    @apply hidden min-w-40 shrink-0 xl:block;
+  }
+
   .app-story-nav {
-    @apply overflow-x-auto rounded-lg border bg-background p-1 shadow-sm;
+    @apply min-w-0 flex-1;
+  }
+
+  .app-story-nav-scroll {
+    @apply -mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 xl:mx-0 xl:px-0;
+    scrollbar-width: thin;
+  }
+
+  .app-story-nav-groups {
+    @apply flex min-w-max gap-2 xl:min-w-0 xl:flex-1 xl:grid-cols-[1fr_2fr_1fr_2.5fr] xl:gap-3;
+  }
+
+  @media (min-width: 1280px) {
+    .app-story-nav-groups {
+      display: grid;
+    }
+  }
+
+  .app-story-nav-group {
+    @apply rounded-lg border bg-background p-1.5 transition;
+  }
+
+  .app-story-nav-group-active {
+    @apply border-primary/40 bg-primary/5;
+  }
+
+  .app-story-nav-group-label {
+    @apply px-2 pb-1 text-[0.68rem] font-semibold uppercase leading-none text-muted-foreground;
   }
 
   .app-story-nav-list {
-    @apply flex min-w-max gap-1;
+    @apply flex gap-1;
   }
 
   .app-story-nav-link {
-    @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground;
+    @apply relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
   }
 
   .app-story-nav-link-active {
-    @apply bg-muted text-foreground;
+    @apply bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground;
+  }
+
+  .app-story-nav-pending {
+    @apply pointer-events-none ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-0 transition;
+  }
+
+  .app-story-nav-pending-active {
+    @apply opacity-70;
+    animation: app-story-nav-pulse 900ms ease-in-out infinite;
+  }
+
+  .app-story-loading-panel {
+    @apply grid gap-5 rounded-lg border bg-background p-5 shadow-sm;
+  }
+}
+
+@keyframes app-story-nav-pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+  }
+
+  50% {
+    transform: scale(1.25);
   }
 }

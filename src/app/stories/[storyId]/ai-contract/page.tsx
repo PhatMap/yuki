@@ -9,7 +9,7 @@ interface StoryAiContractPageProps {
 export default async function StoryAiContractPage({
   params,
 }: StoryAiContractPageProps) {
-  const { storyId } = await params;
+  await params;
 
-  return <StoryAiContractClient storyId={storyId} />;
+  return <StoryAiContractClient />;
 }
