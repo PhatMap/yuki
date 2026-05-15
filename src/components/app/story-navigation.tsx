@@ -8,9 +8,9 @@ import {
   BookOpen,
   CalendarDays,
   Database,
+  Download,
   FileJson,
   FileText,
-  GitBranch,
   Gauge,
   HeartHandshake,
   Layers3,
@@ -63,7 +63,7 @@ const storyNavigationGroups = [
       {
         label: "World",
         href: "world-tracker",
-        icon: GitBranch,
+        icon: Database,
       },
     ],
   },
@@ -96,6 +96,11 @@ const storyNavigationGroups = [
         label: "Data",
         href: "data-health",
         icon: Database,
+      },
+      {
+        label: "Export",
+        href: "export",
+        icon: Download,
       },
       {
         label: "Scale",
