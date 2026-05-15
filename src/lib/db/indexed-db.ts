@@ -5,6 +5,7 @@ import type {
   BranchChange,
   BranchContinuityIssue,
   ChapterChunk,
+  GlobalPromptTemplate,
   ImportedChapter,
   RewriteDraft,
   Story,
@@ -52,6 +53,7 @@ export class AiStoryDatabase extends Dexie {
   branchChanges!: Table<BranchChange, string>;
   continuityIssues!: Table<BranchContinuityIssue, string>;
   rewriteDrafts!: Table<RewriteDraft, string>;
+  globalPromptTemplates!: Table<GlobalPromptTemplate, string>;
 
   constructor() {
     super("ai-story-app-db");
@@ -104,6 +106,25 @@ export class AiStoryDatabase extends Dexie {
       continuityIssues: "id, storyId, branchId, changeId, severity, status",
       rewriteDrafts:
         "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
+    });
+
+    this.version(4).stores({
+      stories:
+        "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
+      storySetups: "storyId, updatedAt",
+      importedChapters: "id, storyId, chapterNumber, title, wordCount, status",
+      chapterChunks:
+        "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
+      analysisStatuses:
+        "storyId, totalChapters, parsedChapters, chunkedChapters, analyzedChapters, totalChunks, updatedAt",
+      analysisResults: "storyId, updatedAt",
+      branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
+      branchChanges:
+        "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
+      continuityIssues: "id, storyId, branchId, changeId, severity, status",
+      rewriteDrafts:
+        "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
+      globalPromptTemplates: "id, category, updatedAt",
     });
   }
 }

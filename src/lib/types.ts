@@ -273,6 +273,25 @@ export interface StoryLocalSettings {
   updatedAt: string;
 }
 
+export type PromptTemplateCategory =
+  | "system"
+  | "analysis"
+  | "planning"
+  | "rewrite"
+  | "generation";
+
+export interface GlobalPromptTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: PromptTemplateCategory;
+  editablePrompt: string;
+  lockedContract: string;
+  variables: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BranchContinuityIssue {
   id: string;
   storyId: string;
