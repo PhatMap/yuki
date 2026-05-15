@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import { stories } from "@/lib/mock-data";
 
 const navigationItems = [
@@ -6,7 +7,6 @@ const navigationItems = [
   { href: "/stories", label: "Stories" },
   { href: "/characters", label: "Characters" },
   { href: "/worlds", label: "Worlds" },
-  { href: "/roleplay", label: "Roleplay" },
 ];
 
 export default function AppSidebar() {
@@ -32,6 +32,7 @@ export default function AppSidebar() {
         <h2 className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Recent stories
         </h2>
+
         <div className="space-y-1">
           {stories.map((story) => (
             <Link
