@@ -1,15 +1,15 @@
-import { StoryExportClient } from "@/components/story/story-export-client";
+import { StoryPublishingExportClient } from "@/components/story/story-publishing-export-client";
 
-interface StoryExportPageProps {
+interface StoryPublishingExportPageProps {
   params: Promise<{
     storyId: string;
   }>;
 }
 
-export default async function StoryExportPage({
+export default async function StoryPublishingExportPage({
   params,
-}: StoryExportPageProps) {
+}: StoryPublishingExportPageProps) {
   const { storyId } = await params;
 
-  return <StoryExportClient storyId={storyId} />;
+  return <StoryPublishingExportClient storyId={storyId} />;
 }

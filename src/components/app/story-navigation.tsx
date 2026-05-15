@@ -8,6 +8,7 @@ import {
   BookOpen,
   CalendarDays,
   Database,
+  Download,
   FileJson,
   FileText,
   GitBranch,
@@ -74,7 +75,7 @@ const storyNavigationGroups = [
   },
   {
     label: "Rewrite",
-    description: "Plan and draft changes",
+    description: "Plan, draft, publish",
     items: [
       {
         label: "Planner",
@@ -85,6 +86,11 @@ const storyNavigationGroups = [
         label: "Draft",
         href: "rewrite-draft",
         icon: FileText,
+      },
+      {
+        label: "Export",
+        href: "export",
+        icon: Download,
       },
     ],
   },
