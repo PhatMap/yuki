@@ -1530,3 +1530,186 @@
     color: hsl(var(--foreground) / 0.76);
   }
 }
+
+@layer components {
+  .app-container textarea {
+    min-height: 12rem;
+  }
+
+  .app-container textarea[placeholder*="Write the alternate version"],
+  .app-container textarea[placeholder*="alternate version"],
+  .app-container textarea[placeholder*="rewrite"] {
+    min-height: 28rem;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    font-size: var(--yuki-story-body-size, 0.9375rem);
+    line-height: var(--yuki-story-body-line-height, 1.8rem);
+    background:
+      linear-gradient(to bottom,
+        hsl(var(--background) / 0.98),
+        hsl(var(--background) / 0.94)),
+      radial-gradient(circle at top right,
+        hsl(var(--primary) / 0.035),
+        transparent 22rem);
+  }
+
+  .app-container textarea[placeholder*="Continuity notes"],
+  .app-container textarea[placeholder*="unresolved questions"],
+  .app-container textarea[placeholder*="next-pass edits"] {
+    min-height: 8rem;
+    font-size: 0.875rem;
+    line-height: 1.65rem;
+  }
+
+  .app-container textarea::selection,
+  .app-code-block::selection,
+  .app-comparison-content::selection,
+  .app-json-panel::selection,
+  .app-json-panel-compact::selection {
+    background-color: hsl(var(--primary) / 0.18);
+  }
+
+  .app-code-block {
+    position: relative;
+    max-width: 100%;
+    border-color: hsl(var(--border) / 0.82);
+    background:
+      linear-gradient(to bottom,
+        hsl(var(--muted) / 0.72),
+        hsl(var(--muted) / 0.44));
+    color: hsl(var(--foreground) / 0.82);
+  }
+
+  .app-code-block:empty::before {
+    content: "No content yet.";
+    color: hsl(var(--muted-foreground));
+  }
+
+  .app-container :where(pre.app-code-block) {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .app-container :where(.app-code-block, .app-comparison-content) {
+    scrollbar-width: thin;
+  }
+
+  .app-container :where(.app-code-block, .app-comparison-content)::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .app-container :where(.app-code-block, .app-comparison-content)::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .app-container :where(.app-code-block, .app-comparison-content)::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: hsl(var(--muted-foreground) / 0.22);
+  }
+
+  .app-container :where(.app-code-block, .app-comparison-content):hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.34);
+  }
+
+  .app-container :where(select) {
+    cursor: pointer;
+  }
+
+  .app-container :where(select:hover) {
+    border-color: hsl(var(--primary) / 0.34);
+  }
+
+  .app-container :where(input[type="text"], textarea, select) {
+    color: hsl(var(--foreground));
+  }
+
+  .app-container :where(input[type="text"], textarea, select)::placeholder {
+    color: hsl(var(--muted-foreground) / 0.72);
+  }
+
+  .app-container :where(label.grid.gap-2.text-sm) {
+    gap: 0.5rem;
+  }
+
+  .app-container :where(label.grid.gap-2.text-sm > span.font-medium) {
+    font-size: 0.8125rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+  }
+
+  .app-container :where(.grid.gap-4.lg\:grid-cols-2)>div {
+    min-width: 0;
+  }
+
+  .app-container :where(.mb-2.flex.items-center.justify-between.gap-2) {
+    min-width: 0;
+    border-bottom: 1px solid hsl(var(--border) / 0.72);
+    padding-bottom: 0.5rem;
+  }
+
+  .app-container :where(.mb-2.flex.items-center.justify-between.gap-2 p) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .app-container :where(.mb-2.flex.items-center.justify-between.gap-2 [data-slot="badge"]) {
+    flex-shrink: 0;
+  }
+
+  .app-story-density-compact .app-container textarea[placeholder*="Write the alternate version"],
+  .app-story-density-compact .app-container textarea[placeholder*="alternate version"],
+  .app-story-density-compact .app-container textarea[placeholder*="rewrite"] {
+    min-height: 22rem;
+  }
+
+  .app-story-density-comfortable .app-container textarea[placeholder*="Write the alternate version"],
+  .app-story-density-comfortable .app-container textarea[placeholder*="alternate version"],
+  .app-story-density-comfortable .app-container textarea[placeholder*="rewrite"] {
+    min-height: 30rem;
+  }
+
+  .app-story-font-large .app-code-block,
+  .app-story-font-large .app-comparison-content {
+    font-size: 0.875rem;
+    line-height: 1.75rem;
+  }
+
+  .app-story-font-small .app-code-block,
+  .app-story-font-small .app-comparison-content {
+    font-size: 0.75rem;
+    line-height: 1.45rem;
+  }
+
+  @media (max-width: 768px) {
+
+    .app-container textarea[placeholder*="Write the alternate version"],
+    .app-container textarea[placeholder*="alternate version"],
+    .app-container textarea[placeholder*="rewrite"] {
+      min-height: 22rem;
+    }
+
+    .app-container :where(.app-code-block) {
+      max-height: 22rem;
+      font-size: 0.75rem;
+      line-height: 1.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+
+    .app-container textarea[placeholder*="Write the alternate version"],
+    .app-container textarea[placeholder*="alternate version"],
+    .app-container textarea[placeholder*="rewrite"] {
+      min-height: 18rem;
+    }
+
+    .app-container textarea[placeholder*="Continuity notes"],
+    .app-container textarea[placeholder*="unresolved questions"],
+    .app-container textarea[placeholder*="next-pass edits"] {
+      min-height: 7rem;
+    }
+  }
+}
