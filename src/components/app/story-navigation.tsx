@@ -8,7 +8,6 @@ import {
   BookOpen,
   CalendarDays,
   Database,
-  Download,
   FileJson,
   FileText,
   GitBranch,
@@ -17,6 +16,7 @@ import {
   Layers3,
   PenLine,
   Settings,
+  Sparkles,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -25,7 +25,20 @@ interface StoryNavigationProps {
   storyId: string;
 }
 
-const storyNavigationGroups = [
+interface StoryNavigationItem {
+  label: string;
+  href: string;
+  icon: typeof BookOpen;
+  scope?: "story" | "global";
+}
+
+interface StoryNavigationGroup {
+  label: string;
+  description: string;
+  items: StoryNavigationItem[];
+}
+
+const storyNavigationGroups: StoryNavigationGroup[] = [
   {
     label: "Core",
     description: "Read, inspect, analyze",
@@ -75,7 +88,7 @@ const storyNavigationGroups = [
   },
   {
     label: "Rewrite",
-    description: "Plan, draft, publish",
+    description: "Plan and draft changes",
     items: [
       {
         label: "Planner",
@@ -87,22 +100,35 @@ const storyNavigationGroups = [
         href: "rewrite-draft",
         icon: FileText,
       },
+    ],
+  },
+  {
+    label: "Runtime",
+    description: "Global AI and prompts",
+    items: [
       {
-        label: "Export",
-        href: "export",
-        icon: Download,
+        label: "Runtime",
+        href: "/settings",
+        icon: Settings,
+        scope: "global",
+      },
+      {
+        label: "Prompts",
+        href: "/prompt-manager",
+        icon: Sparkles,
+        scope: "global",
+      },
+      {
+        label: "Story Settings",
+        href: "settings",
+        icon: Settings,
       },
     ],
   },
   {
-    label: "System",
-    description: "Settings, data, proxy tools",
+    label: "Diagnostics",
+    description: "Data, proxy, scale tools",
     items: [
-      {
-        label: "Settings",
-        href: "settings",
-        icon: Settings,
-      },
       {
         label: "Data",
         href: "data-health",
@@ -127,6 +153,15 @@ const storyNavigationGroups = [
   },
 ];
 
+function resolveStoryNavigationHref(
+  storyId: string,
+  item: StoryNavigationItem,
+) {
+  if (item.scope === "global") return item.href;
+
+  return `/stories/${storyId}/${item.href}`;
+}
+
 export function StoryNavigation({ storyId }: StoryNavigationProps) {
   const pathname = usePathname();
 
@@ -135,9 +170,11 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
       <div className="app-story-nav-scroll">
         <div className="app-story-nav-groups">
           {storyNavigationGroups.map((group) => {
-            const activeItem = group.items.find(
-              (item) => pathname === `/stories/${storyId}/${item.href}`,
-            );
+            const activeItem = group.items.find((item) => {
+              const href = resolveStoryNavigationHref(storyId, item);
+
+              return pathname === href;
+            });
             const isGroupActive = Boolean(activeItem);
 
             return (
@@ -160,13 +197,13 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
 
                 <div className="app-story-nav-list">
                   {group.items.map((item) => {
-                    const href = `/stories/${storyId}/${item.href}`;
+                    const href = resolveStoryNavigationHref(storyId, item);
                     const Icon = item.icon;
                     const isActive = pathname === href;
 
                     return (
                       <Link
-                        key={item.href}
+                        key={`${group.label}-${item.href}`}
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
                           "app-story-nav-link",

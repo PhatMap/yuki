@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  FileText,
   GitBranch,
   ListTree,
   PenLine,
@@ -28,6 +29,7 @@ import {
   getAnalysisResult,
   getBranchChanges,
   getImportedChapters,
+  getRewriteDrafts,
   getStoryById,
   saveBranchChanges,
 } from "@/lib/db/indexed-db";
@@ -35,6 +37,7 @@ import type {
   BranchChange,
   ImpactScope,
   ImportedChapter,
+  RewriteDraft,
   Story,
   StoryAnalysisResult,
 } from "@/lib/types";
@@ -48,7 +51,10 @@ interface ReaderData {
   chapters: ImportedChapter[];
   analysisResult?: StoryAnalysisResult;
   branchChanges: BranchChange[];
+  rewriteDrafts: RewriteDraft[];
 }
+
+type ReaderPreviewMode = "original" | "rewrite";
 
 const impactOptions: {
   value: ImpactScope;
@@ -130,6 +136,37 @@ function createChangeId() {
   return `reader-change-${Date.now()}`;
 }
 
+function getDraftRank(status: RewriteDraft["status"]) {
+  if (status === "accepted") return 3;
+  if (status === "reviewed") return 2;
+
+  return 1;
+}
+
+function findBestRewriteDraftForChapter({
+  chapter,
+  rewriteDrafts,
+}: {
+  chapter?: ImportedChapter;
+  rewriteDrafts: RewriteDraft[];
+}) {
+  if (!chapter) return undefined;
+
+  return rewriteDrafts
+    .filter((draft) => draft.targetChapterId === chapter.id)
+    .sort((firstDraft, secondDraft) => {
+      const statusDiff =
+        getDraftRank(secondDraft.status) - getDraftRank(firstDraft.status);
+
+      if (statusDiff !== 0) return statusDiff;
+
+      return (
+        new Date(secondDraft.updatedAt).getTime() -
+        new Date(firstDraft.updatedAt).getTime()
+      );
+    })[0];
+}
+
 export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,10 +174,12 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
   const [readerData, setReaderData] = useState<ReaderData>({
     chapters: [],
     branchChanges: [],
+    rewriteDrafts: [],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [chapterSearch, setChapterSearch] = useState("");
+  const [previewMode, setPreviewMode] = useState<ReaderPreviewMode>("original");
   const [changeTitle, setChangeTitle] = useState("");
   const [changeDescription, setChangeDescription] = useState("");
   const [newValue, setNewValue] = useState("");
@@ -158,12 +197,13 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
       setStorageError("");
 
       try {
-        const [story, chapters, analysisResult, branchChanges] =
+        const [story, chapters, analysisResult, branchChanges, rewriteDrafts] =
           await Promise.all([
             getStoryById(storyId),
             getImportedChapters(storyId),
             getAnalysisResult(storyId),
             getBranchChanges(storyId),
+            getRewriteDrafts(storyId),
           ]);
 
         if (!isActive) return;
@@ -173,6 +213,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
           chapters,
           analysisResult,
           branchChanges,
+          rewriteDrafts,
         });
       } catch (error) {
         console.error("Failed to load reader data", error);
@@ -194,7 +235,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
     };
   }, [storyId]);
 
-  const { story, chapters, analysisResult, branchChanges } = readerData;
+  const { story, chapters, analysisResult, branchChanges, rewriteDrafts } =
+    readerData;
 
   const currentChapter = useMemo(() => {
     return getChapterFromQuery(chapters, searchParams.get("chapter"));
@@ -209,6 +251,18 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
     currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1
       ? chapters[currentChapterIndex + 1]
       : undefined;
+
+  const selectedRewriteDraft = useMemo(() => {
+    return findBestRewriteDraftForChapter({
+      chapter: currentChapter,
+      rewriteDrafts,
+    });
+  }, [currentChapter, rewriteDrafts]);
+
+  const readingContent =
+    previewMode === "rewrite" && selectedRewriteDraft
+      ? selectedRewriteDraft.rewrittenText
+      : currentChapter?.cleanContent;
 
   const filteredChapters = useMemo(() => {
     const keyword = normalizeSearchText(chapterSearch);
@@ -259,6 +313,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
   }, [chapters]);
 
   function goToChapter(chapter: ImportedChapter) {
+    setPreviewMode("original");
+
     router.replace(
       `/stories/${storyId}/reader?chapter=${chapter.chapterNumber}`,
       {
@@ -348,13 +404,19 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
         <PageHeader
           eyebrow="Reader"
           title={story?.title ?? "Đọc truyện"}
-          description="Đọc truyện đã import theo chương. Khi không thích tình tiết ở chương hiện tại, tạo yêu cầu thay đổi để Rewrite Planner xử lý ảnh hưởng về sau."
+          description="Đọc truyện đã import theo chương. Nếu có rewrite draft cho chương hiện tại, Reader có thể preview bản sửa ngay tại đây."
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/analysis`}>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Analysis
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/rewrite-draft`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Rewrite Draft
                 </Link>
               </Button>
               <Button asChild>
@@ -425,9 +487,9 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
               />
               <StatCard
                 icon={<GitBranch className="h-4 w-4" />}
-                title="Change requests"
-                value={formatNumber(branchChanges.length)}
-                description="Draft branch changes"
+                title="Rewrite drafts"
+                value={formatNumber(rewriteDrafts.length)}
+                description="Saved rewrite versions"
               />
             </section>
 
@@ -451,6 +513,9 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                 <div className="max-h-[640px] space-y-2 overflow-auto pr-1">
                   {filteredChapters.map((chapter) => {
                     const isActive = chapter.id === currentChapter?.id;
+                    const hasDraft = rewriteDrafts.some(
+                      (draft) => draft.targetChapterId === chapter.id,
+                    );
 
                     return (
                       <button
@@ -463,9 +528,14 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                         }
                         onClick={() => goToChapter(chapter)}
                       >
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Chương {chapter.chapterNumber}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Chương {chapter.chapterNumber}
+                          </p>
+                          {hasDraft ? (
+                            <span className="app-chip-primary">Rewrite</span>
+                          ) : null}
+                        </div>
                         <p className="mt-1 line-clamp-2 text-sm font-semibold">
                           {chapter.title}
                         </p>
@@ -483,23 +553,65 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                   <>
                     <article className="app-reading-surface">
                       <header>
-                        <p className="app-reading-meta">
-                          Chương {currentChapter.chapterNumber}
-                          <span>·</span>
-                          <span>
-                            {formatNumber(currentChapter.wordCount)} words
-                          </span>
-                          <span>·</span>
-                          <span>{currentChapter.status}</span>
-                        </p>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="app-reading-meta">
+                            Chương {currentChapter.chapterNumber}
+                            <span>·</span>
+                            <span>
+                              {formatNumber(currentChapter.wordCount)} words
+                            </span>
+                            <span>·</span>
+                            <span>{currentChapter.status}</span>
+                          </p>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className={
+                                previewMode === "original"
+                                  ? "app-chip-primary"
+                                  : "app-chip"
+                              }
+                              onClick={() => setPreviewMode("original")}
+                            >
+                              Original
+                            </button>
+                            <button
+                              type="button"
+                              className={
+                                previewMode === "rewrite"
+                                  ? "app-chip-primary"
+                                  : "app-chip"
+                              }
+                              disabled={!selectedRewriteDraft}
+                              onClick={() => setPreviewMode("rewrite")}
+                            >
+                              Rewrite preview
+                            </button>
+                          </div>
+                        </div>
+
                         <h1 className="app-reading-title">
                           {currentChapter.title}
                         </h1>
+
+                        {selectedRewriteDraft ? (
+                          <div className="mt-4 rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
+                            <p className="font-medium text-foreground">
+                              Rewrite draft available:{" "}
+                              {selectedRewriteDraft.title}
+                            </p>
+                            <p className="mt-1">
+                              Status: {selectedRewriteDraft.status} · Updated:{" "}
+                              {new Date(
+                                selectedRewriteDraft.updatedAt,
+                              ).toLocaleString("vi-VN")}
+                            </p>
+                          </div>
+                        ) : null}
                       </header>
 
-                      <div className="app-reading-body">
-                        {currentChapter.cleanContent}
-                      </div>
+                      <div className="app-reading-body">{readingContent}</div>
                     </article>
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
