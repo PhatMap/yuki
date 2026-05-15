@@ -1,10 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { ArrowLeft, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-import type { CanonAdherence, Story, StoryGenre, StoryTone } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import type { CanonAdherence, Story, StoryGenre, StoryTone } from "@/lib/types";
 
 interface CreateStoryForm {
   title: string;
@@ -32,6 +32,8 @@ interface CreateStoryForm {
   mustChange: string;
 }
 
+const STORIES_STORAGE_KEY = "ai-story-app:stories";
+
 const initialForm: CreateStoryForm = {
   title: "",
   description: "",
@@ -45,9 +47,38 @@ const initialForm: CreateStoryForm = {
   mustChange: "",
 };
 
+function readStoredStories(): Story[] {
+  try {
+    const rawStories = localStorage.getItem(STORIES_STORAGE_KEY);
+
+    if (!rawStories) {
+      return [];
+    }
+
+    const parsedStories = JSON.parse(rawStories) as unknown;
+
+    if (!Array.isArray(parsedStories)) {
+      return [];
+    }
+
+    return parsedStories as Story[];
+  } catch {
+    return [];
+  }
+}
+
+function createStorageErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return `Không thể lưu project mới: ${error.message}`;
+  }
+
+  return "Không thể lưu project mới do localStorage không khả dụng.";
+}
+
 export default function NewStoryPage() {
   const router = useRouter();
   const [form, setForm] = useState<CreateStoryForm>(initialForm);
+  const [errorMessage, setErrorMessage] = useState("");
 
   function updateForm<K extends keyof CreateStoryForm>(
     key: K,
@@ -61,6 +92,7 @@ export default function NewStoryPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setErrorMessage("");
 
     const storyId = `story-${Date.now()}`;
     const now = new Date().toISOString();
@@ -77,15 +109,6 @@ export default function NewStoryPage() {
       updatedAt: now,
     };
 
-    const existingStories = JSON.parse(
-      localStorage.getItem("ai-story-app:stories") || "[]",
-    ) as Story[];
-
-    localStorage.setItem(
-      "ai-story-app:stories",
-      JSON.stringify([newStory, ...existingStories]),
-    );
-
     const projectSetup = {
       storyId,
       originalTitle: form.originalTitle,
@@ -94,10 +117,22 @@ export default function NewStoryPage() {
       mustChange: form.mustChange,
     };
 
-    localStorage.setItem(
-      `ai-story-app:story-setup:${storyId}`,
-      JSON.stringify(projectSetup),
-    );
+    try {
+      const existingStories = readStoredStories();
+
+      localStorage.setItem(
+        STORIES_STORAGE_KEY,
+        JSON.stringify([newStory, ...existingStories]),
+      );
+
+      localStorage.setItem(
+        `ai-story-app:story-setup:${storyId}`,
+        JSON.stringify(projectSetup),
+      );
+    } catch (error) {
+      setErrorMessage(createStorageErrorMessage(error));
+      return;
+    }
 
     router.push(`/stories/${storyId}/workspace`);
   }
@@ -123,10 +158,16 @@ export default function NewStoryPage() {
             Tạo project truyện mới
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Nhập thông tin cơ bản để AI có thể tạo outline, chương đầu hoặc
-            viết tiếp theo đúng gu của bạn.
+            Nhập thông tin cơ bản để AI có thể tạo outline, chương đầu hoặc viết
+            tiếp theo đúng gu của bạn.
           </p>
         </div>
+
+        {errorMessage ? (
+          <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <Card>
           <CardHeader>
@@ -178,7 +219,9 @@ export default function NewStoryPage() {
                       <SelectItem value="horror">Kinh dị</SelectItem>
                       <SelectItem value="mystery">Trinh thám</SelectItem>
                       <SelectItem value="school">Học đường</SelectItem>
-                      <SelectItem value="sci-fi">Khoa học viễn tưởng</SelectItem>
+                      <SelectItem value="sci-fi">
+                        Khoa học viễn tưởng
+                      </SelectItem>
                       <SelectItem value="adventure">Phiêu lưu</SelectItem>
                       <SelectItem value="comedy">Hài</SelectItem>
                       <SelectItem value="tragedy">Bi kịch</SelectItem>
