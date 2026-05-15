@@ -272,6 +272,117 @@
   .app-info-callout {
     @apply rounded-2xl border border-primary/25 bg-primary/10 p-4 text-sm leading-6 text-primary shadow-sm;
   }
+
+  .app-overflow-guard {
+    @apply min-w-0 overflow-x-hidden;
+  }
+
+  .app-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .app-responsive-actions {
+    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+
+  .app-responsive-actions>* {
+    @apply w-full sm:w-auto;
+  }
+
+  .app-scroll-x {
+    @apply -mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0;
+    scrollbar-width: thin;
+  }
+
+  .app-scroll-x::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .app-scroll-x::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .app-scroll-x::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-muted-foreground/20;
+  }
+
+  .app-container :where(pre) {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .app-container :where(code) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .app-container :where(table) {
+    width: 100%;
+  }
+
+  .app-container :where(th, td) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .app-container :where(textarea, input, select) {
+    max-width: 100%;
+  }
+
+  .app-container :where(img, video, canvas, svg) {
+    max-width: 100%;
+  }
+
+  .app-page-header {
+    overflow-wrap: anywhere;
+  }
+
+  .app-page-header :where(a, button) {
+    @apply shrink-0;
+  }
+
+  .app-readable-panel,
+  .app-density-card,
+  .app-section-card,
+  .app-empty-state,
+  .app-loading-panel {
+    @apply min-w-0;
+  }
+
+  .app-readable-text,
+  .app-readable-muted,
+  .app-muted-text {
+    overflow-wrap: anywhere;
+  }
+
+  .app-editor-textarea {
+    tab-size: 2;
+  }
+
+  @media (max-width: 640px) {
+    .app-editor-textarea {
+      min-height: 220px;
+      font-size: 0.875rem;
+      line-height: 1.625rem;
+    }
+
+    .app-page-title {
+      font-size: 1.45rem;
+      line-height: 1.2;
+    }
+
+    .app-page-description {
+      font-size: 0.875rem;
+      line-height: 1.625rem;
+    }
+
+    .app-table {
+      min-width: 680px;
+    }
+  }
 }
 
 @keyframes app-story-nav-pulse {

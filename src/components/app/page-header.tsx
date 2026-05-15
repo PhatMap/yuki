@@ -20,18 +20,22 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <header className={cn("app-page-header", className)}>
-      <div className="min-w-0">
+    <header className={cn("app-page-header min-w-0", className)}>
+      <div className="min-w-0 flex-1">
         {eyebrow ? <p className="app-page-eyebrow">{eyebrow}</p> : null}
 
-        <h1 className="app-page-title">{title}</h1>
+        <h1 className="app-page-title app-wrap-anywhere">{title}</h1>
 
         {description ? (
-          <p className="app-page-description">{description}</p>
+          <p className="app-page-description app-wrap-anywhere">
+            {description}
+          </p>
         ) : null}
       </div>
 
-      {action ? <div className="app-toolbar">{action}</div> : null}
+      {action ? (
+        <div className="app-toolbar app-responsive-actions">{action}</div>
+      ) : null}
     </header>
   );
 }

@@ -10,5 +10,9 @@ interface PageContainerProps {
 }
 
 export function PageContainer({ children, className }: PageContainerProps) {
-  return <div className={cn("app-container", className)}>{children}</div>;
+  return (
+    <div className={cn("app-container min-w-0 overflow-x-hidden", className)}>
+      {children}
+    </div>
+  );
 }
