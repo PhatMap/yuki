@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, RotateCcw, Save, Settings } from "lucide-react";
 
-import { notifyStorySettingsChanged } from "@/components/app/story-settings-provider";
-import { stories } from "@/lib/mock-data";
-import type { Story, StoryLocalSettings } from "@/lib/types";
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
+import { notifyStorySettingsChanged } from "@/components/app/story-settings-provider";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -21,6 +20,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  getStoryById,
+  getStorySetup,
+  saveStorySetup,
+  type StorySetupData,
+} from "@/lib/db/indexed-db";
+import { stories } from "@/lib/mock-data";
+import { readJsonFromLocalStorage } from "@/lib/storage/safe-local-storage";
+import type { Story, StoryLocalSettings } from "@/lib/types";
 
 interface StorySettingsClientProps {
   storyId: string;
@@ -28,7 +37,6 @@ interface StorySettingsClientProps {
 
 const settingsStorageKey = (storyId: string) =>
   `ai-story-app:settings:${storyId}`;
-const storiesStorageKey = "ai-story-app:stories";
 
 function createDefaultSettings(storyId: string): StoryLocalSettings {
   return {
@@ -43,26 +51,19 @@ function createDefaultSettings(storyId: string): StoryLocalSettings {
   };
 }
 
-function readJsonValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(key) || "") as T;
-
-    return parsedValue ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readLocalStory(storyId: string) {
-  return readJsonValue<Story[]>(storiesStorageKey, []).find(
-    (story) => story.id === storyId,
-  );
+function createDefaultSetup(storyId: string): StorySetupData {
+  return {
+    storyId,
+    originalTitle: "",
+    originalAuthor: "",
+    mustKeep: "",
+    mustChange: "",
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function readLocalSettings(storyId: string) {
-  return readJsonValue<StoryLocalSettings>(
+  return readJsonFromLocalStorage<StoryLocalSettings>(
     settingsStorageKey(storyId),
     createDefaultSettings(storyId),
   );
@@ -80,11 +81,46 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
   const [settings, setSettings] = useState<StoryLocalSettings>(() =>
     readLocalSettings(storyId),
   );
-  const [story] = useState<Story | undefined>(
-    () =>
-      readLocalStory(storyId) ?? stories.find((item) => item.id === storyId),
+  const [story, setStory] = useState<Story | undefined>(() =>
+    stories.find((item) => item.id === storyId),
+  );
+  const [setup, setSetup] = useState<StorySetupData>(() =>
+    createDefaultSetup(storyId),
   );
   const [saveMessage, setSaveMessage] = useState("");
+  const [setupSaveMessage, setSetupSaveMessage] = useState("");
+  const [isSavingSetup, setIsSavingSetup] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadStoryData() {
+      try {
+        const [storedStory, storedSetup] = await Promise.all([
+          getStoryById(storyId),
+          getStorySetup(storyId),
+        ]);
+
+        if (!isMounted) return;
+
+        if (storedStory) {
+          setStory(storedStory);
+        }
+
+        if (storedSetup) {
+          setSetup(storedSetup);
+        }
+      } catch (error) {
+        console.error("Failed to load story settings data", error);
+      }
+    }
+
+    void loadStoryData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [storyId]);
 
   const previewClassName = useMemo(() => {
     const fontSizeClass = {
@@ -117,6 +153,18 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
     setSaveMessage("");
   }
 
+  function updateSetup<K extends keyof StorySetupData>(
+    key: K,
+    value: StorySetupData[K],
+  ) {
+    setSetup((current) => ({
+      ...current,
+      [key]: value,
+      updatedAt: new Date().toISOString(),
+    }));
+    setSetupSaveMessage("");
+  }
+
   function handleSaveSettings() {
     const nextSettings = {
       ...settings,
@@ -137,13 +185,41 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
     setSaveMessage("Settings reset to defaults.");
   }
 
+  async function handleSaveSetup() {
+    if (isSavingSetup) return;
+
+    setIsSavingSetup(true);
+    setSetupSaveMessage("");
+
+    const nextSetup: StorySetupData = {
+      ...setup,
+      storyId,
+      originalTitle: setup.originalTitle.trim(),
+      originalAuthor: setup.originalAuthor.trim(),
+      mustKeep: setup.mustKeep.trim(),
+      mustChange: setup.mustChange.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await saveStorySetup(nextSetup);
+      setSetup(nextSetup);
+      setSetupSaveMessage("Story setup saved to IndexedDB.");
+    } catch (error) {
+      console.error("Failed to save story setup", error);
+      setSetupSaveMessage("Failed to save story setup.");
+    } finally {
+      setIsSavingSetup(false);
+    }
+  }
+
   return (
     <PageShell>
       <PageContainer>
         <PageHeader
           eyebrow="Story Settings"
           title={story?.title ?? "Story Settings"}
-          description="Local reading, workspace, and mock AI preferences for this story."
+          description="Local reading preferences and IndexedDB-backed story setup data."
           action={
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/workspace`}>
@@ -252,6 +328,80 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                 ]}
               />
             </SectionCard>
+
+            <SectionCard
+              title="Story setup"
+              description="Fanwork/source setup is stored in IndexedDB, not localStorage."
+            >
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="originalTitle">Original title</Label>
+                    <Input
+                      id="originalTitle"
+                      value={setup.originalTitle}
+                      onChange={(event) =>
+                        updateSetup("originalTitle", event.target.value)
+                      }
+                      placeholder="Original work title"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="originalAuthor">Original author</Label>
+                    <Input
+                      id="originalAuthor"
+                      value={setup.originalAuthor}
+                      onChange={(event) =>
+                        updateSetup("originalAuthor", event.target.value)
+                      }
+                      placeholder="Original author"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="mustKeep">Must keep</Label>
+                  <Textarea
+                    id="mustKeep"
+                    className="min-h-24"
+                    value={setup.mustKeep}
+                    onChange={(event) =>
+                      updateSetup("mustKeep", event.target.value)
+                    }
+                    placeholder="Characters, relationships, events, tone, or world rules that should be preserved."
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="mustChange">Must change</Label>
+                  <Textarea
+                    id="mustChange"
+                    className="min-h-24"
+                    value={setup.mustChange}
+                    onChange={(event) =>
+                      updateSetup("mustChange", event.target.value)
+                    }
+                    placeholder="Plot points, canon branches, events, or relationships that should be changed."
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={handleSaveSetup}
+                    disabled={isSavingSetup}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSavingSetup ? "Saving..." : "Save Story Setup"}
+                  </Button>
+
+                  {setupSaveMessage ? (
+                    <p className="app-muted-text">{setupSaveMessage}</p>
+                  ) : null}
+                </div>
+              </div>
+            </SectionCard>
           </div>
 
           <aside className="space-y-4">
@@ -272,19 +422,31 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
               </div>
             </SectionCard>
 
-            <SectionCard title="Local storage">
+            <SectionCard title="Storage">
               <div className="space-y-3">
                 <p className="app-muted-text">
-                  Stored at{" "}
+                  UI settings:{" "}
                   <span className="font-mono">
                     ai-story-app:settings:{storyId}
                   </span>
                 </p>
 
                 <p className="app-muted-text">
-                  Last updated:{" "}
+                  Story setup:{" "}
+                  <span className="font-mono">IndexedDB storySetups</span>
+                </p>
+
+                <p className="app-muted-text">
+                  Settings updated:{" "}
                   {settings.updatedAt
                     ? new Date(settings.updatedAt).toLocaleString()
+                    : "Not saved yet"}
+                </p>
+
+                <p className="app-muted-text">
+                  Setup updated:{" "}
+                  {setup.updatedAt
+                    ? new Date(setup.updatedAt).toLocaleString()
                     : "Not saved yet"}
                 </p>
 
