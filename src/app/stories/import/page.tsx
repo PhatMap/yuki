@@ -4,13 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, BookOpenCheck, FileText, Upload } from "lucide-react";
 
-import { saveImportedStoryData } from "@/lib/db/indexed-db";
-import {
-  chunkChapters,
-  createInitialAnalysisStatus,
-  detectChaptersFromText,
-} from "@/lib/novel-processing";
-import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 import { EmptyState } from "@/components/app/empty-state";
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
@@ -20,9 +13,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { saveImportedStoryData } from "@/lib/db/indexed-db";
+import {
+  chunkChapters,
+  createInitialAnalysisStatus,
+  detectChaptersFromText,
+} from "@/lib/novel-processing";
+import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 
 const storyStorageKey = "ai-story-app:stories";
 const tempStoryId = "preview-import-story";
+
+type LocalStorageEntry = {
+  key: string;
+  value: string;
+};
 
 function readLocalStories() {
   try {
@@ -33,6 +38,36 @@ function readLocalStories() {
     return Array.isArray(parsedStories) ? parsedStories : [];
   } catch {
     return [];
+  }
+}
+
+function writeLocalStorageBatch(entries: LocalStorageEntry[]) {
+  const previousValues = entries.map((entry) => ({
+    key: entry.key,
+    value: localStorage.getItem(entry.key),
+  }));
+
+  try {
+    entries.forEach((entry) => {
+      localStorage.setItem(entry.key, entry.value);
+    });
+
+    return true;
+  } catch (error) {
+    previousValues.forEach((entry) => {
+      try {
+        if (entry.value === null) {
+          localStorage.removeItem(entry.key);
+        } else {
+          localStorage.setItem(entry.key, entry.value);
+        }
+      } catch {
+        // Best-effort rollback only.
+      }
+    });
+
+    console.error("Failed to save imported novel to localStorage", error);
+    return false;
   }
 }
 
@@ -111,30 +146,26 @@ export default function ImportNovelPage() {
       updatedAt: now,
     };
 
-    let localStorageSaved = false;
-    let indexedDbSaved = false;
+    const localStorageSaved = writeLocalStorageBatch([
+      {
+        key: storyStorageKey,
+        value: JSON.stringify([newStory, ...readLocalStories()]),
+      },
+      {
+        key: `ai-story-app:chapters:${storyId}`,
+        value: JSON.stringify(importedChapters),
+      },
+      {
+        key: `ai-story-app:chunks:${storyId}`,
+        value: JSON.stringify(chunks),
+      },
+      {
+        key: `ai-story-app:analysis-status:${storyId}`,
+        value: JSON.stringify(analysisStatus),
+      },
+    ]);
 
-    try {
-      localStorage.setItem(
-        storyStorageKey,
-        JSON.stringify([newStory, ...readLocalStories()]),
-      );
-      localStorage.setItem(
-        `ai-story-app:chapters:${storyId}`,
-        JSON.stringify(importedChapters),
-      );
-      localStorage.setItem(
-        `ai-story-app:chunks:${storyId}`,
-        JSON.stringify(chunks),
-      );
-      localStorage.setItem(
-        `ai-story-app:analysis-status:${storyId}`,
-        JSON.stringify(analysisStatus),
-      );
-      localStorageSaved = true;
-    } catch (error) {
-      console.error("Failed to save imported novel to localStorage", error);
-    }
+    let indexedDbSaved = false;
 
     try {
       await saveImportedStoryData({
@@ -278,9 +309,9 @@ export default function ImportNovelPage() {
                         {chapter.wordCount.toLocaleString("vi-VN")} từ ước tính
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString(
-                          "vi-VN",
-                        )}{" "}
+                        {(
+                          chunkCountsByChapterId[chapter.id] ?? 0
+                        ).toLocaleString("vi-VN")}{" "}
                         chunks
                       </p>
                     </article>
