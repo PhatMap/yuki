@@ -416,7 +416,6 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           }
         />
 
-
         <p className="app-muted-text">
           Reading from IndexedDB first, with localStorage fallback. Provider:{" "}
           {pipelineProvider.label}. Gemini proxy:{" "}
@@ -518,33 +517,29 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
             <SectionCard title="Chapter preview">
               {chapters.length > 0 ? (
-                <div className="overflow-hidden rounded-lg border">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-muted/60 text-muted-foreground">
+                <div className="app-table-wrap">
+                  <table className="app-table">
+                    <thead>
                       <tr>
-                        <th className="px-3 py-2 font-medium">Chapter</th>
-                        <th className="px-3 py-2 font-medium">Title</th>
-                        <th className="px-3 py-2 font-medium">Words</th>
-                        <th className="px-3 py-2 font-medium">Chunks</th>
-                        <th className="px-3 py-2 font-medium">Status</th>
+                        <th>Chapter</th>
+                        <th>Title</th>
+                        <th>Words</th>
+                        <th>Chunks</th>
+                        <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {chapters.slice(0, 20).map((chapter) => (
-                        <tr className="border-t" key={chapter.id}>
-                          <td className="px-3 py-2">{chapter.chapterNumber}</td>
-                          <td className="px-3 py-2 font-medium">
-                            {chapter.title}
-                          </td>
-                          <td className="px-3 py-2">
-                            {chapter.wordCount.toLocaleString("vi-VN")}
-                          </td>
-                          <td className="px-3 py-2">
+                        <tr key={chapter.id}>
+                          <td>{chapter.chapterNumber}</td>
+                          <td className="font-medium">{chapter.title}</td>
+                          <td>{chapter.wordCount.toLocaleString("vi-VN")}</td>
+                          <td>
                             {(
                               chunkCountsByChapterId[chapter.id] ?? 0
                             ).toLocaleString("vi-VN")}
                           </td>
-                          <td className="px-3 py-2">{chapter.status}</td>
+                          <td>{chapter.status}</td>
                         </tr>
                       ))}
                     </tbody>
