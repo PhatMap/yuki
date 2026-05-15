@@ -1,38 +1,58 @@
+import Link from "next/link";
+
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
 import StoryCard from "@/components/story/story-card";
 import StoryTree from "@/components/story/story-tree";
 import { branches, chapters, stories } from "@/lib/mock-data";
 
 export default function StoriesPage() {
   return (
-    <main className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-6 py-8 lg:grid-cols-[1fr_360px]">
-      <section className="space-y-6">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Library
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Stories
-          </h1>
-        </div>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Library"
+          title="Stories"
+          description="Browse story projects and open the active workspace for planning, analysis, timeline, relationships, and rewrite work."
+          action={
+            <div className="app-action-row">
+              <Link href="/stories/new" className="app-primary-action">
+                New story
+              </Link>
+              <Link href="/stories/import" className="app-secondary-action">
+                Import novel
+              </Link>
+            </div>
+          }
+        />
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {stories.map((story) => {
-            const chapterCount = chapters.filter(
-              (chapter) => chapter.storyId === story.id,
-            ).length;
+        <section className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-4">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2">
+              {stories.map((story) => {
+                const chapterCount = chapters.filter(
+                  (chapter) => chapter.storyId === story.id,
+                ).length;
 
-            return (
-              <StoryCard
-                chapterCount={chapterCount}
-                key={story.id}
-                story={story}
-              />
-            );
-          })}
-        </div>
-      </section>
+                return (
+                  <StoryCard
+                    chapterCount={chapterCount}
+                    key={story.id}
+                    story={story}
+                  />
+                );
+              })}
+            </div>
+          </div>
 
-      <StoryTree branches={branches} chapters={chapters} stories={stories} />
-    </main>
+          <StoryTree
+            branches={branches}
+            chapters={chapters}
+            stories={stories}
+          />
+        </section>
+      </PageContainer>
+    </PageShell>
   );
 }

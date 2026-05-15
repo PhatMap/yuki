@@ -1,3 +1,9 @@
+import Link from "next/link";
+
+import { PageContainer } from "@/components/app/page-container";
+import { PageHeader } from "@/components/app/page-header";
+import { PageShell } from "@/components/app/page-shell";
+import { StatCard } from "@/components/app/stat-card";
 import CharacterCard from "@/components/character/character-card";
 import StoryCard from "@/components/story/story-card";
 import WorldBiblePanel from "@/components/world/world-bible-panel";
@@ -25,44 +31,49 @@ export default function DashboardPage() {
     : 0;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8">
-      <section className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Yuki workspace
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Story command center
-        </h1>
-      </section>
+    <PageShell>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Yuki workspace"
+          title="Story command center"
+          description="Overview for story projects, cast, chapters, branches, and world notes."
+          action={
+            <div className="app-action-row">
+              <Link href="/stories/new" className="app-primary-action">
+                New story
+              </Link>
+              <Link href="/stories/import" className="app-secondary-action">
+                Import novel
+              </Link>
+            </div>
+          }
+        />
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm"
-            key={stat.label}
-          >
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className="mt-3 text-3xl font-semibold">{stat.value}</p>
+        <section className="app-four-column">
+          {stats.map((stat) => (
+            <StatCard key={stat.label} title={stat.label} value={stat.value} />
+          ))}
+        </section>
+
+        <section className="grid min-w-0 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          {featuredStory ? (
+            <StoryCard
+              chapterCount={featuredStoryChapterCount}
+              story={featuredStory}
+            />
+          ) : null}
+
+          <div className="grid min-w-0 gap-6">
+            {featuredCharacter ? (
+              <CharacterCard character={featuredCharacter} />
+            ) : null}
+
+            {featuredWorldNote ? (
+              <WorldBiblePanel note={featuredWorldNote} />
+            ) : null}
           </div>
-        ))}
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        {featuredStory ? (
-          <StoryCard
-            chapterCount={featuredStoryChapterCount}
-            story={featuredStory}
-          />
-        ) : null}
-        <div className="space-y-6">
-          {featuredCharacter ? (
-            <CharacterCard character={featuredCharacter} />
-          ) : null}
-          {featuredWorldNote ? (
-            <WorldBiblePanel note={featuredWorldNote} />
-          ) : null}
-        </div>
-      </section>
-    </main>
+        </section>
+      </PageContainer>
+    </PageShell>
   );
 }
