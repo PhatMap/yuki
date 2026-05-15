@@ -23,16 +23,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllStories } from "@/lib/db/indexed-db";
 import { stories as mockStories } from "@/lib/mock-data";
-import {
-  getLegacyStorySourceLabel,
-  type LegacyStorySource,
-  readLegacyStoryMetadataSnapshot,
-  sortStoriesByUpdatedAtDesc,
-} from "@/lib/storage/legacy-story-storage";
 import type { Story } from "@/lib/types";
 
+type HomeStorySource = "indexeddb" | "mock";
+
 type HomeStory = Story & {
-  homeSource: LegacyStorySource;
+  homeSource: HomeStorySource;
 };
 
 function formatDate(value: string) {
@@ -43,13 +39,28 @@ function formatDate(value: string) {
   return date.toLocaleDateString("vi-VN");
 }
 
-function mergeHomeStories(storedStories: Story[], source: LegacyStorySource) {
-  const storedItems: HomeStory[] = sortStoriesByUpdatedAtDesc(
-    storedStories,
-  ).map((story) => ({
-    ...story,
-    homeSource: source,
-  }));
+function sortStoriesByUpdatedAtDesc(storyItems: Story[]) {
+  return [...storyItems].sort((firstStory, secondStory) => {
+    return (
+      new Date(secondStory.updatedAt).getTime() -
+      new Date(firstStory.updatedAt).getTime()
+    );
+  });
+}
+
+function getStorySourceLabel(source: HomeStorySource) {
+  if (source === "indexeddb") return "IndexedDB";
+
+  return "Starter";
+}
+
+function mergeHomeStories(storedStories: Story[]) {
+  const storedItems: HomeStory[] = sortStoriesByUpdatedAtDesc(storedStories).map(
+    (story) => ({
+      ...story,
+      homeSource: "indexeddb",
+    }),
+  );
 
   const storedIds = new Set(storedItems.map((story) => story.id));
 
@@ -69,8 +80,6 @@ function mergeHomeStories(storedStories: Story[], source: LegacyStorySource) {
 
 export function HomeDashboardClient() {
   const [storedStories, setStoredStories] = useState<Story[]>([]);
-  const [storySource, setStorySource] =
-    useState<LegacyStorySource>("indexeddb");
 
   useEffect(() => {
     let isActive = true;
@@ -83,19 +92,15 @@ export function HomeDashboardClient() {
 
         if (indexedDbStories.length > 0) {
           setStoredStories(indexedDbStories);
-          setStorySource("indexeddb");
           return;
         }
       } catch (error) {
         console.error("Failed to read stories from IndexedDB", error);
       }
 
-      const legacyStories = readLegacyStoryMetadataSnapshot();
-
       if (!isActive) return;
 
-      setStoredStories(legacyStories);
-      setStorySource(legacyStories.length > 0 ? "legacy-local" : "indexeddb");
+      setStoredStories([]);
     }
 
     void loadStories();
@@ -106,8 +111,8 @@ export function HomeDashboardClient() {
   }, []);
 
   const { storedItems, starterItems, allItems } = useMemo(
-    () => mergeHomeStories(storedStories, storySource),
-    [storedStories, storySource],
+    () => mergeHomeStories(storedStories),
+    [storedStories],
   );
 
   const primaryStory = allItems[0];
@@ -145,11 +150,7 @@ export function HomeDashboardClient() {
             icon={<Library className="h-4 w-4" />}
             title="IndexedDB stories"
             value={storedItems.length.toLocaleString("vi-VN")}
-            description={
-              storySource === "legacy-local"
-                ? "Temporary legacy metadata fallback."
-                : "Story metadata loaded from IndexedDB."
-            }
+            description="Story metadata loaded from IndexedDB."
           />
           <StatCard
             icon={<Sparkles className="h-4 w-4" />}
@@ -167,7 +168,7 @@ export function HomeDashboardClient() {
             icon={<Database className="h-4 w-4" />}
             title="Storage"
             value="Local"
-            description="IndexedDB-first pages with legacy compatibility reads."
+            description="IndexedDB-first pages with starter fallback."
           />
         </section>
 
@@ -229,11 +230,7 @@ export function HomeDashboardClient() {
 
         <SectionCard
           title="Stored stories"
-          description={
-            storySource === "legacy-local"
-              ? "Temporary compatibility view for old legacy story metadata."
-              : "Stories saved in IndexedDB on this browser."
-          }
+          description="Stories saved in IndexedDB on this browser."
         >
           {storedItems.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -318,7 +315,7 @@ function StoryCard({ story }: { story: HomeStory }) {
               story.homeSource === "indexeddb" ? "app-chip-primary" : "app-chip"
             }
           >
-            {getLegacyStorySourceLabel(story.homeSource)}
+            {getStorySourceLabel(story.homeSource)}
           </span>
         </div>
       </CardHeader>

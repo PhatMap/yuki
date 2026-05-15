@@ -14,11 +14,9 @@ import {
   chapters as mockChapters,
   stories as mockStories,
 } from "@/lib/mock-data";
-import {
-  type LegacyStorySource,
-  readLegacyStoryMetadataSnapshot,
-} from "@/lib/storage/legacy-story-storage";
 import type { Chapter, Story, StoryBranch } from "@/lib/types";
+
+type StoryListSource = "indexeddb" | "mock";
 
 function toStoryTreeChapter(chapter: {
   id: string;
@@ -41,7 +39,7 @@ function toStoryTreeChapter(chapter: {
 export default function StoriesPage() {
   const [storedStories, setStoredStories] = useState<Story[]>([]);
   const [storedChapters, setStoredChapters] = useState<Chapter[]>([]);
-  const [storySource, setStorySource] = useState<LegacyStorySource>("mock");
+  const [storySource, setStorySource] = useState<StoryListSource>("mock");
 
   useEffect(() => {
     let isActive = true;
@@ -74,13 +72,11 @@ export default function StoriesPage() {
         console.error("Failed to read stories from IndexedDB", error);
       }
 
-      const legacyStories = readLegacyStoryMetadataSnapshot();
-
       if (!isActive) return;
 
-      setStoredStories(legacyStories);
+      setStoredStories([]);
       setStoredChapters([]);
-      setStorySource(legacyStories.length > 0 ? "legacy-local" : "mock");
+      setStorySource("mock");
     }
 
     void loadStories();
@@ -100,10 +96,6 @@ export default function StoriesPage() {
   const pageDescription = useMemo(() => {
     if (storySource === "indexeddb") {
       return "Browse story projects saved in IndexedDB and open the active workspace for planning, analysis, timeline, relationships, and rewrite work.";
-    }
-
-    if (storySource === "legacy-local") {
-      return "Browse legacy story metadata while the app keeps IndexedDB as the primary store for new story data.";
     }
 
     return "Browse starter story projects and open the active workspace for planning, analysis, timeline, relationships, and rewrite work.";
