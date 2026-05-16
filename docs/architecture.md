@@ -98,6 +98,12 @@ Large story import processing runs through a local Web Worker. Chapter detection
 
 The worker does not save data directly. It returns chapters, chunks, and initial analysis status to the import page, and the page keeps the existing IndexedDB save flow.
 
+## Cancelable Local Import
+
+The import page uses `AbortController` when running the local import worker. Long-running detect/chunk operations can be cancelled from the UI, and the worker client terminates the worker during cleanup.
+
+This keeps large local imports safer for 3000+ chapter stories without adding backend infrastructure.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

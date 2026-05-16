@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, BookOpenCheck, FileText, Upload } from "lucide-react";
 
@@ -36,6 +36,8 @@ export default function ImportNovelPage() {
   const [createError, setCreateError] = useState("");
   const [importProgress, setImportProgress] =
     useState<LocalImportWorkerProgressSnapshot>();
+  const [isDetecting, setIsDetecting] = useState(false);
+  const importAbortControllerRef = useRef<AbortController | null>(null);
 
   const totalWordCount = useMemo(() => {
     return detectedChapters.reduce(
@@ -52,17 +54,56 @@ export default function ImportNovelPage() {
     }, {});
   }, [detectedChunks]);
 
+  function createImportAbortController() {
+    importAbortControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    importAbortControllerRef.current = controller;
+
+    return controller;
+  }
+
+  function clearImportAbortController(controller: AbortController) {
+    if (importAbortControllerRef.current === controller) {
+      importAbortControllerRef.current = null;
+    }
+  }
+
+  function handleCancelImportProcessing() {
+    importAbortControllerRef.current?.abort();
+    importAbortControllerRef.current = null;
+    setIsDetecting(false);
+    setIsCreating(false);
+    setImportProgress((current) =>
+      current
+        ? {
+            ...current,
+            status: "completed",
+            message: "Import processing was cancelled.",
+          }
+        : undefined,
+    );
+  }
+
   async function handleDetectChapters() {
+    if (isDetecting || isCreating) return;
+
+    setIsDetecting(true);
     setCreateError("");
     setImportProgress(undefined);
+    const controller = createImportAbortController();
 
     try {
-      const result = await runLocalImportWorker({
-        storyId: tempStoryId,
-        text: novelText,
-      }, {
-        onProgress: setImportProgress,
-      });
+      const result = await runLocalImportWorker(
+        {
+          storyId: tempStoryId,
+          text: novelText,
+        },
+        {
+          signal: controller.signal,
+          onProgress: setImportProgress,
+        },
+      );
 
       setDetectedChapters(result.chapters);
       setDetectedChunks(result.chunks);
@@ -74,12 +115,20 @@ export default function ImportNovelPage() {
         percentComplete: 100,
       });
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setCreateError("");
+        return;
+      }
+
       console.error("Failed to process import preview", error);
       setCreateError(
         error instanceof Error
           ? `Import preview failed: ${error.message}`
           : "Import preview failed.",
       );
+    } finally {
+      clearImportAbortController(controller);
+      setIsDetecting(false);
     }
   }
 
@@ -88,6 +137,7 @@ export default function ImportNovelPage() {
 
     setIsCreating(true);
     setCreateError("");
+    const controller = createImportAbortController();
 
     const storyId = `story-${Date.now()}`;
 
@@ -98,6 +148,7 @@ export default function ImportNovelPage() {
           text: novelText,
         },
         {
+          signal: controller.signal,
           onProgress: setImportProgress,
         },
       );
@@ -138,10 +189,18 @@ export default function ImportNovelPage() {
         analysisStatus,
       });
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setCreateError("");
+        setIsCreating(false);
+        return;
+      }
+
       console.error("Failed to save imported novel to IndexedDB", error);
       setCreateError("Could not save imported story data to IndexedDB.");
       setIsCreating(false);
       return;
+    } finally {
+      clearImportAbortController(controller);
     }
 
     router.push(`/stories/${storyId}/analysis`);
@@ -217,18 +276,28 @@ export default function ImportNovelPage() {
                 type="button"
                 variant="secondary"
                 onClick={handleDetectChapters}
+                disabled={!novelText.trim() || isDetecting || isCreating}
               >
                 <BookOpenCheck className="mr-2 h-4 w-4" />
-                Detect chapters
+                {isDetecting ? "Đang detect..." : "Detect chapters"}
               </Button>
               <Button
                 type="button"
                 onClick={handleCreateStoryFromImport}
-                disabled={!novelText.trim() || isCreating}
+                disabled={!novelText.trim() || isCreating || isDetecting}
               >
                 <FileText className="mr-2 h-4 w-4" />
                 {isCreating ? "Đang tạo..." : "Create story from import"}
               </Button>
+              {isDetecting || isCreating ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelImportProcessing}
+                >
+                  Cancel processing
+                </Button>
+              ) : null}
             </div>
 
             {importProgress ? (
