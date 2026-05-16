@@ -9,7 +9,6 @@ import {
   Database,
   ExternalLink,
   Gauge,
-  KeyRound,
   RefreshCw,
   RotateCcw,
   Save,
@@ -57,6 +56,35 @@ const geminiDirectModelOptions = [
   "gemini-3.1-flash-lite-preview",
 ];
 
+const jobRuntimeOptions: {
+  id: AiRuntimeSettings["jobRuntime"];
+  title: string;
+  description: string;
+  status: "ready" | "draft";
+}[] = [
+  {
+    id: "local-browser",
+    title: "Local Browser",
+    description:
+      "Runs job orchestration in the main browser context. Useful as a compatibility fallback.",
+    status: "ready",
+  },
+  {
+    id: "local-worker",
+    title: "Local Worker",
+    description:
+      "Runs local job orchestration through Web Worker. Recommended for large stories.",
+    status: "ready",
+  },
+  {
+    id: "cloud-queue",
+    title: "Cloud Queue",
+    description:
+      "Future Supabase/Redis/Cloudflare queue runtime. Currently falls back safely.",
+    status: "draft",
+  },
+];
+
 const testPrompt = `Bạn là Yuki AI runtime. Trả lời một câu ngắn: runtime settings đã sẵn sàng.`;
 
 function formatDateTime(value: string) {
@@ -74,6 +102,13 @@ function getProviderIcon(providerId: AiRuntimeProviderId) {
   if (providerId === "gemini-direct") return <Sparkles className="h-5 w-5" />;
 
   return <Server className="h-5 w-5" />;
+}
+
+function getJobRuntimeIcon(jobRuntime: AiRuntimeSettings["jobRuntime"]) {
+  if (jobRuntime === "cloud-queue") return <Server className="h-5 w-5" />;
+  if (jobRuntime === "local-worker") return <Cpu className="h-5 w-5" />;
+
+  return <Gauge className="h-5 w-5" />;
 }
 
 export function GlobalSettingsClient() {
@@ -218,12 +253,18 @@ export function GlobalSettingsClient() {
           </section>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <StatCard
             icon={<Gauge className="h-4 w-4" />}
             title="Provider"
             value={getAiRuntimeProviderLabel(settings.providerId)}
             description="Global runtime provider"
+          />
+          <StatCard
+            icon={<Gauge className="h-4 w-4" />}
+            title="Job runtime"
+            value={settings.jobRuntime}
+            description="Analysis orchestration mode"
           />
           <StatCard
             icon={<Sparkles className="h-4 w-4" />}
@@ -288,6 +329,56 @@ export function GlobalSettingsClient() {
                           </p>
                           <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
                             {provider.status}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="Job runtime"
+              description="Chọn cách chạy job phân tích cục bộ. Local Worker là lựa chọn khuyến nghị cho truyện lớn."
+            >
+              <div className="grid gap-3 md:grid-cols-3">
+                {jobRuntimeOptions.map((runtime) => {
+                  const isActive = settings.jobRuntime === runtime.id;
+
+                  return (
+                    <button
+                      key={runtime.id}
+                      type="button"
+                      className={
+                        isActive
+                          ? "rounded-2xl border bg-primary/10 p-4 text-left ring-2 ring-primary"
+                          : "rounded-2xl border bg-background p-4 text-left transition hover:bg-muted/60"
+                      }
+                      onClick={() => updateSettings("jobRuntime", runtime.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="app-dashboard-card-icon">
+                          {getJobRuntimeIcon(runtime.id)}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold">{runtime.title}</p>
+                            {isActive ? (
+                              <span className="app-chip-primary">
+                                <Check className="mr-1 h-3 w-3" />
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {runtime.description}
+                          </p>
+
+                          <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+                            {runtime.status}
                           </p>
                         </div>
                       </div>
@@ -463,6 +554,7 @@ export function GlobalSettingsClient() {
             <SectionCard title="Runtime Preview">
               <div className="space-y-3 text-sm">
                 <PreviewRow label="Provider" value={settings.providerId} />
+                <PreviewRow label="Job runtime" value={settings.jobRuntime} />
                 <PreviewRow label="Endpoint" value={activeEndpoint} />
                 <PreviewRow label="Model" value={activeModel} />
                 <PreviewRow

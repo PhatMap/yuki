@@ -110,6 +110,12 @@ Data Health includes local AI job, task, and cache counts for each story. This m
 
 The clear action only removes derived AI cache entries for the current story. It does not delete story text, chapters, saved analysis result, jobs, or task history.
 
+## Job Runtime Settings
+
+The preferred job runtime is stored in IndexedDB with the global AI runtime settings. This allows developers and users to switch between `local-browser`, `local-worker`, and future `cloud-queue` behavior without editing `.env.local` or restarting the dev server.
+
+The public env value `NEXT_PUBLIC_JOB_RUNTIME` remains a fallback for fresh installs and environments without saved runtime settings.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

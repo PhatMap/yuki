@@ -243,6 +243,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const runtimeEndpoint = runtimeSettings
     ? getActiveRuntimeEndpoint(runtimeSettings)
     : "Loading";
+  const activeJobRuntime = runtimeSettings?.jobRuntime ?? runtimeConfig.jobRuntime;
 
   async function handleStartAnalysis() {
     if (isSavingAnalysis) return;
@@ -255,7 +256,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setLocalJobState(undefined);
     let localAnalysisResult: StoryAnalysisResult | undefined;
 
-    if (runtimeConfig.jobRuntime === "local-browser") {
+    if (activeJobRuntime === "local-browser") {
       try {
         const localJobResult = await runLocalStoryAnalysisJob({
           storyId,
@@ -301,7 +302,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         setIsSavingAnalysis(false);
         return;
       }
-    } else if (runtimeConfig.jobRuntime === "local-worker") {
+    } else if (activeJobRuntime === "local-worker") {
       try {
         const workerResult = await runLocalStoryAnalysisWorkerJob(
           {
@@ -331,7 +332,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         setIsSavingAnalysis(false);
         return;
       }
-    } else if (runtimeConfig.jobRuntime === "cloud-queue") {
+    } else if (activeJobRuntime === "cloud-queue") {
       setJobRuntimeNote(
         "Job runtime cloud-queue is not wired yet. Falling back to direct analysis pipeline.",
       );
@@ -458,7 +459,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             <AnimatedStatusCard
               eyebrow="Local execution"
               title="Job Runtime"
-              value={runtimeConfig.jobRuntime}
+              value={activeJobRuntime}
               description="Controls whether analysis job planning runs in the browser, a local worker, or a future cloud queue."
             />
 

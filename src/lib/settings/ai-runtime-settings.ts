@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { PublicJobRuntime } from "@/lib/runtime/runtime-config";
 
 export type AiRuntimeProviderId =
   | "mock"
@@ -10,6 +11,7 @@ export type AiRuntimeProviderId =
 export interface AiRuntimeSettings {
   id: "global";
   providerId: AiRuntimeProviderId;
+  jobRuntime: PublicJobRuntime;
   defaultModel: string;
   geminiProxyEndpoint: string;
   customOpenAiBaseUrl: string;
@@ -40,6 +42,7 @@ const db = new AiRuntimeSettingsDatabase();
 export const defaultAiRuntimeSettings: AiRuntimeSettings = {
   id: "global",
   providerId: "mock",
+  jobRuntime: "local-worker",
   defaultModel: "mock-local",
   geminiProxyEndpoint: "/api/ai/gemini",
   customOpenAiBaseUrl: "",
@@ -99,18 +102,54 @@ export function getAiRuntimeProviderLabel(providerId: AiRuntimeProviderId) {
   );
 }
 
+const jobRuntimeOptions = [
+  "local-browser",
+  "local-worker",
+  "cloud-queue",
+] as const;
+
+export function normalizeJobRuntime(
+  value: string | undefined,
+): PublicJobRuntime {
+  if (!value) return defaultAiRuntimeSettings.jobRuntime;
+
+  return jobRuntimeOptions.includes(value as PublicJobRuntime)
+    ? (value as PublicJobRuntime)
+    : defaultAiRuntimeSettings.jobRuntime;
+}
+
+function normalizeAiRuntimeSettings(
+  settings?: Partial<AiRuntimeSettings>,
+): AiRuntimeSettings {
+  return {
+    ...defaultAiRuntimeSettings,
+    ...settings,
+    id: "global",
+    providerId: settings?.providerId ?? defaultAiRuntimeSettings.providerId,
+    jobRuntime: normalizeJobRuntime(settings?.jobRuntime),
+    temperature: normalizeTemperature(
+      Number(settings?.temperature ?? defaultAiRuntimeSettings.temperature),
+    ),
+    maxOutputTokens: normalizeMaxOutputTokens(
+      Number(
+        settings?.maxOutputTokens ?? defaultAiRuntimeSettings.maxOutputTokens,
+      ),
+    ),
+    updatedAt: settings?.updatedAt ?? new Date().toISOString(),
+  };
+}
+
 export async function getAiRuntimeSettings() {
   const storedSettings = await db.runtimeSettings.get("global");
 
-  return storedSettings ?? defaultAiRuntimeSettings;
+  return normalizeAiRuntimeSettings(storedSettings);
 }
 
 export async function saveAiRuntimeSettings(settings: AiRuntimeSettings) {
-  const nextSettings: AiRuntimeSettings = {
+  const nextSettings = normalizeAiRuntimeSettings({
     ...settings,
-    id: "global",
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   await db.runtimeSettings.put(nextSettings);
 
@@ -118,10 +157,10 @@ export async function saveAiRuntimeSettings(settings: AiRuntimeSettings) {
 }
 
 export async function resetAiRuntimeSettings() {
-  const nextSettings: AiRuntimeSettings = {
+  const nextSettings = normalizeAiRuntimeSettings({
     ...defaultAiRuntimeSettings,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   await db.runtimeSettings.put(nextSettings);
 
