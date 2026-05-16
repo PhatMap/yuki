@@ -1,8 +1,10 @@
 import { createStableContentHash } from "@/lib/ai/jobs/cache-key";
 import {
   type StoryAnalysisSourceItem,
+  type StoryAnalysisTaskInput,
   planStoryAnalysisJob,
 } from "@/lib/ai/jobs/story-analysis-job-planner";
+import { aggregateLocalStoryAnalysisResult } from "@/lib/ai/jobs/local/aggregate-local-story-analysis-result";
 import type {
   AiJob,
   AiJobProgress,
@@ -10,10 +12,13 @@ import type {
   AiJobTask,
 } from "@/lib/ai/jobs/types";
 import {
+  type LocalStoryAnalysisTaskOutput,
+  runLocalStoryAnalysisTask,
+} from "@/lib/ai/jobs/local/local-story-analysis-task-handler";
+import {
   type LocalJobRunnerResult,
   runLocalAiJob,
 } from "@/lib/ai/jobs/local/local-job-runner";
-import type { MockJobTaskResult } from "@/lib/ai/jobs/local/mock-job-task-handler";
 import { IndexedDbJobCacheStore } from "@/lib/ai/jobs/local/indexed-db-job-cache-store";
 import { IndexedDbJobStore } from "@/lib/ai/jobs/local/indexed-db-job-store";
 import { getPromptTemplateById } from "@/lib/prompts/prompt-runtime";
@@ -22,7 +27,12 @@ import {
   getActiveRuntimeModel,
   type AiRuntimeSettings,
 } from "@/lib/settings/ai-runtime-settings";
-import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
+import type {
+  ChapterChunk,
+  ImportedChapter,
+  Story,
+  StoryAnalysisResult,
+} from "@/lib/types";
 
 interface LocalStoryAnalysisProviderTarget {
   providerId: string;
@@ -48,7 +58,9 @@ export interface LocalStoryAnalysisJobResult {
   job: AiJob;
   tasks: AiJobTask[];
   progress: AiJobProgress;
-  runnerResult: LocalJobRunnerResult;
+  runnerResult: LocalJobRunnerResult<LocalStoryAnalysisTaskOutput>;
+  outputs: LocalStoryAnalysisTaskOutput[];
+  analysisResult?: StoryAnalysisResult;
   skippedTasks: number;
   completedTasks: number;
   failedTasks: number;
@@ -164,14 +176,25 @@ export async function runLocalStoryAnalysisJob(
     plannedAt: new Date().toISOString(),
   });
   const jobStore = new IndexedDbJobStore();
-  const cacheStore = new IndexedDbJobCacheStore<MockJobTaskResult>();
-  const runnerResult = await runLocalAiJob<MockJobTaskResult>(
+  const cacheStore = new IndexedDbJobCacheStore<LocalStoryAnalysisTaskOutput>();
+  const runnerResult = await runLocalAiJob<LocalStoryAnalysisTaskOutput>(
     plan.job as unknown as AiJob,
     plan.tasks as unknown as AiJobTask[],
     {
       store: jobStore,
       cacheStore,
       onProgress: input.onProgress,
+      handler: (task, job, signal) =>
+        runLocalStoryAnalysisTask(
+          task as AiJobTask<StoryAnalysisTaskInput>,
+          job,
+          {
+            storyId: input.storyId,
+            chapters: input.chapters,
+            chunks: input.chunks,
+          },
+          signal,
+        ),
     },
   );
   const skippedTasks = runnerResult.tasks.filter(
@@ -183,12 +206,22 @@ export async function runLocalStoryAnalysisJob(
   const failedTasks = runnerResult.tasks.filter(
     (task) => task.status === "failed",
   ).length;
+  const outputs = Array.from(runnerResult.outputs.values());
+  const analysisResult =
+    outputs.length > 0
+      ? aggregateLocalStoryAnalysisResult({
+          storyId: input.storyId,
+          outputs,
+        })
+      : undefined;
 
   return {
     job: runnerResult.job,
     tasks: runnerResult.tasks,
     progress: runnerResult.job.progress,
     runnerResult,
+    outputs,
+    analysisResult,
     skippedTasks,
     completedTasks,
     failedTasks,

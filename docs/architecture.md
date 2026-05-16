@@ -78,6 +78,14 @@ Animation must stay lightweight:
 
 ReactBits-style components can be adapted selectively, but copied components must be reviewed for dependencies, accessibility, bundle impact, and license/source compatibility before being added to the project.
 
+## Batch-Aware Local Mock Analysis
+
+Local story-analysis jobs now produce batch-level mock analysis outputs instead of generic echo-only task results. Each local task can create a partial `StoryAnalysisResult`, and the local orchestration layer can aggregate those partial results into one story-level analysis result.
+
+When the active AI provider is `mock`, the dashboard can use this local aggregated result after the local job completes. This removes the old limitation where mock analysis only represented the first small sample of chapters.
+
+Real provider behavior is unchanged: Gemini proxy and future providers still use the existing `runAiPipeline` contract until a real batch aggregation provider is implemented.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

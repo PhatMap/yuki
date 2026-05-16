@@ -4,10 +4,16 @@ import type {
   LocalStoryAnalysisWorkerProgressSnapshot,
   LocalStoryAnalysisWorkerRequest,
 } from "@/lib/ai/jobs/local/worker/local-story-analysis-worker-types";
+import type { StoryAnalysisResult } from "@/lib/types";
 
 export interface RunLocalStoryAnalysisWorkerJobOptions {
   signal?: AbortSignal;
   onProgress?: (snapshot: LocalStoryAnalysisWorkerProgressSnapshot) => void;
+}
+
+export interface LocalStoryAnalysisWorkerJobResult {
+  summary: LocalStoryAnalysisWorkerCompleteMessage["summary"];
+  analysisResult?: StoryAnalysisResult;
 }
 
 function createWorkerRequestId() {
@@ -25,7 +31,7 @@ export function runLocalStoryAnalysisWorkerJob(
     requestId?: string;
   },
   options: RunLocalStoryAnalysisWorkerJobOptions = {},
-): Promise<LocalStoryAnalysisWorkerCompleteMessage["summary"]> {
+): Promise<LocalStoryAnalysisWorkerJobResult> {
   if (typeof window === "undefined") {
     return Promise.reject(
       new Error("Local story analysis worker can only run in the browser."),
@@ -65,14 +71,12 @@ export function runLocalStoryAnalysisWorkerJob(
       reject(error);
     }
 
-    function settleResolve(
-      summary: LocalStoryAnalysisWorkerCompleteMessage["summary"],
-    ) {
+    function settleResolve(result: LocalStoryAnalysisWorkerJobResult) {
       if (settled) return;
 
       settled = true;
       cleanup();
-      resolve(summary);
+      resolve(result);
     }
 
     function handleAbort() {
@@ -100,7 +104,10 @@ export function runLocalStoryAnalysisWorkerJob(
       }
 
       if (message.type === "complete") {
-        settleResolve(message.summary);
+        settleResolve({
+          summary: message.summary,
+          analysisResult: message.analysisResult,
+        });
         return;
       }
 

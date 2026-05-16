@@ -153,6 +153,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     useState<AiRuntimeSettings | null>(null);
   const [lastPipelineResult, setLastPipelineResult] =
     useState<AiPipelineResult>();
+  const [localAggregatedResult, setLocalAggregatedResult] =
+    useState<StoryAnalysisResult>();
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
@@ -248,6 +250,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setIsSavingAnalysis(true);
     setStorageError("");
     setLastPipelineResult(undefined);
+    setLocalAggregatedResult(undefined);
     setJobRuntimeNote("");
     setLocalJobState(undefined);
 
@@ -285,6 +288,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           percentComplete: localJobResult.progress.percentComplete,
           message: localJobResult.progress.message,
         });
+        setLocalAggregatedResult(localJobResult.analysisResult);
       } catch (error) {
         console.error("Failed to run local story analysis job", error);
         setStorageError(
@@ -297,7 +301,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       }
     } else if (runtimeConfig.jobRuntime === "local-worker") {
       try {
-        const workerSummary = await runLocalStoryAnalysisWorkerJob(
+        const workerResult = await runLocalStoryAnalysisWorkerJob(
           {
             storyId,
             story,
@@ -312,7 +316,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           },
         );
 
-        setLocalJobState(toLocalJobState(workerSummary));
+        setLocalJobState(toLocalJobState(workerResult.summary));
+        setLocalAggregatedResult(workerResult.analysisResult);
       } catch (error) {
         console.error("Failed to run local worker story analysis job", error);
         setStorageError(
@@ -335,22 +340,31 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       chapters,
       chunks,
     });
+    const shouldUseLocalAggregatedMockResult =
+      runtimeSettings?.providerId === "mock" && localAggregatedResult;
 
-    setLastPipelineResult(pipelineResult);
+    const effectivePipelineResult: AiPipelineResult = shouldUseLocalAggregatedMockResult
+      ? {
+          ...pipelineResult,
+          analysisResult: localAggregatedResult,
+        }
+      : pipelineResult;
+
+    setLastPipelineResult(effectivePipelineResult);
 
     if (
-      pipelineResult.status !== "completed" ||
-      !pipelineResult.analysisResult
+      effectivePipelineResult.status !== "completed" ||
+      !effectivePipelineResult.analysisResult
     ) {
       setStorageError(
-        pipelineResult.errorMessage ??
-          `${pipelineResult.providerLabel} did not return an analysis result.`,
+        effectivePipelineResult.errorMessage ??
+          `${effectivePipelineResult.providerLabel} did not return an analysis result.`,
       );
       setIsSavingAnalysis(false);
       return;
     }
 
-    const result = pipelineResult.analysisResult;
+    const result = effectivePipelineResult.analysisResult;
     const now = new Date().toISOString();
     const chunkedChapterCount = new Set(chunks.map((chunk) => chunk.chapterId))
       .size;

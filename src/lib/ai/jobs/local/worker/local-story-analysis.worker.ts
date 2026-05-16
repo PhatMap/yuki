@@ -83,6 +83,7 @@ globalThis.addEventListener(
           percentComplete: result.progress.percentComplete,
           message: result.progress.message,
         }),
+        analysisResult: result.analysisResult,
       });
     } catch (error) {
       postWorkerMessage({

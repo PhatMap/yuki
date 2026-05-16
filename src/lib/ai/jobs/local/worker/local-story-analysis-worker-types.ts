@@ -1,5 +1,10 @@
 import type { AiRuntimeSettings } from "@/lib/settings/ai-runtime-settings";
-import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
+import type {
+  ChapterChunk,
+  ImportedChapter,
+  Story,
+  StoryAnalysisResult,
+} from "@/lib/types";
 
 export interface LocalStoryAnalysisWorkerProviderTarget {
   providerId: string;
@@ -41,6 +46,7 @@ export interface LocalStoryAnalysisWorkerCompleteMessage {
   type: "complete";
   requestId: string;
   summary: LocalStoryAnalysisWorkerProgressSnapshot;
+  analysisResult?: StoryAnalysisResult;
 }
 
 export interface LocalStoryAnalysisWorkerErrorMessage {
