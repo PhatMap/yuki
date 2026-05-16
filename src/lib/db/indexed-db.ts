@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
+import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
 import type {
   AnalysisStatus,
   BranchChange,
@@ -54,6 +55,8 @@ export class AiStoryDatabase extends Dexie {
   continuityIssues!: Table<BranchContinuityIssue, string>;
   rewriteDrafts!: Table<RewriteDraft, string>;
   globalPromptTemplates!: Table<GlobalPromptTemplate, string>;
+  aiJobs!: Table<AiJob, string>;
+  aiJobTasks!: Table<AiJobTask, string>;
 
   constructor() {
     super("ai-story-app-db");
@@ -125,6 +128,28 @@ export class AiStoryDatabase extends Dexie {
       rewriteDrafts:
         "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
       globalPromptTemplates: "id, category, updatedAt",
+    });
+
+    this.version(5).stores({
+      stories:
+        "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
+      storySetups: "storyId, updatedAt",
+      importedChapters: "id, storyId, chapterNumber, title, wordCount, status",
+      chapterChunks:
+        "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
+      analysisStatuses:
+        "storyId, totalChapters, parsedChapters, chunkedChapters, analyzedChapters, totalChunks, updatedAt",
+      analysisResults: "storyId, updatedAt",
+      branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
+      branchChanges:
+        "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
+      continuityIssues: "id, storyId, branchId, changeId, severity, status",
+      rewriteDrafts:
+        "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
+      globalPromptTemplates: "id, category, updatedAt",
+      aiJobs: "id, storyId, kind, status, runtimeTarget, createdAt, updatedAt",
+      aiJobTasks:
+        "id, jobId, kind, status, sequence, cacheKey, attempts, createdAt, updatedAt",
     });
   }
 }
@@ -381,6 +406,14 @@ export async function clearStoryData(storyId: string) {
       await db.branchChanges.where("storyId").equals(storyId).delete();
       await db.continuityIssues.where("storyId").equals(storyId).delete();
       await db.rewriteDrafts.where("storyId").equals(storyId).delete();
+      const jobs = await db.aiJobs.where("storyId").equals(storyId).toArray();
+      const jobIds = jobs.map((job) => job.id);
+
+      await db.aiJobs.where("storyId").equals(storyId).delete();
+
+      if (jobIds.length > 0) {
+        await db.aiJobTasks.where("jobId").anyOf(jobIds).delete();
+      }
     },
   );
 }

@@ -1,3 +1,4 @@
+import type { AiJobStore } from "@/lib/ai/jobs/adapters";
 import { calculateAiJobProgress } from "@/lib/ai/jobs/progress";
 import type { AiJob, AiJobProgress, AiJobTask } from "@/lib/ai/jobs/types";
 import { LocalJobQueue } from "@/lib/ai/jobs/local/local-job-queue";
@@ -10,6 +11,7 @@ export interface LocalJobRunnerOptions<Output = MockJobTaskResult> {
   concurrency?: number;
   signal?: AbortSignal;
   queue?: LocalJobQueue;
+  store?: AiJobStore;
   onProgress?: (progress: AiJobProgress, tasks: AiJobTask[]) => void;
   handler?: (
     task: AiJobTask,
@@ -76,6 +78,7 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
   let cancelled = false;
 
   await queue.enqueue(job, tasks);
+  await persistSnapshot(queue, job.id, options.store);
   await reportProgress(queue, job.id, options.onProgress, "Queued local job.");
 
   async function runWorker() {
@@ -84,6 +87,7 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
 
       if (!task) break;
 
+      await persistSnapshot(queue, job.id, options.store);
       await reportProgress(
         queue,
         job.id,
@@ -106,6 +110,7 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
           await queue.completeTask(task.id, output);
         }
 
+        await persistSnapshot(queue, job.id, options.store);
         await reportProgress(queue, job.id, options.onProgress);
       } catch (error) {
         if (isAbortError(error) || options.signal?.aborted) {
@@ -114,6 +119,7 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
         }
 
         await queue.failTask(task.id, getErrorMessage(error));
+        await persistSnapshot(queue, job.id, options.store);
         await reportProgress(queue, job.id, options.onProgress);
       }
     }
@@ -146,6 +152,11 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
         progress: calculateAiJobProgress(finalTasks),
       };
 
+  if (options.store) {
+    await options.store.saveJob(finalJob);
+    await options.store.saveTasks(finalTasks);
+  }
+
   options.onProgress?.(finalJob.progress, finalTasks);
 
   return {
@@ -154,6 +165,22 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
     outputs,
     cancelled,
   };
+}
+
+async function persistSnapshot(
+  queue: LocalJobQueue,
+  jobId: string,
+  store: AiJobStore | undefined,
+) {
+  if (!store) return;
+
+  const snapshot = await queue.getSnapshot(jobId);
+
+  if (snapshot.job) {
+    await store.saveJob(snapshot.job);
+  }
+
+  await store.saveTasks(snapshot.tasks);
 }
 
 async function reportProgress(
