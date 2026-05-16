@@ -109,10 +109,29 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
       });
 
       if (!response.ok) {
+        let errorMessage: string | undefined;
+
+        try {
+          const errorPayload = (await response.json()) as unknown;
+
+          if (
+            errorPayload &&
+            typeof errorPayload === "object" &&
+            "errorMessage" in errorPayload &&
+            typeof errorPayload.errorMessage === "string"
+          ) {
+            errorMessage = errorPayload.errorMessage;
+          }
+        } catch {
+          // Keep HTTP status fallback below.
+        }
+
         return createFailureResult({
           startedAt,
           context,
-          message: `Gemini proxy request failed with HTTP ${response.status}.`,
+          message:
+            errorMessage ??
+            `Gemini proxy request failed with HTTP ${response.status}.`,
         });
       }
 

@@ -214,6 +214,14 @@ This path stays local-first: no API keys and no cloud service requirements. It s
 
 Provider output must validate as a `StoryAnalysisResult` before the analysis save flow proceeds. Gemini proxy and other unwired providers remain separate runtime paths.
 
+## Gemini Proxy Core Path
+
+Gemini Proxy is the primary real-AI provider path. The browser calls `/api/ai/gemini`, and the server route reads `GEMINI_API_KEY` from server-side environment variables.
+
+The API key is never exposed to the browser. The route validates incoming request body shape, calls Gemini server-side, and validates the returned payload as `StoryAnalysisResult` before the browser save flow continues.
+
+Runtime Diagnostics can GET-check proxy route readiness and configured state for relative endpoints without running generation calls. Ollama remains a local fallback and experimentation path, not the core provider path.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

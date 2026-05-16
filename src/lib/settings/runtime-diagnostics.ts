@@ -1,5 +1,6 @@
 import { getActiveRuntimeModel } from "@/lib/settings/ai-runtime-settings";
 import { getPromptTemplates } from "@/lib/prompts/prompt-registry";
+import { runGeminiProxyRouteDiagnostics } from "@/lib/settings/gemini-proxy-runtime-diagnostics";
 import { runOllamaConnectivityDiagnostics } from "@/lib/settings/ollama-runtime-diagnostics";
 import { runRuntimeDiagnosticsWorkerSmokeTest } from "@/lib/settings/run-runtime-diagnostics-worker-smoke-test";
 import type { AiRuntimeSettings } from "@/lib/settings/ai-runtime-settings";
@@ -167,6 +168,10 @@ export async function runRuntimeDiagnostics(
 ): Promise<RuntimeDiagnosticsReport> {
   const model = getActiveRuntimeModel(settings);
   const promptTemplates = await getPromptTemplates({ persistDefaults: false });
+  const geminiProxyRouteDiagnostics =
+    settings.providerId === "gemini-proxy"
+      ? await runGeminiProxyRouteDiagnostics(settings.geminiProxyEndpoint)
+      : undefined;
   const ollamaDiagnostics =
     settings.providerId === "ollama"
       ? await runOllamaConnectivityDiagnostics({
@@ -301,7 +306,34 @@ export async function runRuntimeDiagnostics(
       }),
     );
   } else if (settings.providerId === "gemini-proxy") {
-    items.push(getGeminiProxyEndpointDiagnostic(settings.geminiProxyEndpoint));
+    const endpointDiagnostic = getGeminiProxyEndpointDiagnostic(
+      settings.geminiProxyEndpoint,
+    );
+    const trimmedEndpoint = settings.geminiProxyEndpoint.trim();
+    const isRelativeEndpoint = trimmedEndpoint.startsWith("/");
+
+    items.push(
+      endpointDiagnostic,
+      createItem({
+        id: "gemini-proxy-route",
+        label: "Gemini proxy route",
+        status: !geminiProxyRouteDiagnostics?.checked
+          ? "warning"
+          : geminiProxyRouteDiagnostics.ok &&
+              geminiProxyRouteDiagnostics.configured
+            ? "pass"
+            : geminiProxyRouteDiagnostics.ok &&
+                !geminiProxyRouteDiagnostics.configured
+              ? "warning"
+              : isRelativeEndpoint
+                ? "fail"
+                : "warning",
+        message:
+          geminiProxyRouteDiagnostics?.message ??
+          "Gemini proxy route diagnostics were not run.",
+        detail: settings.geminiProxyEndpoint,
+      }),
+    );
   } else if (settings.providerId === "ollama") {
     const ollamaReady = Boolean(
       ollamaDiagnostics?.ok && ollamaDiagnostics.modelFound,
