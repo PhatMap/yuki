@@ -1,7 +1,6 @@
-import {
-  getActiveRuntimeEndpoint,
-  getActiveRuntimeModel,
-} from "@/lib/settings/ai-runtime-settings";
+import { getActiveRuntimeModel } from "@/lib/settings/ai-runtime-settings";
+import { getPromptTemplates } from "@/lib/prompts/prompt-registry";
+import { runOllamaConnectivityDiagnostics } from "@/lib/settings/ollama-runtime-diagnostics";
 import { runRuntimeDiagnosticsWorkerSmokeTest } from "@/lib/settings/run-runtime-diagnostics-worker-smoke-test";
 import type { AiRuntimeSettings } from "@/lib/settings/ai-runtime-settings";
 
@@ -40,6 +39,68 @@ function getOverallStatus(
 
 function createItem(item: RuntimeDiagnosticItem): RuntimeDiagnosticItem {
   return item;
+}
+
+const requiredPromptTemplateIds = [
+  "story-system-identity",
+  "import-analysis",
+  "rewrite-impact-planner",
+  "rewrite-draft",
+  "new-story-from-framework",
+];
+
+function getGeminiProxyEndpointDiagnostic(endpoint: string) {
+  const trimmedEndpoint = endpoint.trim();
+
+  if (!trimmedEndpoint || trimmedEndpoint === "not configured") {
+    return createItem({
+      id: "provider",
+      label: "AI provider",
+      status: "warning",
+      message: "Gemini proxy provider needs an endpoint before real use.",
+      detail: trimmedEndpoint || "empty endpoint",
+    });
+  }
+
+  if (trimmedEndpoint.startsWith("/")) {
+    return createItem({
+      id: "provider",
+      label: "AI provider",
+      status: "pass",
+      message: "Gemini proxy provider has a relative app endpoint configured.",
+      detail: "relative app proxy endpoint",
+    });
+  }
+
+  if (
+    trimmedEndpoint.startsWith("http://") ||
+    trimmedEndpoint.startsWith("https://")
+  ) {
+    return createItem({
+      id: "provider",
+      label: "AI provider",
+      status: "pass",
+      message: "Gemini proxy provider has an absolute endpoint configured.",
+      detail: "absolute proxy endpoint",
+    });
+  }
+
+  return createItem({
+    id: "provider",
+    label: "AI provider",
+    status: "warning",
+    message:
+      "Gemini proxy endpoint is configured but should be a relative path or absolute URL.",
+    detail: trimmedEndpoint,
+  });
+}
+
+function promptLooksLikeImportAnalysis(editablePrompt: string) {
+  const normalizedPrompt = editablePrompt.toLocaleLowerCase("en-US");
+
+  return ["chapter", "chapters", "canon", "analysis"].some((term) =>
+    normalizedPrompt.includes(term),
+  );
 }
 
 interface BrowserStorageEstimateSnapshot {
@@ -104,8 +165,15 @@ async function readBrowserStorageEstimate(): Promise<BrowserStorageEstimateSnaps
 export async function runRuntimeDiagnostics(
   settings: AiRuntimeSettings,
 ): Promise<RuntimeDiagnosticsReport> {
-  const endpoint = getActiveRuntimeEndpoint(settings);
   const model = getActiveRuntimeModel(settings);
+  const promptTemplates = await getPromptTemplates({ persistDefaults: false });
+  const ollamaDiagnostics =
+    settings.providerId === "ollama"
+      ? await runOllamaConnectivityDiagnostics({
+          baseUrl: settings.ollamaBaseUrl,
+          model,
+        })
+      : undefined;
   const indexedDbAvailable = hasIndexedDb();
   const workerAvailable = hasWorker();
   const workerSmokeTest = workerAvailable
@@ -233,15 +301,36 @@ export async function runRuntimeDiagnostics(
       }),
     );
   } else if (settings.providerId === "gemini-proxy") {
+    items.push(getGeminiProxyEndpointDiagnostic(settings.geminiProxyEndpoint));
+  } else if (settings.providerId === "ollama") {
     items.push(
       createItem({
         id: "provider",
         label: "AI provider",
-        status: endpoint.trim() ? "pass" : "warning",
-        message: endpoint.trim()
-          ? "Gemini proxy provider has an endpoint configured."
-          : "Gemini proxy provider needs an endpoint before real use.",
-        detail: endpoint,
+        status: "warning",
+        message:
+          "Ollama settings are saved, but Ollama is not wired into browser analysis pipeline yet.",
+        detail: `${settings.providerId} / ${model}`,
+      }),
+      createItem({
+        id: "ollama-connectivity",
+        label: "Ollama connectivity",
+        status: ollamaDiagnostics?.ok ? "pass" : "warning",
+        message:
+          ollamaDiagnostics?.message ??
+          "Ollama connectivity diagnostics were not run.",
+        detail: ollamaDiagnostics?.baseUrl,
+      }),
+      createItem({
+        id: "ollama-selected-model",
+        label: "Ollama selected model",
+        status: ollamaDiagnostics?.modelFound ? "pass" : "warning",
+        message: ollamaDiagnostics?.modelFound
+          ? `Selected Ollama model ${model} was found locally.`
+          : `Selected Ollama model ${model} was not found locally.`,
+        detail: ollamaDiagnostics?.modelNames.length
+          ? ollamaDiagnostics.modelNames.slice(0, 8).join(", ")
+          : "No local model names returned.",
       }),
     );
   } else {
@@ -257,7 +346,49 @@ export async function runRuntimeDiagnostics(
     );
   }
 
+  const promptTemplateIds = new Set(
+    promptTemplates.map((template) => template.id),
+  );
+  const missingPromptTemplateIds = requiredPromptTemplateIds.filter(
+    (id) => !promptTemplateIds.has(id),
+  );
+  const importAnalysisPrompt = promptTemplates.find(
+    (template) => template.id === "import-analysis",
+  );
+
   items.push(
+    createItem({
+      id: "prompt-templates",
+      label: "Prompt templates",
+      status: promptTemplates.length >= 5 ? "pass" : "warning",
+      message: `${promptTemplates.length} prompt template(s) are readable.`,
+    }),
+    createItem({
+      id: "required-prompt-templates",
+      label: "Required prompt templates",
+      status: missingPromptTemplateIds.length === 0 ? "pass" : "fail",
+      message:
+        missingPromptTemplateIds.length === 0
+          ? "All required prompt templates are present."
+          : "Required prompt templates are missing.",
+      detail: missingPromptTemplateIds.length
+        ? missingPromptTemplateIds.join(", ")
+        : undefined,
+    }),
+    createItem({
+      id: "import-analysis-prompt",
+      label: "Import analysis prompt",
+      status:
+        importAnalysisPrompt?.editablePrompt.trim() &&
+        promptLooksLikeImportAnalysis(importAnalysisPrompt.editablePrompt)
+          ? "pass"
+          : "warning",
+      message:
+        importAnalysisPrompt?.editablePrompt.trim() &&
+        promptLooksLikeImportAnalysis(importAnalysisPrompt.editablePrompt)
+          ? "Import analysis prompt has analysis-oriented content."
+          : "Import analysis prompt may be empty or missing analysis keywords.",
+    }),
     createItem({
       id: "temperature",
       label: "Temperature",

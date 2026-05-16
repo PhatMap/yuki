@@ -46,6 +46,7 @@ import {
   type RuntimeDiagnosticStatus,
   type RuntimeDiagnosticsReport,
 } from "@/lib/settings/runtime-diagnostics";
+import { downloadRuntimeDiagnosticsReport } from "@/lib/settings/runtime-diagnostics-export";
 import { requestBrowserStoragePersistence } from "@/lib/settings/browser-storage-persistence";
 import {
   createAppBackupPayload,
@@ -144,6 +145,8 @@ export function GlobalSettingsClient() {
   const [runtimeDiagnostics, setRuntimeDiagnostics] =
     useState<RuntimeDiagnosticsReport>();
   const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
+  const [isExportingRuntimeDiagnostics, setIsExportingRuntimeDiagnostics] =
+    useState(false);
   const [isRequestingStoragePersistence, setIsRequestingStoragePersistence] =
     useState(false);
   const [isExportingAppBackup, setIsExportingAppBackup] = useState(false);
@@ -265,6 +268,28 @@ export function GlobalSettingsClient() {
       setMessage("Could not run runtime diagnostics.");
     } finally {
       setIsRunningDiagnostics(false);
+    }
+  }
+
+  async function handleExportRuntimeDiagnostics() {
+    setIsExportingRuntimeDiagnostics(true);
+    setMessage("");
+
+    try {
+      const report = runtimeDiagnostics ?? (await runRuntimeDiagnostics(settings));
+
+      if (!runtimeDiagnostics) {
+        setRuntimeDiagnostics(report);
+      }
+
+      const fileName = downloadRuntimeDiagnosticsReport(report);
+
+      setMessage(`Runtime diagnostics exported: ${fileName}`);
+    } catch (error) {
+      console.error("Failed to export runtime diagnostics", error);
+      setMessage("Could not export runtime diagnostics.");
+    } finally {
+      setIsExportingRuntimeDiagnostics(false);
     }
   }
 
@@ -809,6 +834,19 @@ export function GlobalSettingsClient() {
                 >
                   <TestTube className="mr-2 h-4 w-4" />
                   {isRunningDiagnostics ? "Checking runtime..." : "Run Runtime Diagnostics"}
+                </Button>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleExportRuntimeDiagnostics}
+                  disabled={isExportingRuntimeDiagnostics}
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  {isExportingRuntimeDiagnostics
+                    ? "Exporting diagnostics..."
+                    : "Export Runtime Diagnostics JSON"}
                 </Button>
 
                 <Button

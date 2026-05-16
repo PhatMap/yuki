@@ -194,6 +194,18 @@ App backup restore replaces the stored global prompt templates instead of mergin
 
 Runtime settings are normalized through the existing runtime settings save path.
 
+## Extended Runtime Diagnostics
+
+Runtime Diagnostics checks IndexedDB, storage quota and persistence, worker smoke test, selected job runtime, provider wiring, Ollama local connectivity, and prompt template health.
+
+Ollama diagnostics call the local `/api/tags` endpoint only. They do not run AI generation or wire Ollama into the analysis pipeline. Prompt template diagnostics are read-only and do not seed, reset, or mutate templates.
+
+## Runtime Diagnostics Export
+
+Runtime diagnostics reports can be exported as local JSON from Global Settings for debugging and project handoff.
+
+The export is read-only. It does not call AI generation, mutate settings, or write story data.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

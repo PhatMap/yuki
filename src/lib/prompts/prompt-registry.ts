@@ -180,11 +180,18 @@ export function getDefaultPromptTemplates() {
   return cloneTemplates(defaultPromptTemplates);
 }
 
-export async function getPromptTemplates() {
+interface GetPromptTemplatesOptions {
+  persistDefaults?: boolean;
+}
+
+export async function getPromptTemplates(
+  options: GetPromptTemplatesOptions = {},
+) {
+  const { persistDefaults = true } = options;
   const savedTemplates = await db.globalPromptTemplates.toArray();
   const templates = mergeWithDefaults(savedTemplates);
 
-  if (savedTemplates.length !== templates.length) {
+  if (persistDefaults && savedTemplates.length !== templates.length) {
     await db.globalPromptTemplates.bulkPut(templates);
   }
 
