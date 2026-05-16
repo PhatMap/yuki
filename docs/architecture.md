@@ -134,6 +134,12 @@ Global Settings includes a runtime diagnostics panel for local-first development
 
 Diagnostics are read-only. They do not call external AI APIs, mutate story data, or change runtime settings.
 
+## Runtime Worker Smoke Test
+
+Runtime Diagnostics includes a Web Worker smoke test. It spawns a small diagnostics worker, sends a ping message, waits for a pong response, and verifies whether IndexedDB is available inside the worker runtime.
+
+This catches issues that a simple `typeof Worker` check cannot detect, such as worker bundling failures or runtime-specific IndexedDB restrictions.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

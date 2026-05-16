@@ -2,6 +2,7 @@ import {
   getActiveRuntimeEndpoint,
   getActiveRuntimeModel,
 } from "@/lib/settings/ai-runtime-settings";
+import { runRuntimeDiagnosticsWorkerSmokeTest } from "@/lib/settings/run-runtime-diagnostics-worker-smoke-test";
 import type { AiRuntimeSettings } from "@/lib/settings/ai-runtime-settings";
 
 export type RuntimeDiagnosticStatus = "pass" | "warning" | "fail";
@@ -48,6 +49,9 @@ export async function runRuntimeDiagnostics(
   const model = getActiveRuntimeModel(settings);
   const indexedDbAvailable = hasIndexedDb();
   const workerAvailable = hasWorker();
+  const workerSmokeTest = workerAvailable
+    ? await runRuntimeDiagnosticsWorkerSmokeTest()
+    : undefined;
 
   const items: RuntimeDiagnosticItem[] = [
     createItem({
@@ -65,6 +69,21 @@ export async function runRuntimeDiagnostics(
       message: workerAvailable
         ? "Web Worker is available for local-worker jobs."
         : "Web Worker is unavailable. Use local-browser runtime as fallback.",
+    }),
+    createItem({
+      id: "web-worker-smoke-test",
+      label: "Worker smoke test",
+      status: !workerAvailable
+        ? "warning"
+        : workerSmokeTest?.ok && workerSmokeTest.indexedDbAvailableInWorker
+          ? "pass"
+          : settings.jobRuntime === "local-worker"
+            ? "fail"
+            : "warning",
+      message:
+        workerSmokeTest?.message ??
+        "Worker smoke test was skipped because Web Worker is unavailable.",
+      detail: workerSmokeTest?.generatedAt,
     }),
   ];
 
