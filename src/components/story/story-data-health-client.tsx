@@ -25,6 +25,7 @@ import { IndexedDbJobCacheStore } from "@/lib/ai/jobs/local/indexed-db-job-cache
 import {
   createStoryBackupPayload,
   downloadStoryBackup,
+  restoreStoryBackupPayload,
 } from "@/lib/backup/story-backup";
 import {
   readStoryBackupFile,
@@ -487,6 +488,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
   const [isClearingAiCache, setIsClearingAiCache] = useState(false);
   const [isExportingStoryBackup, setIsExportingStoryBackup] = useState(false);
   const [isValidatingStoryBackup, setIsValidatingStoryBackup] = useState(false);
+  const [isRestoringStoryBackup, setIsRestoringStoryBackup] = useState(false);
   const [backupValidationResult, setBackupValidationResult] =
     useState<StoryBackupValidationResult>();
   const [actionMessage, setActionMessage] = useState("");
@@ -617,6 +619,13 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
     }
   }
 
+  function canRestoreValidatedBackup() {
+    return (
+      backupValidationResult?.isValid === true &&
+      backupValidationResult.payload?.manifest.storyId === storyId
+    );
+  }
+
   async function handleValidateStoryBackupFile(
     event: ChangeEvent<HTMLInputElement>,
   ) {
@@ -643,6 +652,52 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
     } finally {
       setIsValidatingStoryBackup(false);
       event.target.value = "";
+    }
+  }
+
+  async function handleRestoreValidatedStoryBackup() {
+    const payload = backupValidationResult?.payload;
+
+    if (!payload) {
+      setActionMessage("No valid story backup is selected.");
+      return;
+    }
+
+    if (payload.manifest.storyId !== storyId) {
+      setActionMessage(
+        "Backup storyId does not match the current story. Restore was blocked.",
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Restore this backup into the current story? This will overwrite the current local IndexedDB data for this story.",
+    );
+
+    if (!confirmed) return;
+
+    setIsRestoringStoryBackup(true);
+    setActionMessage("");
+
+    try {
+      const summary = await restoreStoryBackupPayload(payload, storyId);
+
+      await handleRefreshInspection();
+
+      setActionMessage(
+        `Story backup restored. Chapters: ${summary.counts.chapters.toLocaleString(
+          "vi-VN",
+        )}, chunks: ${summary.counts.chunks.toLocaleString("vi-VN")}.`,
+      );
+    } catch (error) {
+      console.error("Failed to restore story backup", error);
+      setActionMessage(
+        error instanceof Error
+          ? `Failed to restore story backup: ${error.message}`
+          : "Failed to restore story backup.",
+      );
+    } finally {
+      setIsRestoringStoryBackup(false);
     }
   }
 
@@ -1096,6 +1151,29 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                             No validation issues found.
                           </p>
                         )}
+                      </div>
+                    ) : null}
+
+                    {backupValidationResult?.payload ? (
+                      <div className="rounded-xl border bg-background p-3">
+                        <Button
+                          className="w-full"
+                          type="button"
+                          variant="outline"
+                          disabled={!canRestoreValidatedBackup() || isRestoringStoryBackup}
+                          onClick={handleRestoreValidatedStoryBackup}
+                        >
+                          <Database className="mr-2 h-4 w-4" />
+                          {isRestoringStoryBackup
+                            ? "Restoring backup..."
+                            : "Restore validated backup to this story"}
+                        </Button>
+
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                          Restore is only enabled when the selected backup is valid and its storyId
+                          matches the current story. The restore overwrites local IndexedDB data for
+                          this story only.
+                        </p>
                       </div>
                     ) : null}
 

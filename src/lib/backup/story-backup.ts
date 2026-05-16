@@ -3,6 +3,7 @@ import { IndexedDbJobStore } from "@/lib/ai/jobs/local/indexed-db-job-store";
 import type { AiJobCacheEntry } from "@/lib/ai/jobs/cache-store-types";
 import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
 import {
+  db,
   getAnalysisResult,
   getAnalysisStatus,
   getBranches,
@@ -62,6 +63,12 @@ export interface StoryBackupPayload {
     aiJobTasks: AiJobTask[];
     aiJobCacheEntries: AiJobCacheEntry[];
   };
+}
+
+export interface StoryBackupRestoreSummary {
+  restoredAt: string;
+  storyId: string;
+  counts: StoryBackupManifest["counts"];
 }
 
 function sanitizeFileNamePart(value: string | undefined) {
@@ -182,4 +189,183 @@ export function downloadStoryBackup(payload: StoryBackupPayload) {
   URL.revokeObjectURL(url);
 
   return fileName;
+}
+
+export async function restoreStoryBackupPayload(
+  payload: StoryBackupPayload,
+  expectedStoryId: string,
+): Promise<StoryBackupRestoreSummary> {
+  const { data, manifest } = payload;
+  const storyId = manifest.storyId;
+
+  if (manifest.schemaVersion !== 1) {
+    throw new Error(
+      `Unsupported backup schema version: ${manifest.schemaVersion}.`,
+    );
+  }
+
+  if (storyId !== expectedStoryId) {
+    throw new Error(
+      `Backup storyId (${storyId}) does not match current storyId (${expectedStoryId}).`,
+    );
+  }
+
+  if (!data.story) {
+    throw new Error("Backup data is missing story metadata.");
+  }
+
+  if (data.story.id !== storyId) {
+    throw new Error(
+      `Backup story metadata id (${data.story.id}) does not match manifest storyId (${storyId}).`,
+    );
+  }
+  const storyRecord: Story = data.story;
+
+  await db.transaction(
+    "rw",
+    [
+      db.stories,
+      db.storySetups,
+      db.importedChapters,
+      db.chapterChunks,
+      db.analysisStatuses,
+      db.analysisResults,
+      db.branches,
+      db.branchChanges,
+      db.continuityIssues,
+      db.rewriteDrafts,
+      db.aiJobs,
+      db.aiJobTasks,
+      db.aiJobCacheEntries,
+    ],
+    async () => {
+      const existingJobs = await db.aiJobs.where("storyId").equals(storyId).toArray();
+      const existingJobIds = existingJobs.map((job) => job.id);
+
+      await db.stories.delete(storyId);
+      await db.storySetups.delete(storyId);
+      await db.importedChapters.where("storyId").equals(storyId).delete();
+      await db.chapterChunks.where("storyId").equals(storyId).delete();
+      await db.analysisStatuses.delete(storyId);
+      await db.analysisResults.delete(storyId);
+      await db.branches.where("storyId").equals(storyId).delete();
+      await db.branchChanges.where("storyId").equals(storyId).delete();
+      await db.continuityIssues.where("storyId").equals(storyId).delete();
+      await db.rewriteDrafts.where("storyId").equals(storyId).delete();
+      await db.aiJobs.where("storyId").equals(storyId).delete();
+      await db.aiJobCacheEntries.where("storyId").equals(storyId).delete();
+
+      if (existingJobIds.length > 0) {
+        await db.aiJobTasks.where("jobId").anyOf(existingJobIds).delete();
+      }
+
+      await db.stories.put({
+        ...storyRecord,
+        id: storyId,
+      });
+
+      if (data.setup) {
+        await db.storySetups.put({
+          ...data.setup,
+          storyId,
+        });
+      }
+
+      if (data.chapters.length > 0) {
+        await db.importedChapters.bulkPut(
+          data.chapters.map((chapter) => ({
+            ...chapter,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.chunks.length > 0) {
+        await db.chapterChunks.bulkPut(
+          data.chunks.map((chunk) => ({
+            ...chunk,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.analysisStatus) {
+        await db.analysisStatuses.put({
+          ...data.analysisStatus,
+          storyId,
+        });
+      }
+
+      if (data.analysisResult) {
+        await db.analysisResults.put({
+          ...data.analysisResult,
+          storyId,
+        });
+      }
+
+      if (data.branches.length > 0) {
+        await db.branches.bulkPut(
+          data.branches.map((branch) => ({
+            ...branch,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.branchChanges.length > 0) {
+        await db.branchChanges.bulkPut(
+          data.branchChanges.map((change) => ({
+            ...change,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.continuityIssues.length > 0) {
+        await db.continuityIssues.bulkPut(
+          data.continuityIssues.map((issue) => ({
+            ...issue,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.rewriteDrafts.length > 0) {
+        await db.rewriteDrafts.bulkPut(
+          data.rewriteDrafts.map((draft) => ({
+            ...draft,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.aiJobs.length > 0) {
+        await db.aiJobs.bulkPut(
+          data.aiJobs.map((job) => ({
+            ...job,
+            storyId,
+          })),
+        );
+      }
+
+      if (data.aiJobTasks.length > 0) {
+        await db.aiJobTasks.bulkPut(data.aiJobTasks);
+      }
+
+      if (data.aiJobCacheEntries.length > 0) {
+        await db.aiJobCacheEntries.bulkPut(
+          data.aiJobCacheEntries.map((entry) => ({
+            ...entry,
+            storyId,
+          })),
+        );
+      }
+    },
+  );
+
+  return {
+    restoredAt: new Date().toISOString(),
+    storyId,
+    counts: manifest.counts,
+  };
 }

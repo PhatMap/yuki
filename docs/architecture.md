@@ -164,6 +164,12 @@ Data Health can validate a story backup JSON file before any restore flow exists
 
 Validation is read-only. It does not write to IndexedDB, restore data, upload files, or call external APIs.
 
+## Guarded Story Backup Restore
+
+Data Health can restore a validated story backup into the current story only when the backup `storyId` matches the current story route.
+
+Restore is explicitly user-triggered, asks for browser confirmation, and overwrites local IndexedDB data for that one story. It does not upload files, call external APIs, or restore into a different story id.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
