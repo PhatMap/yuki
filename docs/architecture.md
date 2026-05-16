@@ -45,6 +45,14 @@ Cache keys are derived from content fingerprint + prompt fingerprint + provider/
 
 The cache is not the source of truth for stories or job state. It is reusable derived output that can be regenerated from canonical story text and prompts. Future Redis/Upstash or other cloud cache adapters can implement the same `AiJobCacheStore` interface.
 
+## Story Analysis Dashboard Integration
+
+The Story Analysis Dashboard now exercises the local job system when `NEXT_PUBLIC_JOB_RUNTIME=local-browser`. Before the existing `runAiPipeline` call, it plans and runs local story-analysis tasks through `runLocalAiJob` with IndexedDB job and cache adapters.
+
+Current local task outputs are used for progress tracking and cache hit/skip validation. The saved `StoryAnalysisResult` contract is unchanged in this step: final analysis data still comes from the existing pipeline providers (mock or Gemini proxy) and is saved through the existing IndexedDB flow.
+
+Later steps can replace the mock local task output with real per-batch analysis aggregation while keeping the same job and cache interfaces.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

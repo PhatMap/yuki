@@ -423,6 +423,9 @@ export async function clearStoryData(storyId: string) {
       db.branchChanges,
       db.continuityIssues,
       db.rewriteDrafts,
+      db.aiJobs,
+      db.aiJobTasks,
+      db.aiJobCacheEntries,
     ],
     async () => {
       await db.stories.delete(storyId);

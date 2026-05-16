@@ -32,6 +32,8 @@ import {
   saveAnalysisResult,
 } from "@/lib/db/indexed-db";
 import { runAiPipeline } from "@/lib/ai/pipeline";
+import { runLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/run-local-story-analysis-job";
+import { getPublicRuntimeConfig } from "@/lib/runtime/runtime-config";
 import type { AiPipelineResult } from "@/lib/ai/types";
 import {
   getActiveRuntimeEndpoint,
@@ -71,6 +73,17 @@ interface AnalysisDashboardData {
   analysisResult?: StoryAnalysisResult;
 }
 
+interface LocalAnalysisJobState {
+  jobId: string;
+  status: string;
+  totalTasks: number;
+  completedTasks: number;
+  skippedTasks: number;
+  failedTasks: number;
+  percentComplete: number;
+  message?: string;
+}
+
 async function readIndexedDbDashboardData(storyId: string) {
   const [story, chapters, chunks, analysisStatus, analysisResult] =
     await Promise.all([
@@ -94,6 +107,12 @@ function formatRuntimeValue(value: string) {
   return value || "not configured";
 }
 
+function shortenJobId(jobId: string) {
+  if (jobId.length <= 36) return jobId;
+
+  return `${jobId.slice(0, 18)}...${jobId.slice(-12)}`;
+}
+
 export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [dashboardData, setDashboardData] = useState<AnalysisDashboardData>({
     chapters: [],
@@ -106,6 +125,9 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState("");
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
+  const [localJobState, setLocalJobState] = useState<LocalAnalysisJobState>();
+  const [jobRuntimeNote, setJobRuntimeNote] = useState("");
+  const runtimeConfig = useMemo(() => getPublicRuntimeConfig(), []);
 
   useEffect(() => {
     let isActive = true;
@@ -195,6 +217,62 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setIsSavingAnalysis(true);
     setStorageError("");
     setLastPipelineResult(undefined);
+    setJobRuntimeNote("");
+    setLocalJobState(undefined);
+
+    if (runtimeConfig.jobRuntime === "local-browser") {
+      try {
+        const localJobResult = await runLocalStoryAnalysisJob({
+          storyId,
+          story,
+          chapters,
+          chunks,
+          runtimeSettings: runtimeSettings ?? undefined,
+          onProgress: (progress, tasks) => {
+            const jobId = tasks[0]?.jobId ?? localJobState?.jobId ?? "";
+
+            setLocalJobState({
+              jobId,
+              status: "running",
+              totalTasks: progress.totalTasks,
+              completedTasks: progress.completedTasks,
+              skippedTasks: progress.skippedTasks,
+              failedTasks: progress.failedTasks,
+              percentComplete: progress.percentComplete,
+              message: progress.message,
+            });
+          },
+        });
+
+        setLocalJobState({
+          jobId: localJobResult.job.id,
+          status: localJobResult.job.status,
+          totalTasks: localJobResult.progress.totalTasks,
+          completedTasks: localJobResult.completedTasks,
+          skippedTasks: localJobResult.skippedTasks,
+          failedTasks: localJobResult.failedTasks,
+          percentComplete: localJobResult.progress.percentComplete,
+          message: localJobResult.progress.message,
+        });
+      } catch (error) {
+        console.error("Failed to run local story analysis job", error);
+        setStorageError(
+          error instanceof Error
+            ? `Local job orchestration failed: ${error.message}`
+            : "Local job orchestration failed.",
+        );
+        setIsSavingAnalysis(false);
+        return;
+      }
+    } else if (runtimeConfig.jobRuntime === "local-worker") {
+      setJobRuntimeNote(
+        "Job runtime local-worker is not wired yet. Falling back to direct analysis pipeline.",
+      );
+    } else if (runtimeConfig.jobRuntime === "cloud-queue") {
+      setJobRuntimeNote(
+        "Job runtime cloud-queue is not wired yet. Falling back to direct analysis pipeline.",
+      );
+    }
 
     const pipelineResult = await runAiPipeline({
       storyId,
@@ -304,6 +382,30 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             />
           </div>
 
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <RuntimeTile label="Job Runtime" value={runtimeConfig.jobRuntime} />
+            <RuntimeTile
+              label="Job Status"
+              value={localJobState?.status ?? "idle"}
+            />
+            <RuntimeTile
+              label="Job ID"
+              value={
+                localJobState?.jobId
+                  ? shortenJobId(localJobState.jobId)
+                  : "not started"
+              }
+            />
+            <RuntimeTile
+              label="Job Progress"
+              value={
+                localJobState
+                  ? `${localJobState.percentComplete}% (${localJobState.completedTasks}/${localJobState.totalTasks} completed, ${localJobState.skippedTasks} skipped, ${localJobState.failedTasks} failed)`
+                  : "0%"
+              }
+            />
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
               <Link href="/settings">Open Runtime Settings</Link>
@@ -312,6 +414,16 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               <Link href="/prompt-manager">Open Prompt Manager</Link>
             </Button>
           </div>
+
+          {jobRuntimeNote ? (
+            <p className="mt-3 text-sm text-muted-foreground">{jobRuntimeNote}</p>
+          ) : null}
+
+          {localJobState?.message ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {localJobState.message}
+            </p>
+          ) : null}
 
           {lastPipelineResult?.promptContext?.missingVariables.length ? (
             <p className="mt-3 text-sm text-destructive">

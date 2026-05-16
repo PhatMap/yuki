@@ -44,6 +44,7 @@ export interface StoryAnalysisJobPlannerInput {
 export interface StoryAnalysisTaskInput {
   storyId: string;
   batchIndex: number;
+  contentHash: string;
   itemIds: string[];
   chapterIds: string[];
   chunkIds: string[];
@@ -173,6 +174,7 @@ export function planStoryAnalysisJob({
         input: {
           storyId,
           batchIndex,
+          contentHash: batchContentHash,
           itemIds: batch.map((item) => item.id),
           chapterIds,
           chunkIds,
