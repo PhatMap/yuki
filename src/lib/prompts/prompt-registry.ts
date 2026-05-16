@@ -205,6 +205,21 @@ export async function savePromptTemplates(
   );
 }
 
+export async function replacePromptTemplates(
+  templates: GlobalPromptTemplate[],
+) {
+  const now = new Date().toISOString();
+
+  await db.globalPromptTemplates.clear();
+  await db.globalPromptTemplates.bulkPut(
+    templates.map((template) => ({
+      ...template,
+      variables: [...template.variables],
+      updatedAt: now,
+    })),
+  );
+}
+
 export async function resetPromptTemplate(templateId: string) {
   const defaultTemplate = defaultPromptTemplates.find(
     (template) => template.id === templateId,

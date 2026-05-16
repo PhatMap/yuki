@@ -1,7 +1,7 @@
 import { getAllStories } from "@/lib/db/indexed-db";
 import {
   getPromptTemplates,
-  savePromptTemplates,
+  replacePromptTemplates,
 } from "@/lib/prompts/prompt-registry";
 import {
   getAiRuntimeSettings,
@@ -120,7 +120,7 @@ export async function restoreAppBackupPayload(
     id: "global",
   });
 
-  await savePromptTemplates(payload.data.promptTemplates);
+  await replacePromptTemplates(payload.data.promptTemplates);
 
   return {
     restoredAt: new Date().toISOString(),
