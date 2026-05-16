@@ -18,8 +18,8 @@ import {
 } from "@/lib/ai/jobs/local/job-store-helpers";
 
 function assertIndexedDbAvailable() {
-  if (typeof window === "undefined" || typeof indexedDB === "undefined") {
-    throw new Error("IndexedDB job store is only available in the browser.");
+  if (typeof globalThis.indexedDB === "undefined") {
+    throw new Error("IndexedDB job store is not available in this runtime.");
   }
 }
 

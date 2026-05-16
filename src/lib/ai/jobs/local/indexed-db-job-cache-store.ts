@@ -17,8 +17,8 @@ interface ParsedCacheKeyParts {
 }
 
 function assertIndexedDbAvailable() {
-  if (typeof window === "undefined" || typeof indexedDB === "undefined") {
-    throw new Error("IndexedDB cache store is only available in the browser.");
+  if (typeof globalThis.indexedDB === "undefined") {
+    throw new Error("IndexedDB cache store is not available in this runtime.");
   }
 }
 

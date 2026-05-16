@@ -53,6 +53,16 @@ Current local task outputs are used for progress tracking and cache hit/skip val
 
 Later steps can replace the mock local task output with real per-batch analysis aggregation while keeping the same job and cache interfaces.
 
+## Local Worker Runtime
+
+`NEXT_PUBLIC_JOB_RUNTIME=local-browser` runs the local job planner, runner, IndexedDB job store, and IndexedDB cache store in the main browser context.
+
+`NEXT_PUBLIC_JOB_RUNTIME=local-worker` runs the same local story-analysis orchestration through a Web Worker. This keeps heavy local planning/running work off the UI thread while still using free local-first infrastructure.
+
+Both local runtimes still preserve the current product contract: local job outputs are used for progress/cache validation, while the final saved `StoryAnalysisResult` still comes from the existing `runAiPipeline` flow.
+
+`cloud-queue` remains future work for a later Supabase/Redis/Cloudflare adapter.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

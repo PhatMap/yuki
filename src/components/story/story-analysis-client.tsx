@@ -33,6 +33,8 @@ import {
 } from "@/lib/db/indexed-db";
 import { runAiPipeline } from "@/lib/ai/pipeline";
 import { runLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/run-local-story-analysis-job";
+import { runLocalStoryAnalysisWorkerJob } from "@/lib/ai/jobs/local/worker/run-local-story-analysis-worker-job";
+import type { LocalStoryAnalysisWorkerProgressSnapshot } from "@/lib/ai/jobs/local/worker/local-story-analysis-worker-types";
 import { getPublicRuntimeConfig } from "@/lib/runtime/runtime-config";
 import type { AiPipelineResult } from "@/lib/ai/types";
 import {
@@ -111,6 +113,21 @@ function shortenJobId(jobId: string) {
   if (jobId.length <= 36) return jobId;
 
   return `${jobId.slice(0, 18)}...${jobId.slice(-12)}`;
+}
+
+function toLocalJobState(
+  snapshot: LocalStoryAnalysisWorkerProgressSnapshot,
+): LocalAnalysisJobState {
+  return {
+    jobId: snapshot.jobId,
+    status: snapshot.status,
+    totalTasks: snapshot.totalTasks,
+    completedTasks: snapshot.completedTasks,
+    skippedTasks: snapshot.skippedTasks,
+    failedTasks: snapshot.failedTasks,
+    percentComplete: snapshot.percentComplete,
+    message: snapshot.message,
+  };
 }
 
 export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
@@ -265,9 +282,33 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         return;
       }
     } else if (runtimeConfig.jobRuntime === "local-worker") {
-      setJobRuntimeNote(
-        "Job runtime local-worker is not wired yet. Falling back to direct analysis pipeline.",
-      );
+      try {
+        const workerSummary = await runLocalStoryAnalysisWorkerJob(
+          {
+            storyId,
+            story,
+            chapters,
+            chunks,
+            runtimeSettings: runtimeSettings ?? undefined,
+          },
+          {
+            onProgress: (snapshot) => {
+              setLocalJobState(toLocalJobState(snapshot));
+            },
+          },
+        );
+
+        setLocalJobState(toLocalJobState(workerSummary));
+      } catch (error) {
+        console.error("Failed to run local worker story analysis job", error);
+        setStorageError(
+          error instanceof Error
+            ? `Local worker job orchestration failed: ${error.message}`
+            : "Local worker job orchestration failed.",
+        );
+        setIsSavingAnalysis(false);
+        return;
+      }
     } else if (runtimeConfig.jobRuntime === "cloud-queue") {
       setJobRuntimeNote(
         "Job runtime cloud-queue is not wired yet. Falling back to direct analysis pipeline.",
