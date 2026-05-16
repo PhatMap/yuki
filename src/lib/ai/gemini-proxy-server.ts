@@ -5,7 +5,9 @@ import {
 import type {
   GeminiProxyAdapter,
   GeminiProxyKeyPool,
+  GeminiProxyRetryPolicy,
   GeminiProxyServerConfig,
+  GeminiProxyUpstreamError,
 } from "@/lib/ai/gemini-proxy-adapter-types";
 import type {
   GeminiProxyRequestBody,
@@ -13,12 +15,22 @@ import type {
 } from "@/lib/ai/gemini-proxy-request-types";
 import type { StoryAnalysisResult } from "@/lib/types";
 
-type GeminiProxyServerErrorKind = "config" | "upstream";
+const retryableStatuses = [408, 409, 425, 429, 500, 502, 503, 504];
+
+class GeminiProxyAttemptError extends Error {
+  upstream: GeminiProxyUpstreamError;
+
+  constructor(upstream: GeminiProxyUpstreamError) {
+    super(upstream.message);
+    this.name = "GeminiProxyAttemptError";
+    this.upstream = upstream;
+  }
+}
 
 export class GeminiProxyServerError extends Error {
-  kind: GeminiProxyServerErrorKind;
+  kind: "config" | "upstream";
 
-  constructor(kind: GeminiProxyServerErrorKind, message: string) {
+  constructor(kind: "config" | "upstream", message: string) {
     super(message);
     this.name = "GeminiProxyServerError";
     this.kind = kind;
@@ -87,6 +99,50 @@ function stableHash(value: string) {
   return hash;
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+function toAttemptError(upstream: GeminiProxyUpstreamError): GeminiProxyAttemptError {
+  return new GeminiProxyAttemptError(upstream);
+}
+
+export function createSanitizedUpstreamError(error: unknown): GeminiProxyUpstreamError {
+  if (error instanceof GeminiProxyAttemptError) {
+    return error.upstream;
+  }
+
+  if (error instanceof GeminiProxyServerError) {
+    return {
+      message: error.message,
+      retryable: false,
+      source: error.kind === "config" ? "config" : "network",
+    };
+  }
+
+  if (isAbortError(error)) {
+    return {
+      message: "Provider request timed out.",
+      retryable: true,
+      source: "network",
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      message: `Provider request failed: ${error.message}`,
+      retryable: true,
+      source: "network",
+    };
+  }
+
+  return {
+    message: "Provider request failed.",
+    retryable: true,
+    source: "network",
+  };
+}
+
 export function getGeminiProxyAdapterFromEnv(): GeminiProxyAdapter {
   const envValue = process.env.GEMINI_PROXY_ADAPTER?.trim();
 
@@ -124,9 +180,43 @@ export function selectGeminiProxyKey(keys: string[], storyId?: string) {
   return keys[index];
 }
 
+export function getGeminiProxyKeyAttemptOrder(keys: string[], storyId?: string) {
+  if (keys.length === 0) return [];
+
+  const firstKey = selectGeminiProxyKey(keys, storyId);
+  if (!firstKey) return [...keys];
+
+  return [firstKey, ...keys.filter((key) => key !== firstKey)];
+}
+
+export function getGeminiProxyMaxAttemptsFromEnv(keyCount: number) {
+  const envValue = Number(process.env.GEMINI_PROXY_MAX_ATTEMPTS);
+  const defaultValue =
+    keyCount <= 1 ? 1 : Math.min(Math.max(keyCount, 1), 3);
+
+  if (!Number.isFinite(envValue)) return defaultValue;
+
+  return clamp(Math.round(envValue), 1, 10);
+}
+
+export function isRetryableStatus(status: number): boolean {
+  return retryableStatuses.includes(status);
+}
+
+export function getGeminiProxyRetryPolicy(
+  keyCount: number,
+): GeminiProxyRetryPolicy {
+  return {
+    maxAttempts: getGeminiProxyMaxAttemptsFromEnv(keyCount),
+    retryableStatuses,
+    keyFailoverEnabled: keyCount > 1,
+  };
+}
+
 export function getGeminiProxyServerConfig(): GeminiProxyServerConfig {
   const adapter = getGeminiProxyAdapterFromEnv();
   const keyPool = readServerKeyPoolFromEnv(adapter);
+  const retryPolicy = getGeminiProxyRetryPolicy(keyPool.keyCount);
 
   if (adapter === "google-generative-language") {
     return {
@@ -134,6 +224,7 @@ export function getGeminiProxyServerConfig(): GeminiProxyServerConfig {
       configured: keyPool.keyCount > 0,
       keyCount: keyPool.keyCount,
       modelSource: "static",
+      retryPolicy,
       message:
         keyPool.keyCount > 0
           ? "Google Gemini adapter is configured."
@@ -151,6 +242,7 @@ export function getGeminiProxyServerConfig(): GeminiProxyServerConfig {
     keyCount: keyPool.keyCount,
     baseUrl,
     modelSource: configured ? "remote" : "unavailable",
+    retryPolicy,
     message: configured
       ? "OpenAI-compatible Gemini proxy adapter is configured."
       : !baseUrlConfigured
@@ -265,10 +357,7 @@ function parseModelNamesFromModelsPayload(payload: unknown): string[] {
   candidates.forEach((entry) => {
     if (!isObject(entry)) return;
 
-    const modelId = entry.id;
-    const modelName = entry.name;
-    const modelModel = entry.model;
-    const values = [modelId, modelName, modelModel];
+    const values = [entry.id, entry.name, entry.model];
 
     values.forEach((value) => {
       if (typeof value !== "string") return;
@@ -287,28 +376,28 @@ export function extractGeminiProxyModelNames(payload: unknown): string[] {
   return parseModelNamesFromModelsPayload(payload);
 }
 
-function toServerError(
-  kind: GeminiProxyServerErrorKind,
-  message: string,
-): GeminiProxyServerError {
-  return new GeminiProxyServerError(kind, message);
+function configError(message: string) {
+  return new GeminiProxyServerError("config", message);
 }
 
-function isServerError(error: unknown): error is GeminiProxyServerError {
-  return error instanceof GeminiProxyServerError;
+function upstreamError(error: GeminiProxyUpstreamError) {
+  return toAttemptError(error);
 }
 
-async function runGoogleGenerativeLanguageCall({
-  model,
-  finalPrompt,
-  generationConfig,
+export function isGeminiProxyConfigError(error: unknown) {
+  return error instanceof GeminiProxyServerError && error.kind === "config";
+}
+
+export async function callGoogleGeminiGenerateContentOnce({
   apiKey,
+  body,
 }: {
-  model: string;
-  finalPrompt: string;
-  generationConfig: ReturnType<typeof normalizeGenerationConfig>;
   apiKey: string;
-}) {
+  body: GeminiProxyRequestBody;
+}): Promise<StoryAnalysisResult> {
+  const model = normalizeGeminiModel(body.model);
+  const generationConfig = normalizeGenerationConfig(body.runtime);
+  const finalPrompt = buildGeminiStoryAnalysisPrompt(body);
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model,
   )}:generateContent`;
@@ -336,32 +425,28 @@ async function runGoogleGenerativeLanguageCall({
       }),
     });
   } catch (error) {
-    throw toServerError(
-      "upstream",
-      error instanceof Error
-        ? `Gemini request failed: ${error.message}`
-        : "Gemini request failed.",
-    );
+    throw upstreamError(createSanitizedUpstreamError(error));
   }
 
   if (!response.ok) {
-    throw toServerError(
-      "upstream",
-      `Gemini request failed with HTTP ${response.status}.`,
-    );
+    throw upstreamError({
+      message: `Gemini request failed with HTTP ${response.status}.`,
+      status: response.status,
+      retryable: isRetryableStatus(response.status),
+      source: "http",
+    });
   }
 
   let payload: unknown;
 
   try {
     payload = (await response.json()) as unknown;
-  } catch (error) {
-    throw toServerError(
-      "upstream",
-      error instanceof Error
-        ? `Gemini response JSON parse failed: ${error.message}`
-        : "Gemini response JSON parse failed.",
-    );
+  } catch {
+    throw upstreamError({
+      message: "Gemini response JSON parse failed.",
+      retryable: true,
+      source: "parse",
+    });
   }
 
   let analysisResult = extractAnalysisResult(payload);
@@ -372,36 +457,33 @@ async function runGoogleGenerativeLanguageCall({
   }
 
   if (!analysisResult) {
-    throw toServerError(
-      "upstream",
-      "Gemini response did not include a valid StoryAnalysisResult.",
-    );
+    throw upstreamError({
+      message: "Provider response did not include a valid StoryAnalysisResult.",
+      retryable: true,
+      source: "validation",
+    });
   }
 
   return analysisResult;
 }
 
-async function runOpenAiCompatibleCall({
-  model,
-  finalPrompt,
-  generationConfig,
+export async function callOpenAiCompatibleGenerateContentOnce({
   apiKey,
   baseUrl,
+  body,
 }: {
-  model: string;
-  finalPrompt: string;
-  generationConfig: ReturnType<typeof normalizeGenerationConfig>;
   apiKey: string;
   baseUrl: string;
-}) {
+  body: GeminiProxyRequestBody;
+}): Promise<StoryAnalysisResult> {
   const endpoint = createOpenAiCompatibleChatEndpoint(baseUrl);
   if (!endpoint) {
-    throw toServerError(
-      "config",
-      "GEMINI_PROXY_BASE_URL is not configured on the server.",
-    );
+    throw configError("GEMINI_PROXY_BASE_URL is not configured on the server.");
   }
 
+  const model = normalizeGeminiModel(body.model);
+  const generationConfig = normalizeGenerationConfig(body.runtime);
+  const finalPrompt = buildGeminiStoryAnalysisPrompt(body);
   let response: Response;
 
   try {
@@ -429,32 +511,28 @@ async function runOpenAiCompatibleCall({
       }),
     });
   } catch (error) {
-    throw toServerError(
-      "upstream",
-      error instanceof Error
-        ? `Gemini proxy upstream request failed: ${error.message}`
-        : "Gemini proxy upstream request failed.",
-    );
+    throw upstreamError(createSanitizedUpstreamError(error));
   }
 
   if (!response.ok) {
-    throw toServerError(
-      "upstream",
-      `Gemini proxy upstream request failed with HTTP ${response.status}.`,
-    );
+    throw upstreamError({
+      message: `Gemini proxy upstream request failed with HTTP ${response.status}.`,
+      status: response.status,
+      retryable: isRetryableStatus(response.status),
+      source: "http",
+    });
   }
 
   let payload: unknown;
 
   try {
     payload = (await response.json()) as unknown;
-  } catch (error) {
-    throw toServerError(
-      "upstream",
-      error instanceof Error
-        ? `Gemini proxy upstream JSON parse failed: ${error.message}`
-        : "Gemini proxy upstream JSON parse failed.",
-    );
+  } catch {
+    throw upstreamError({
+      message: "Gemini proxy upstream JSON parse failed.",
+      retryable: true,
+      source: "parse",
+    });
   }
 
   let analysisResult = extractAnalysisResult(payload);
@@ -465,17 +543,14 @@ async function runOpenAiCompatibleCall({
   }
 
   if (!analysisResult) {
-    throw toServerError(
-      "upstream",
-      "Gemini response did not include a valid StoryAnalysisResult.",
-    );
+    throw upstreamError({
+      message: "Provider response did not include a valid StoryAnalysisResult.",
+      retryable: true,
+      source: "validation",
+    });
   }
 
   return analysisResult;
-}
-
-export function isGeminiProxyConfigError(error: unknown) {
-  return isServerError(error) && error.kind === "config";
 }
 
 export async function callGeminiGenerateContent({
@@ -484,45 +559,68 @@ export async function callGeminiGenerateContent({
   body: GeminiProxyRequestBody;
 }): Promise<StoryAnalysisResult> {
   const config = getGeminiProxyServerConfig();
+  if (!config.configured) {
+    throw configError(config.message);
+  }
+
   const keyPool = readServerKeyPoolFromEnv(config.adapter);
-  const selectedKey = selectGeminiProxyKey(keyPool.keys, body.input.storyId);
+  const keyAttemptOrder = getGeminiProxyKeyAttemptOrder(
+    keyPool.keys,
+    body.input.storyId,
+  );
 
-  if (!config.configured || !selectedKey) {
-    throw toServerError("config", config.message);
+  if (keyAttemptOrder.length === 0) {
+    throw configError("No server-side Gemini proxy key is configured.");
   }
 
-  const model = normalizeGeminiModel(body.model);
-  const generationConfig = normalizeGenerationConfig(body.runtime);
-  const finalPrompt = buildGeminiStoryAnalysisPrompt(body);
+  const maxAttempts = Math.min(config.retryPolicy.maxAttempts, keyAttemptOrder.length);
+  let lastError: GeminiProxyUpstreamError | undefined;
 
-  if (config.adapter === "google-generative-language") {
-    return runGoogleGenerativeLanguageCall({
-      model,
-      finalPrompt,
-      generationConfig,
-      apiKey: selectedKey,
-    });
-  }
+  for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex += 1) {
+    const apiKey = keyAttemptOrder[attemptIndex];
 
-  if (config.adapter === "openai-compatible") {
-    const baseUrl = config.baseUrl;
-    if (!baseUrl) {
-      throw toServerError(
-        "config",
-        "GEMINI_PROXY_BASE_URL is not configured on the server.",
-      );
+    try {
+      if (config.adapter === "google-generative-language") {
+        return await callGoogleGeminiGenerateContentOnce({
+          apiKey,
+          body,
+        });
+      }
+
+      if (config.adapter === "openai-compatible") {
+        if (!config.baseUrl) {
+          throw configError("GEMINI_PROXY_BASE_URL is not configured on the server.");
+        }
+
+        return await callOpenAiCompatibleGenerateContentOnce({
+          apiKey,
+          baseUrl: config.baseUrl,
+          body,
+        });
+      }
+
+      throw configError("Unsupported Gemini proxy adapter.");
+    } catch (error) {
+      if (isGeminiProxyConfigError(error)) {
+        throw error;
+      }
+
+      const upstream = createSanitizedUpstreamError(error);
+      lastError = upstream;
+      const hasMoreAttempts = attemptIndex < maxAttempts - 1;
+
+      if (!upstream.retryable || !hasMoreAttempts) {
+        break;
+      }
     }
-
-    return runOpenAiCompatibleCall({
-      model,
-      finalPrompt,
-      generationConfig,
-      apiKey: selectedKey,
-      baseUrl,
-    });
   }
 
-  throw toServerError("config", "Unsupported Gemini proxy adapter.");
+  const lastMessage = lastError?.message ?? "Provider request failed.";
+
+  throw new GeminiProxyServerError(
+    "upstream",
+    `Gemini proxy failed after ${maxAttempts} attempt(s): ${lastMessage}`,
+  );
 }
 
 export function validateGeminiProxyRequestBody(

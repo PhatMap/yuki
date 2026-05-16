@@ -7,6 +7,11 @@ export interface GeminiProxyRouteDiagnosticsResult {
   keyCount?: number;
   baseUrlConfigured?: boolean;
   modelSource?: string;
+  retryPolicy?: {
+    maxAttempts: number;
+    retryableStatuses: number[];
+    keyFailoverEnabled: boolean;
+  };
   message: string;
 }
 
@@ -125,6 +130,20 @@ export async function runGeminiProxyRouteDiagnostics(
       modelSource:
         typeof payload.modelSource === "string"
           ? payload.modelSource
+          : undefined,
+      retryPolicy:
+        isObject(payload.retryPolicy) &&
+        typeof payload.retryPolicy.maxAttempts === "number" &&
+        Array.isArray(payload.retryPolicy.retryableStatuses) &&
+        typeof payload.retryPolicy.keyFailoverEnabled === "boolean"
+          ? {
+              maxAttempts: payload.retryPolicy.maxAttempts,
+              retryableStatuses: payload.retryPolicy.retryableStatuses.filter(
+                (value): value is number =>
+                  typeof value === "number" && Number.isFinite(value),
+              ),
+              keyFailoverEnabled: payload.retryPolicy.keyFailoverEnabled,
+            }
           : undefined,
       message:
         typeof payload.message === "string"

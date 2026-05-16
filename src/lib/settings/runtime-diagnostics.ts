@@ -369,7 +369,28 @@ export async function runRuntimeDiagnostics(
           `baseUrlConfigured=${String(
             geminiProxyRouteDiagnostics?.baseUrlConfigured ?? false,
           )}`,
+          `maxAttempts=${String(
+            geminiProxyRouteDiagnostics?.retryPolicy?.maxAttempts ?? 0,
+          )}`,
         ].join(" | "),
+      }),
+      createItem({
+        id: "gemini-proxy-retry-policy",
+        label: "Gemini proxy retry policy",
+        status:
+          geminiProxyRouteDiagnostics?.retryPolicy?.keyFailoverEnabled &&
+          (geminiProxyRouteDiagnostics?.retryPolicy?.maxAttempts ?? 0) >= 2
+            ? "pass"
+            : "warning",
+        message:
+          geminiProxyRouteDiagnostics?.retryPolicy?.keyFailoverEnabled &&
+          (geminiProxyRouteDiagnostics?.retryPolicy?.maxAttempts ?? 0) >= 2
+            ? `Key failover is enabled with up to ${geminiProxyRouteDiagnostics.retryPolicy.maxAttempts} attempt(s).`
+            : "Only one attempt is configured. Large jobs may fail faster under rate limits.",
+        detail: geminiProxyRouteDiagnostics?.retryPolicy?.retryableStatuses
+          ?.length
+          ? geminiProxyRouteDiagnostics.retryPolicy.retryableStatuses.join(", ")
+          : undefined,
       }),
       createItem({
         id: "gemini-proxy-key-pool",

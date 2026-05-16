@@ -35,6 +35,7 @@ export async function GET() {
       keyCount: config.keyCount,
       baseUrlConfigured: Boolean(config.baseUrl),
       modelSource: config.modelSource,
+      retryPolicy: config.retryPolicy,
       message: config.message,
     },
     { status: 200 },

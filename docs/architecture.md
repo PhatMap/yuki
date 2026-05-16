@@ -246,6 +246,16 @@ Key pools are resolved only on the server. Runtime diagnostics and readiness end
 
 This preserves the older Gemini Proxy setup concept (profile + model picker + endpoint test + multi-key support) while keeping secrets out of browser storage.
 
+## Gemini Proxy Key-Pool Failover
+
+Large analysis jobs can hit per-key rate limits, quota limits, or temporary upstream instability. Gemini Proxy now applies per-request retry/failover across the server-side key pool when failures are retryable.
+
+Retryable categories include network timeouts and retryable HTTP statuses such as `429` and `5xx` responses. Non-retryable configuration and request validation failures stop immediately.
+
+Raw key values are never exposed to the browser. Runtime diagnostics expose only key count and retry policy metadata.
+
+This is failover at request level, not a full queue or global rate limiter.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
