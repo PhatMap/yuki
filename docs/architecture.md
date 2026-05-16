@@ -92,6 +92,12 @@ The Story Analysis Dashboard keeps the local aggregated mock result in component
 
 This avoids relying on React state updates synchronously inside the same async analysis run.
 
+## Local Import Worker
+
+Large story import processing runs through a local Web Worker. Chapter detection, chunking, and initial analysis status creation are kept off the main UI thread so 3000+ chapter imports do not block the page as heavily.
+
+The worker does not save data directly. It returns chapters, chunks, and initial analysis status to the import page, and the page keeps the existing IndexedDB save flow.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
