@@ -22,6 +22,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IndexedDbJobStore } from "@/lib/ai/jobs/local/indexed-db-job-store";
 import { IndexedDbJobCacheStore } from "@/lib/ai/jobs/local/indexed-db-job-cache-store";
+import {
+  createStoryBackupPayload,
+  downloadStoryBackup,
+} from "@/lib/backup/story-backup";
 import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
 import type { AiJobCacheEntry } from "@/lib/ai/jobs/cache-store-types";
 import {
@@ -477,6 +481,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isMigratingLegacyData, setIsMigratingLegacyData] = useState(false);
   const [isClearingAiCache, setIsClearingAiCache] = useState(false);
+  const [isExportingStoryBackup, setIsExportingStoryBackup] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
 
   async function handleRefreshInspection() {
@@ -585,6 +590,23 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       setActionMessage("Failed to clear AI job cache entries.");
     } finally {
       setIsClearingAiCache(false);
+    }
+  }
+
+  async function handleExportStoryBackup() {
+    setIsExportingStoryBackup(true);
+    setActionMessage("");
+
+    try {
+      const payload = await createStoryBackupPayload(storyId);
+      const fileName = downloadStoryBackup(payload);
+
+      setActionMessage(`Story backup exported: ${fileName}`);
+    } catch (error) {
+      console.error("Failed to export story backup", error);
+      setActionMessage("Failed to export story backup.");
+    } finally {
+      setIsExportingStoryBackup(false);
     }
   }
 
@@ -943,6 +965,22 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                         {legacyFallbackKeys.settings(storyId)}
                       </span>
                       . No delete-all control is provided here.
+                    </p>
+
+                    <Button
+                      className="w-full"
+                      type="button"
+                      variant="outline"
+                      disabled={isExportingStoryBackup}
+                      onClick={handleExportStoryBackup}
+                    >
+                      <Database className="mr-2 h-4 w-4" />
+                      {isExportingStoryBackup ? "Exporting backup..." : "Export story backup JSON"}
+                    </Button>
+                    <p className="app-muted-text">
+                      Exports this story, imported chapters, chunks, saved analysis, branches,
+                      rewrite drafts, AI jobs, job tasks, and AI cache entries into one local JSON
+                      backup file.
                     </p>
 
                     <Button

@@ -152,6 +152,12 @@ Global Settings includes an explicit user action to request persistent browser s
 
 The request is not automatic. It only runs after the user clicks the action, and the browser may still deny it. This improves safety for large local-first IndexedDB workflows but does not replace export/backup features.
 
+## Story Backup Export
+
+Data Health includes a per-story JSON backup export. The backup file includes story metadata, setup data, imported chapters, chunks, saved analysis, branches, branch changes, continuity issues, rewrite drafts, AI jobs, AI job tasks, and AI cache entries.
+
+This is a local download only. It does not upload data, call external APIs, or replace future full import/restore tooling.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
