@@ -303,13 +303,17 @@ export async function runRuntimeDiagnostics(
   } else if (settings.providerId === "gemini-proxy") {
     items.push(getGeminiProxyEndpointDiagnostic(settings.geminiProxyEndpoint));
   } else if (settings.providerId === "ollama") {
+    const ollamaReady = Boolean(
+      ollamaDiagnostics?.ok && ollamaDiagnostics.modelFound,
+    );
+
     items.push(
       createItem({
         id: "provider",
         label: "AI provider",
-        status: "warning",
+        status: ollamaReady ? "pass" : "warning",
         message:
-          "Ollama settings are saved, but Ollama is not wired into browser analysis pipeline yet.",
+          "Ollama is wired into the browser analysis pipeline. It still requires a reachable local Ollama server and browser CORS access.",
         detail: `${settings.providerId} / ${model}`,
       }),
       createItem({
@@ -319,7 +323,9 @@ export async function runRuntimeDiagnostics(
         message:
           ollamaDiagnostics?.message ??
           "Ollama connectivity diagnostics were not run.",
-        detail: ollamaDiagnostics?.baseUrl,
+        detail: ollamaDiagnostics?.ok
+          ? `${ollamaDiagnostics.baseUrl} (browser calls may still fail if CORS is blocked)`
+          : ollamaDiagnostics?.baseUrl,
       }),
       createItem({
         id: "ollama-selected-model",

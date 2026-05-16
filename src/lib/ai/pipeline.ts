@@ -1,5 +1,6 @@
 import { geminiProxyAiPipelineProvider } from "@/lib/ai/gemini-proxy-pipeline";
 import { mockAiPipelineProvider } from "@/lib/ai/mock-pipeline";
+import { ollamaAiPipelineProvider } from "@/lib/ai/ollama-pipeline";
 import type {
   AiPipelineExecutionContext,
   AiPipelineInput,
@@ -21,6 +22,7 @@ import {
 const providers = {
   "gemini-proxy": geminiProxyAiPipelineProvider,
   mock: mockAiPipelineProvider,
+  ollama: ollamaAiPipelineProvider,
 } satisfies Record<string, AiPipelineProvider>;
 
 export type AiPipelineProviderId = keyof typeof providers;
@@ -80,6 +82,7 @@ function mapRuntimeProviderToPipelineProviderId(
 ): AiPipelineProviderId | undefined {
   if (providerId === "mock") return "mock";
   if (providerId === "gemini-proxy") return "gemini-proxy";
+  if (providerId === "ollama") return "ollama";
 
   return undefined;
 }

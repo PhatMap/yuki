@@ -198,13 +198,21 @@ Runtime settings are normalized through the existing runtime settings save path.
 
 Runtime Diagnostics checks IndexedDB, storage quota and persistence, worker smoke test, selected job runtime, provider wiring, Ollama local connectivity, and prompt template health.
 
-Ollama diagnostics call the local `/api/tags` endpoint only. They do not run AI generation or wire Ollama into the analysis pipeline. Prompt template diagnostics are read-only and do not seed, reset, or mutate templates.
+Ollama diagnostics call the local `/api/tags` endpoint only. They do not run AI generation during diagnostics. Prompt template diagnostics are read-only and do not seed, reset, or mutate templates.
 
 ## Runtime Diagnostics Export
 
 Runtime diagnostics reports can be exported as local JSON from Global Settings for debugging and project handoff.
 
 The export is read-only. It does not call AI generation, mutate settings, or write story data.
+
+## Ollama Local Analysis Provider
+
+Ollama can now be selected as a real local analysis provider in the browser pipeline. It calls local `/api/generate` using the configured Ollama endpoint and model from Global Settings.
+
+This path stays local-first: no API keys and no cloud service requirements. It still depends on a reachable local Ollama server, the selected model being installed, and browser CORS compatibility for direct browser fetch.
+
+Provider output must validate as a `StoryAnalysisResult` before the analysis save flow proceeds. Gemini proxy and other unwired providers remain separate runtime paths.
 
 ## Adapter Direction
 
