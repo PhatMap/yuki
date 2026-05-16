@@ -170,6 +170,12 @@ Data Health can restore a validated story backup into the current story only whe
 
 Restore is explicitly user-triggered, asks for browser confirmation, and overwrites local IndexedDB data for that one story. It does not upload files, call external APIs, or restore into a different story id.
 
+## App-Level Backup Export
+
+Global Settings includes an app-level JSON backup export for global runtime settings, prompt templates, and the story index.
+
+This backup is separate from per-story backups. It does not include full chapter/chunk text or story analysis payloads; those remain covered by Data Health per-story backup files.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

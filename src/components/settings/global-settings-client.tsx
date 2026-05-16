@@ -47,6 +47,10 @@ import {
   type RuntimeDiagnosticsReport,
 } from "@/lib/settings/runtime-diagnostics";
 import { requestBrowserStoragePersistence } from "@/lib/settings/browser-storage-persistence";
+import {
+  createAppBackupPayload,
+  downloadAppBackup,
+} from "@/lib/backup/app-backup";
 
 const geminiProxyModelOptions = [
   "gemini-2.5-flash",
@@ -137,6 +141,7 @@ export function GlobalSettingsClient() {
   const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
   const [isRequestingStoragePersistence, setIsRequestingStoragePersistence] =
     useState(false);
+  const [isExportingAppBackup, setIsExportingAppBackup] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -270,6 +275,23 @@ export function GlobalSettingsClient() {
       setMessage("Could not request persistent browser storage.");
     } finally {
       setIsRequestingStoragePersistence(false);
+    }
+  }
+
+  async function handleExportAppBackup() {
+    setIsExportingAppBackup(true);
+    setMessage("");
+
+    try {
+      const payload = await createAppBackupPayload();
+      const fileName = downloadAppBackup(payload);
+
+      setMessage(`App backup exported: ${fileName}`);
+    } catch (error) {
+      console.error("Failed to export app backup", error);
+      setMessage("Could not export app backup.");
+    } finally {
+      setIsExportingAppBackup(false);
     }
   }
 
@@ -722,6 +744,22 @@ export function GlobalSettingsClient() {
                   Requests browser-level persistent storage for this origin. This can reduce
                   the risk of browser eviction for large local IndexedDB data, but the browser
                   may still deny the request.
+                </p>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleExportAppBackup}
+                  disabled={isExportingAppBackup}
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  {isExportingAppBackup ? "Exporting app backup..." : "Export App Backup JSON"}
+                </Button>
+                <p className="app-muted-text">
+                  Exports global runtime settings, prompt templates, and the story index into
+                  one local JSON file. Full story content backup is still handled per story in
+                  Data Health.
                 </p>
 
                 <Button
