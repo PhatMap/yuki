@@ -39,12 +39,15 @@ class AiRuntimeSettingsDatabase extends Dexie {
 
 const db = new AiRuntimeSettingsDatabase();
 
+export const GEMINI_CORE_DEFAULT_MODEL = "gemini-2.5-flash";
+export const GEMINI_CORE_DEFAULT_ENDPOINT = "/api/ai/gemini";
+
 export const defaultAiRuntimeSettings: AiRuntimeSettings = {
   id: "global",
   providerId: "mock",
   jobRuntime: "local-worker",
-  defaultModel: "mock-local",
-  geminiProxyEndpoint: "/api/ai/gemini",
+  defaultModel: GEMINI_CORE_DEFAULT_MODEL,
+  geminiProxyEndpoint: GEMINI_CORE_DEFAULT_ENDPOINT,
   customOpenAiBaseUrl: "",
   customOpenAiModel: "",
   geminiDirectBaseUrl: "https://generativelanguage.googleapis.com",
@@ -65,32 +68,33 @@ export const aiRuntimeProviderOptions: {
   {
     id: "mock",
     title: "Mock Local",
-    description: "Không gọi API. Dùng để test flow và build UI an toàn.",
+    description: "No real API call. Safe mode for local UI/testing flows.",
     status: "ready",
   },
   {
     id: "gemini-proxy",
     title: "Gemini Proxy",
-    description: "Provider chính dự kiến cho deploy. Gọi qua endpoint proxy.",
-    status: "draft",
+    description:
+      "Recommended core real-AI provider via server proxy endpoint.",
+    status: "ready",
   },
   {
     id: "custom-openai",
     title: "Custom OpenAI-compatible",
-    description: "Dành cho one-api, NewAPI hoặc proxy clone.",
+    description: "For one-api, NewAPI, or OpenAI-compatible proxy.",
     status: "draft",
   },
   {
     id: "gemini-direct",
     title: "Gemini Direct",
     description:
-      "Dành cho Google AI Studio. Không nên lưu key raw trong app public.",
+      "For Google AI Studio. Do not store raw keys in a public app.",
     status: "draft",
   },
   {
     id: "ollama",
     title: "Ollama Local",
-    description: "Dành cho local AI trên máy cá nhân.",
+    description: "Local fallback / offline experiment provider.",
     status: "local",
   },
 ];
@@ -118,6 +122,21 @@ export function normalizeJobRuntime(
     : defaultAiRuntimeSettings.jobRuntime;
 }
 
+export function normalizeGeminiProxyModel(value: string | undefined): string {
+  const normalized = value?.trim() ?? "";
+
+  if (
+    !normalized ||
+    normalized === "mock-local" ||
+    normalized === "custom-model-not-set" ||
+    normalized === "gemini-proxy-default"
+  ) {
+    return GEMINI_CORE_DEFAULT_MODEL;
+  }
+
+  return normalized;
+}
+
 function normalizeAiRuntimeSettings(
   settings?: Partial<AiRuntimeSettings>,
 ): AiRuntimeSettings {
@@ -127,6 +146,9 @@ function normalizeAiRuntimeSettings(
     id: "global",
     providerId: settings?.providerId ?? defaultAiRuntimeSettings.providerId,
     jobRuntime: normalizeJobRuntime(settings?.jobRuntime),
+    defaultModel: normalizeGeminiProxyModel(settings?.defaultModel),
+    geminiProxyEndpoint:
+      settings?.geminiProxyEndpoint?.trim() || GEMINI_CORE_DEFAULT_ENDPOINT,
     temperature: normalizeTemperature(
       Number(settings?.temperature ?? defaultAiRuntimeSettings.temperature),
     ),
@@ -181,7 +203,7 @@ export function normalizeMaxOutputTokens(value: number) {
 
 export function getActiveRuntimeModel(settings: AiRuntimeSettings) {
   if (settings.providerId === "gemini-proxy") {
-    return settings.defaultModel || "gemini-proxy-default";
+    return normalizeGeminiProxyModel(settings.defaultModel);
   }
 
   if (settings.providerId === "custom-openai") {
@@ -201,7 +223,7 @@ export function getActiveRuntimeModel(settings: AiRuntimeSettings) {
 
 export function getActiveRuntimeEndpoint(settings: AiRuntimeSettings) {
   if (settings.providerId === "gemini-proxy") {
-    return settings.geminiProxyEndpoint || "/api/ai/gemini";
+    return settings.geminiProxyEndpoint || GEMINI_CORE_DEFAULT_ENDPOINT;
   }
 
   if (settings.providerId === "custom-openai") {
@@ -220,4 +242,20 @@ export function getActiveRuntimeEndpoint(settings: AiRuntimeSettings) {
   }
 
   return "local mock runtime";
+}
+
+export function createGeminiCoreRuntimeSettings(
+  current: AiRuntimeSettings,
+): AiRuntimeSettings {
+  return {
+    ...current,
+    providerId: "gemini-proxy",
+    jobRuntime: "local-worker",
+    defaultModel: normalizeGeminiProxyModel(current.defaultModel),
+    geminiProxyEndpoint:
+      current.geminiProxyEndpoint?.trim() || GEMINI_CORE_DEFAULT_ENDPOINT,
+    temperature: normalizeTemperature(current.temperature),
+    maxOutputTokens: normalizeMaxOutputTokens(current.maxOutputTokens),
+    updatedAt: new Date().toISOString(),
+  };
 }

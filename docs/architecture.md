@@ -222,6 +222,14 @@ The API key is never exposed to the browser. The route validates incoming reques
 
 Runtime Diagnostics can GET-check proxy route readiness and configured state for relative endpoints without running generation calls. Ollama remains a local fallback and experimentation path, not the core provider path.
 
+## Gemini Core Runtime Profile
+
+Mock remains the safe default for first launch. Gemini Proxy is the recommended real-AI core profile for daily analysis runs.
+
+Global Settings includes a one-click Gemini Core profile action that applies provider `gemini-proxy`, endpoint `/api/ai/gemini`, model `gemini-2.5-flash`, and job runtime `local-worker` locally in the settings form.
+
+The profile is not auto-saved; users still confirm with Save Settings. Server-side `/api/ai/gemini` requires `GEMINI_API_KEY` in server environment variables, and the browser never receives that key. Ollama remains a fallback/experiment path.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

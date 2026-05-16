@@ -29,7 +29,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   aiRuntimeProviderOptions,
+  createGeminiCoreRuntimeSettings,
   defaultAiRuntimeSettings,
+  GEMINI_CORE_DEFAULT_ENDPOINT,
+  GEMINI_CORE_DEFAULT_MODEL,
   getActiveRuntimeEndpoint,
   getActiveRuntimeModel,
   getAiRuntimeProviderLabel,
@@ -135,6 +138,17 @@ function getRuntimeDiagnosticBadgeVariant(status: RuntimeDiagnosticStatus) {
   return "outline";
 }
 
+function isInvalidGeminiProxyModel(model: string) {
+  const normalized = model.trim();
+
+  return (
+    !normalized ||
+    normalized === "mock-local" ||
+    normalized === "custom-model-not-set" ||
+    normalized === "gemini-proxy-default"
+  );
+}
+
 export function GlobalSettingsClient() {
   const [settings, setSettings] = useState<AiRuntimeSettings>(
     defaultAiRuntimeSettings,
@@ -190,6 +204,9 @@ export function GlobalSettingsClient() {
     () => getActiveRuntimeModel(settings),
     [settings],
   );
+  const shouldWarnGeminiModel =
+    settings.providerId === "gemini-proxy" &&
+    isInvalidGeminiProxyModel(settings.defaultModel);
 
   function updateSettings<K extends keyof AiRuntimeSettings>(
     key: K,
@@ -252,6 +269,15 @@ export function GlobalSettingsClient() {
     ].join("\n");
 
     setMessage(report);
+  }
+
+  function handleUseGeminiCoreProfile() {
+    const nextSettings = createGeminiCoreRuntimeSettings(settings);
+
+    setSettings(nextSettings);
+    setMessage(
+      "Gemini Core profile applied locally. Click Save Settings to persist it.",
+    );
   }
 
   async function handleRunRuntimeDiagnostics() {
@@ -598,7 +624,6 @@ export function GlobalSettingsClient() {
                       updateSettings("defaultModel", event.target.value)
                     }
                   >
-                    <option value="mock-local">mock-local</option>
                     {geminiProxyModelOptions.map((model) => (
                       <option key={model} value={model}>
                         {model}
@@ -750,6 +775,11 @@ export function GlobalSettingsClient() {
                   label="Max output"
                   value={String(settings.maxOutputTokens)}
                 />
+                {shouldWarnGeminiModel ? (
+                  <p className="text-xs text-destructive">
+                    Gemini Proxy should use a Gemini model, not mock-local.
+                  </p>
+                ) : null}
               </div>
             </SectionCard>
 
@@ -814,6 +844,22 @@ export function GlobalSettingsClient() {
                   <Save className="mr-2 h-4 w-4" />
                   Save to IndexedDB
                 </Button>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleUseGeminiCoreProfile}
+                  disabled={isLoading || isSaving}
+                >
+                  <Server className="mr-2 h-4 w-4" />
+                  Use Gemini Core Profile
+                </Button>
+                <p className="app-muted-text">
+                  Uses Gemini Proxy, endpoint {GEMINI_CORE_DEFAULT_ENDPOINT},
+                  model {GEMINI_CORE_DEFAULT_MODEL}, and local-worker runtime.
+                  Requires GEMINI_API_KEY in .env.local or deploy environment.
+                </p>
 
                 <Button
                   className="w-full"

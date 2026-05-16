@@ -1,4 +1,7 @@
-import { getActiveRuntimeModel } from "@/lib/settings/ai-runtime-settings";
+import {
+  GEMINI_CORE_DEFAULT_ENDPOINT,
+  getActiveRuntimeModel,
+} from "@/lib/settings/ai-runtime-settings";
 import { getPromptTemplates } from "@/lib/prompts/prompt-registry";
 import { runGeminiProxyRouteDiagnostics } from "@/lib/settings/gemini-proxy-runtime-diagnostics";
 import { runOllamaConnectivityDiagnostics } from "@/lib/settings/ollama-runtime-diagnostics";
@@ -58,7 +61,7 @@ function getGeminiProxyEndpointDiagnostic(endpoint: string) {
       id: "provider",
       label: "AI provider",
       status: "warning",
-      message: "Gemini proxy provider needs an endpoint before real use.",
+      message: `Gemini proxy provider needs an endpoint before real use. Recommended: ${GEMINI_CORE_DEFAULT_ENDPOINT}.`,
       detail: trimmedEndpoint || "empty endpoint",
     });
   }
@@ -101,6 +104,17 @@ function promptLooksLikeImportAnalysis(editablePrompt: string) {
 
   return ["chapter", "chapters", "canon", "analysis"].some((term) =>
     normalizedPrompt.includes(term),
+  );
+}
+
+function isValidGeminiProxyModel(model: string) {
+  const normalizedModel = model.trim();
+
+  return (
+    normalizedModel.length > 0 &&
+    normalizedModel !== "mock-local" &&
+    normalizedModel !== "custom-model-not-set" &&
+    normalizedModel !== "gemini-proxy-default"
   );
 }
 
@@ -309,11 +323,21 @@ export async function runRuntimeDiagnostics(
     const endpointDiagnostic = getGeminiProxyEndpointDiagnostic(
       settings.geminiProxyEndpoint,
     );
+    const geminiProxyModel = settings.defaultModel.trim();
     const trimmedEndpoint = settings.geminiProxyEndpoint.trim();
     const isRelativeEndpoint = trimmedEndpoint.startsWith("/");
 
     items.push(
       endpointDiagnostic,
+      createItem({
+        id: "gemini-proxy-model",
+        label: "Gemini proxy model",
+        status: isValidGeminiProxyModel(geminiProxyModel) ? "pass" : "warning",
+        message: isValidGeminiProxyModel(geminiProxyModel)
+          ? `Gemini Proxy model is set to ${geminiProxyModel}.`
+          : "Gemini Proxy model should be a Gemini model such as gemini-2.5-flash.",
+        detail: geminiProxyModel || "empty model",
+      }),
       createItem({
         id: "gemini-proxy-route",
         label: "Gemini proxy route",
