@@ -140,6 +140,12 @@ Runtime Diagnostics includes a Web Worker smoke test. It spawns a small diagnost
 
 This catches issues that a simple `typeof Worker` check cannot detect, such as worker bundling failures or runtime-specific IndexedDB restrictions.
 
+## Browser Storage Quota Diagnostics
+
+Runtime Diagnostics includes browser storage quota checks through the Storage Estimate API. This reports approximate local storage usage, quota, and persistent-storage status for the current origin.
+
+This is important for local-first operation because imported chapters, chunks, analysis results, local jobs, and AI cache entries are stored in IndexedDB. The diagnostic is read-only and does not request persistent storage permission.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
