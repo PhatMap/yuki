@@ -20,6 +20,8 @@ import {
   saveRewriteDraft,
 } from "@/lib/db/indexed-db";
 import { chapters, stories } from "@/lib/mock-data";
+import { renderRewriteDraftPrompt } from "@/lib/prompts/rewrite-prompts";
+import type { PromptRenderResult } from "@/lib/prompts/prompt-runtime";
 import type {
   BranchChange,
   BranchContinuityIssue,
@@ -213,6 +215,7 @@ export function StoryRewriteDraftClient({
   const [isSaving, setIsSaving] = useState(false);
   const [storageError, setStorageError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [promptRender, setPromptRender] = useState<PromptRenderResult>();
 
   useEffect(() => {
     let isActive = true;
@@ -324,6 +327,30 @@ export function StoryRewriteDraftClient({
       return matchesChange || matchesChapter;
     });
   }, [draftData.continuityIssues, selectedChange, selectedChapter]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function renderDraftPrompt() {
+      const rendered = await renderRewriteDraftPrompt({
+        story,
+        selectedChange,
+        selectedChapter,
+        analysisResult: draftData.analysisResult,
+        relatedIssues,
+      });
+
+      if (isActive) {
+        setPromptRender(rendered);
+      }
+    }
+
+    void renderDraftPrompt();
+
+    return () => {
+      isActive = false;
+    };
+  }, [draftData.analysisResult, relatedIssues, selectedChange, selectedChapter, story]);
 
   function syncDraftForm(change?: BranchChange, chapter?: DraftChapter) {
     if (!change || !chapter) return;
@@ -489,6 +516,8 @@ export function StoryRewriteDraftClient({
               />
             </section>
 
+            <PromptTemplateSummary promptRender={promptRender} />
+
             <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
               <div className="space-y-4">
                 <RewriteSelectors
@@ -591,6 +620,30 @@ function RewriteSelectors({
           </div>
         ) : null}
       </div>
+    </SectionCard>
+  );
+}
+
+function PromptTemplateSummary({
+  promptRender,
+}: {
+  promptRender?: PromptRenderResult;
+}) {
+  return (
+    <SectionCard title="Prompt template">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <Badge variant="secondary">
+          {promptRender?.template.id ?? "rewrite-draft"}
+        </Badge>
+        <span className="text-muted-foreground">
+          {promptRender?.template.title ?? "Loading Prompt Manager template..."}
+        </span>
+      </div>
+      {promptRender?.missingVariables.length ? (
+        <p className="mt-3 text-sm text-destructive">
+          Missing prompt variables: {promptRender.missingVariables.join(", ")}
+        </p>
+      ) : null}
     </SectionCard>
   );
 }

@@ -22,6 +22,8 @@ import {
   saveContinuityIssues,
 } from "@/lib/db/indexed-db";
 import { stories } from "@/lib/mock-data";
+import { renderRewritePlannerPrompt } from "@/lib/prompts/rewrite-prompts";
+import type { PromptRenderResult } from "@/lib/prompts/prompt-runtime";
 import type {
   BranchChange,
   BranchChangeType,
@@ -324,6 +326,7 @@ export function StoryRewritePlannerClient({
   const [isSaving, setIsSaving] = useState(false);
   const [storageError, setStorageError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [promptRender, setPromptRender] = useState<PromptRenderResult>();
 
   useEffect(() => {
     let isActive = true;
@@ -463,6 +466,71 @@ export function StoryRewritePlannerClient({
     affectedLocations,
     affectedTerms,
     form,
+  ]);
+  const changeRequest = useMemo(() => {
+    return [
+      form.description.trim(),
+      form.reason.trim() ? `Reason: ${form.reason.trim()}` : "",
+      `Rewrite type: ${form.rewriteType}`,
+      selectedEvent ? `Target event: ${selectedEvent.title}` : "",
+      `Impact categories: ${form.impactCategories.join(", ")}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }, [
+    form.description,
+    form.impactCategories,
+    form.reason,
+    form.rewriteType,
+    selectedEvent,
+  ]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function renderPlannerPrompt() {
+      const rendered = await renderRewritePlannerPrompt({
+        story,
+        analysisResult: result,
+        selectedChapter: form.selectedChapter,
+        selectedEvent,
+        changeRequest,
+        affectedChapters,
+        affectedCharacters,
+        affectedEvents,
+        affectedItems,
+        affectedTerms,
+        affectedLocations,
+        affectedRelationships,
+        existingBranchChanges: plannerData.branchChanges,
+        existingContinuityIssues: plannerData.continuityIssues,
+      });
+
+      if (isActive) {
+        setPromptRender(rendered);
+      }
+    }
+
+    void renderPlannerPrompt();
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    affectedCharacters,
+    affectedChapters,
+    affectedEvents,
+    affectedItems,
+    affectedLocations,
+    affectedRelationships,
+    affectedTerms,
+    changeRequest,
+    form.selectedChapter,
+    plannerData.branchChanges,
+    plannerData.continuityIssues,
+    result,
+    selectedEvent,
+    story,
   ]);
 
   function updateForm<K extends keyof RewriteForm>(
@@ -658,6 +726,8 @@ export function StoryRewritePlannerClient({
               />
             </section>
 
+            <PromptTemplateSummary promptRender={promptRender} />
+
             <section className="grid gap-4 xl:grid-cols-[420px_1fr]">
               <div className="space-y-4">
                 <RewriteTargetSelector
@@ -774,6 +844,30 @@ function RewriteTargetSelector({
           <p className="app-muted-text">No event selected.</p>
         )}
       </div>
+    </SectionCard>
+  );
+}
+
+function PromptTemplateSummary({
+  promptRender,
+}: {
+  promptRender?: PromptRenderResult;
+}) {
+  return (
+    <SectionCard title="Prompt template">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <Badge variant="secondary">
+          {promptRender?.template.id ?? "rewrite-impact-planner"}
+        </Badge>
+        <span className="text-muted-foreground">
+          {promptRender?.template.title ?? "Loading Prompt Manager template..."}
+        </span>
+      </div>
+      {promptRender?.missingVariables.length ? (
+        <p className="mt-3 text-sm text-destructive">
+          Missing prompt variables: {promptRender.missingVariables.join(", ")}
+        </p>
+      ) : null}
     </SectionCard>
   );
 }

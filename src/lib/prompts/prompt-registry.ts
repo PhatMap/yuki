@@ -57,7 +57,17 @@ const defaultPromptTemplates: GlobalPromptTemplate[] = [
       "Plans downstream impact for a requested plot or canon change.",
     category: "planning",
     editablePrompt:
-      "Given a change request at a specific chapter, estimate downstream consequences. Identify affected chapters, characters, relationships, items, world rules, timeline events, and continuity risks. Keep the proposed branch coherent.",
+      [
+        "Given a change request at a specific chapter, estimate downstream consequences. Identify affected chapters, characters, relationships, items, world rules, timeline events, and continuity risks. Keep the proposed branch coherent.",
+        "",
+        "Story: {{storyTitle}}",
+        "Current chapter: {{currentChapter}}",
+        "Change request: {{changeRequest}}",
+        "Affected chapters: {{affectedChapters}}",
+        "Current canon/context: {{currentCanon}}",
+        "Existing analysis data: {{analysisResult}}",
+        "Existing branch changes: {{existingBranchChanges}}",
+      ].join("\n"),
     lockedContract: formatContract({
       input: ["changeRequest", "analysisResult", "branchChanges"],
       output: {
@@ -70,6 +80,8 @@ const defaultPromptTemplates: GlobalPromptTemplate[] = [
       "storyTitle",
       "currentChapter",
       "changeRequest",
+      "affectedChapters",
+      "currentCanon",
       "analysisResult",
       "existingBranchChanges",
     ],
@@ -83,7 +95,18 @@ const defaultPromptTemplates: GlobalPromptTemplate[] = [
       "Drafts revised chapter prose from a selected change request and canon context.",
     category: "rewrite",
     editablePrompt:
-      "Rewrite the selected chapter according to the approved change request. Preserve voice, pacing, character memory, and necessary canon details while making the requested divergence clear.",
+      [
+        "Rewrite the selected chapter according to the approved change request. Preserve voice, pacing, character memory, and necessary canon details while making the requested divergence clear.",
+        "",
+        "Story: {{storyTitle}}",
+        "Selected chapter: {{selectedChapterTitle}}",
+        "Change request: {{changeRequest}}",
+        "Planner result: {{branchChange}}",
+        "Canon constraints: {{canonConstraints}}",
+        "Style notes: {{styleNotes}}",
+        "Affected continuity notes: {{affectedContinuityNotes}}",
+        "Original chapter text: {{originalChapter}}",
+      ].join("\n"),
     lockedContract: formatContract({
       input: ["originalChapter", "branchChange", "continuityIssues"],
       output: {
@@ -95,10 +118,13 @@ const defaultPromptTemplates: GlobalPromptTemplate[] = [
     }),
     variables: [
       "storyTitle",
+      "selectedChapterTitle",
+      "changeRequest",
       "originalChapter",
       "branchChange",
-      "continuityIssues",
-      "styleProfile",
+      "canonConstraints",
+      "styleNotes",
+      "affectedContinuityNotes",
     ],
     createdAt: defaultPromptCreatedAt,
     updatedAt: defaultPromptCreatedAt,
