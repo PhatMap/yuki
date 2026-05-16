@@ -176,6 +176,12 @@ Global Settings includes an app-level JSON backup export for global runtime sett
 
 This backup is separate from per-story backups. It does not include full chapter/chunk text or story analysis payloads; those remain covered by Data Health per-story backup files.
 
+## App Backup Validation Preview
+
+Global Settings can validate an app-level backup JSON file before any app restore flow exists. The validation checks schema version, app target, runtime settings presence, prompt template array, story index array, and manifest counts.
+
+Validation is read-only. It does not write to IndexedDB, restore settings, upload files, or call external APIs.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

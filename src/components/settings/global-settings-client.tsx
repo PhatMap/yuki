@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Check,
@@ -51,6 +51,10 @@ import {
   createAppBackupPayload,
   downloadAppBackup,
 } from "@/lib/backup/app-backup";
+import {
+  readAppBackupFile,
+  type AppBackupValidationResult,
+} from "@/lib/backup/app-backup-validation";
 
 const geminiProxyModelOptions = [
   "gemini-2.5-flash",
@@ -142,6 +146,9 @@ export function GlobalSettingsClient() {
   const [isRequestingStoragePersistence, setIsRequestingStoragePersistence] =
     useState(false);
   const [isExportingAppBackup, setIsExportingAppBackup] = useState(false);
+  const [isValidatingAppBackup, setIsValidatingAppBackup] = useState(false);
+  const [appBackupValidationResult, setAppBackupValidationResult] =
+    useState<AppBackupValidationResult>();
 
   useEffect(() => {
     let isMounted = true;
@@ -292,6 +299,35 @@ export function GlobalSettingsClient() {
       setMessage("Could not export app backup.");
     } finally {
       setIsExportingAppBackup(false);
+    }
+  }
+
+  async function handleValidateAppBackupFile(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setIsValidatingAppBackup(true);
+    setMessage("");
+    setAppBackupValidationResult(undefined);
+
+    try {
+      const result = await readAppBackupFile(file);
+
+      setAppBackupValidationResult(result);
+      setMessage(
+        result.isValid
+          ? "App backup file is valid."
+          : "App backup file has validation errors.",
+      );
+    } catch (error) {
+      console.error("Failed to validate app backup", error);
+      setMessage("Could not validate app backup.");
+    } finally {
+      setIsValidatingAppBackup(false);
+      event.target.value = "";
     }
   }
 
@@ -761,6 +797,82 @@ export function GlobalSettingsClient() {
                   one local JSON file. Full story content backup is still handled per story in
                   Data Health.
                 </p>
+
+                <div className="rounded-xl border bg-background p-3">
+                  <label className="block">
+                    <span className="text-sm font-medium">Validate app backup JSON</span>
+                    <input
+                      className="mt-2 block w-full text-sm"
+                      type="file"
+                      accept="application/json,.json"
+                      disabled={isValidatingAppBackup}
+                      onChange={handleValidateAppBackupFile}
+                    />
+                  </label>
+
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    Reads an app backup file locally and validates schema/counts only. This does
+                    not restore or write any settings.
+                  </p>
+                </div>
+
+                {appBackupValidationResult ? (
+                  <div className="rounded-xl border bg-background p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">App backup validation</p>
+                      <Badge
+                        variant={
+                          appBackupValidationResult.isValid ? "secondary" : "destructive"
+                        }
+                      >
+                        {appBackupValidationResult.isValid ? "valid" : "invalid"}
+                      </Badge>
+                    </div>
+
+                    {appBackupValidationResult.payload ? (
+                      <div className="mt-3 grid gap-2 text-xs text-muted-foreground">
+                        <p>
+                          Exported:{" "}
+                          {new Date(
+                            appBackupValidationResult.payload.manifest.exportedAt,
+                          ).toLocaleString("vi-VN")}
+                        </p>
+                        <p>
+                          Stories:{" "}
+                          {appBackupValidationResult.payload.manifest.counts.stories.toLocaleString(
+                            "vi-VN",
+                          )}{" "}
+                          · Prompt templates:{" "}
+                          {appBackupValidationResult.payload.manifest.counts.promptTemplates.toLocaleString(
+                            "vi-VN",
+                          )}
+                        </p>
+                        <p>
+                          Runtime provider:{" "}
+                          {appBackupValidationResult.payload.data.runtimeSettings.providerId}
+                        </p>
+                        <p>
+                          Job runtime:{" "}
+                          {appBackupValidationResult.payload.data.runtimeSettings.jobRuntime}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {appBackupValidationResult.issues.length > 0 ? (
+                      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                        {appBackupValidationResult.issues.map((issue, index) => (
+                          <li key={`${issue.severity}-${index}`}>
+                            [{issue.severity}] {issue.message}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        No validation issues found.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
 
                 <Button
                   className="w-full"
