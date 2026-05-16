@@ -16,8 +16,20 @@ Large stories can reach 3000+ chapters. Direct frontend loops inside React compo
 - `src/lib/ai/jobs/adapters.ts` defines implementation-neutral store, queue, cache, and runner interfaces.
 - `src/lib/ai/jobs/cache-key.ts` creates deterministic browser-safe cache keys.
 - `src/lib/ai/jobs/story-analysis-job-planner.ts` creates pure story-analysis job plans without calling AI or writing storage.
+- `src/lib/ai/jobs/progress.ts` calculates deterministic task counts and percent complete.
+- `src/lib/ai/jobs/local/local-job-queue.ts` provides a browser-safe in-memory queue for local execution.
+- `src/lib/ai/jobs/local/local-job-runner.ts` runs queued tasks with bounded concurrency, progress callbacks, cancellation, retries, and mock execution.
+- `src/lib/ai/jobs/local/mock-job-task-handler.ts` returns predictable mock task results without calling any provider.
 
 This keeps React screens focused on UI while job planning, batching, progress, retries, and caching can move behind adapters.
+
+## Local Job Runner
+
+The local runner is the first execution foundation for large-story processing. It accepts a planned job and its tasks, queues them in memory, claims runnable tasks, marks tasks running, completes or retries failures, and reports progress through a callback. It can also skip tasks when a caller supplies a cache-check callback.
+
+The queue is intentionally in-memory only. It does not use `localStorage` and it does not persist job data yet. That keeps the current app behavior unchanged while avoiding unsafe storage of large job payloads in small synchronous browser storage. A durable local job store can be added later through the existing IndexedDB adapter direction.
+
+This is not a cloud queue. There is no Supabase table, Redis list, Cloudflare Queue, worker deployment, auth layer, or paid-service requirement. The local implementation exercises the same concepts future adapters need: task status transitions, dependency checks, retries, cache skips, bounded concurrency, cancellation, and progress calculation.
 
 ## Adapter Direction
 
