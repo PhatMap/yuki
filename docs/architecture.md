@@ -182,6 +182,12 @@ Global Settings can validate an app-level backup JSON file before any app restor
 
 Validation is read-only. It does not write to IndexedDB, restore settings, upload files, or call external APIs.
 
+## Guarded App Backup Restore
+
+Global Settings can restore a validated app backup for global runtime settings and prompt templates.
+
+The restore is explicitly user-triggered and asks for browser confirmation. It does not restore full story content, chapters, chunks, story analysis, jobs, or cache entries. Story index entries inside app backup files are treated as reference only; full story data remains covered by per-story backup restore in Data Health.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

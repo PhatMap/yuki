@@ -1,7 +1,11 @@
 import { getAllStories } from "@/lib/db/indexed-db";
-import { getPromptTemplates } from "@/lib/prompts/prompt-registry";
+import {
+  getPromptTemplates,
+  savePromptTemplates,
+} from "@/lib/prompts/prompt-registry";
 import {
   getAiRuntimeSettings,
+  saveAiRuntimeSettings,
   type AiRuntimeSettings,
 } from "@/lib/settings/ai-runtime-settings";
 import type { GlobalPromptTemplate, Story } from "@/lib/types";
@@ -23,6 +27,14 @@ export interface AppBackupPayload {
     promptTemplates: GlobalPromptTemplate[];
     stories: Story[];
   };
+}
+
+export interface AppBackupRestoreSummary {
+  restoredAt: string;
+  restoredRuntimeProvider: string;
+  restoredJobRuntime: string;
+  promptTemplates: number;
+  storyIndexEntries: number;
 }
 
 export async function createAppBackupPayload(): Promise<AppBackupPayload> {
@@ -80,4 +92,41 @@ export function downloadAppBackup(payload: AppBackupPayload) {
   URL.revokeObjectURL(url);
 
   return fileName;
+}
+
+export async function restoreAppBackupPayload(
+  payload: AppBackupPayload,
+): Promise<AppBackupRestoreSummary> {
+  if (payload.manifest.schemaVersion !== 1) {
+    throw new Error(
+      `Unsupported app backup schema version: ${payload.manifest.schemaVersion}.`,
+    );
+  }
+
+  if (payload.manifest.app !== "yuki") {
+    throw new Error(`Unsupported app backup target: ${payload.manifest.app}.`);
+  }
+
+  if (!payload.data.runtimeSettings) {
+    throw new Error("App backup is missing runtime settings.");
+  }
+
+  if (!Array.isArray(payload.data.promptTemplates)) {
+    throw new Error("App backup prompt templates must be an array.");
+  }
+
+  const restoredSettings = await saveAiRuntimeSettings({
+    ...payload.data.runtimeSettings,
+    id: "global",
+  });
+
+  await savePromptTemplates(payload.data.promptTemplates);
+
+  return {
+    restoredAt: new Date().toISOString(),
+    restoredRuntimeProvider: restoredSettings.providerId,
+    restoredJobRuntime: restoredSettings.jobRuntime,
+    promptTemplates: payload.data.promptTemplates.length,
+    storyIndexEntries: payload.data.stories.length,
+  };
 }

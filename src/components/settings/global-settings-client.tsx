@@ -50,6 +50,7 @@ import { requestBrowserStoragePersistence } from "@/lib/settings/browser-storage
 import {
   createAppBackupPayload,
   downloadAppBackup,
+  restoreAppBackupPayload,
 } from "@/lib/backup/app-backup";
 import {
   readAppBackupFile,
@@ -147,6 +148,7 @@ export function GlobalSettingsClient() {
     useState(false);
   const [isExportingAppBackup, setIsExportingAppBackup] = useState(false);
   const [isValidatingAppBackup, setIsValidatingAppBackup] = useState(false);
+  const [isRestoringAppBackup, setIsRestoringAppBackup] = useState(false);
   const [appBackupValidationResult, setAppBackupValidationResult] =
     useState<AppBackupValidationResult>();
 
@@ -328,6 +330,51 @@ export function GlobalSettingsClient() {
     } finally {
       setIsValidatingAppBackup(false);
       event.target.value = "";
+    }
+  }
+
+  function canRestoreValidatedAppBackup() {
+    return appBackupValidationResult?.isValid === true;
+  }
+
+  async function handleRestoreValidatedAppBackup() {
+    const payload = appBackupValidationResult?.payload;
+
+    if (!payload) {
+      setMessage("No valid app backup is selected.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Restore app backup settings? This will overwrite global runtime settings and prompt templates. Story content is not restored by this action.",
+    );
+
+    if (!confirmed) return;
+
+    setIsRestoringAppBackup(true);
+    setMessage("");
+
+    try {
+      const summary = await restoreAppBackupPayload(payload);
+      const refreshedSettings = await getAiRuntimeSettings();
+
+      setSettings(refreshedSettings);
+      setMessage(
+        `App backup restored. Provider: ${summary.restoredRuntimeProvider}, job runtime: ${summary.restoredJobRuntime}, prompt templates: ${summary.promptTemplates.toLocaleString(
+          "vi-VN",
+        )}. Story index entries were kept as reference only: ${summary.storyIndexEntries.toLocaleString(
+          "vi-VN",
+        )}.`,
+      );
+    } catch (error) {
+      console.error("Failed to restore app backup", error);
+      setMessage(
+        error instanceof Error
+          ? `Could not restore app backup: ${error.message}`
+          : "Could not restore app backup.",
+      );
+    } finally {
+      setIsRestoringAppBackup(false);
     }
   }
 
@@ -871,6 +918,29 @@ export function GlobalSettingsClient() {
                         No validation issues found.
                       </p>
                     )}
+                  </div>
+                ) : null}
+
+                {appBackupValidationResult?.payload ? (
+                  <div className="rounded-xl border bg-background p-3">
+                    <Button
+                      className="w-full"
+                      type="button"
+                      variant="outline"
+                      disabled={!canRestoreValidatedAppBackup() || isRestoringAppBackup}
+                      onClick={handleRestoreValidatedAppBackup}
+                    >
+                      <Database className="mr-2 h-4 w-4" />
+                      {isRestoringAppBackup
+                        ? "Restoring app backup..."
+                        : "Restore app settings and prompts"}
+                    </Button>
+
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      Restores global runtime settings and prompt templates only. Story index
+                      entries in the app backup are kept as reference; full story data must be
+                      restored from per-story backup files in Data Health.
+                    </p>
                   </div>
                 ) : null}
 
