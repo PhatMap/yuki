@@ -59,6 +59,8 @@ Later steps can replace the mock local task output with real per-batch analysis 
 
 `NEXT_PUBLIC_JOB_RUNTIME=local-worker` runs the same local story-analysis orchestration through a Web Worker. This keeps heavy local planning/running work off the UI thread while still using free local-first infrastructure.
 
+Implementation note: local worker orchestration must not depend on `window`. Shared local job code should check `globalThis.indexedDB` so it can run in both the main browser thread and Web Worker runtime.
+
 Both local runtimes still preserve the current product contract: local job outputs are used for progress/cache validation, while the final saved `StoryAnalysisResult` still comes from the existing `runAiPipeline` flow.
 
 `cloud-queue` remains future work for a later Supabase/Redis/Cloudflare adapter.

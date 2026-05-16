@@ -48,6 +48,7 @@ globalThis.addEventListener(
         chunks: request.chunks,
         runtimeSettings: request.runtimeSettings,
         providerTarget: request.providerTarget,
+        runtimeTarget: "local-worker",
         batchSize: request.batchSize,
         onProgress: (progress, tasks) => {
           const jobId = tasks[0]?.jobId ?? "";

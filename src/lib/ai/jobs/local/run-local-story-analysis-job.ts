@@ -3,7 +3,12 @@ import {
   type StoryAnalysisSourceItem,
   planStoryAnalysisJob,
 } from "@/lib/ai/jobs/story-analysis-job-planner";
-import type { AiJob, AiJobProgress, AiJobTask } from "@/lib/ai/jobs/types";
+import type {
+  AiJob,
+  AiJobProgress,
+  AiJobRuntimeTarget,
+  AiJobTask,
+} from "@/lib/ai/jobs/types";
 import {
   type LocalJobRunnerResult,
   runLocalAiJob,
@@ -34,6 +39,7 @@ export interface RunLocalStoryAnalysisJobInput {
   chunks: ChapterChunk[];
   runtimeSettings?: AiRuntimeSettings;
   providerTarget?: LocalStoryAnalysisProviderTarget;
+  runtimeTarget?: AiJobRuntimeTarget;
   batchSize?: number;
   onProgress?: (progress: AiJobProgress, tasks: AiJobTask[]) => void;
 }
@@ -128,8 +134,10 @@ function toProviderTarget(input: RunLocalStoryAnalysisJobInput) {
 export async function runLocalStoryAnalysisJob(
   input: RunLocalStoryAnalysisJobInput,
 ): Promise<LocalStoryAnalysisJobResult> {
-  if (typeof window === "undefined" || typeof indexedDB === "undefined") {
-    throw new Error("Local story analysis jobs require browser IndexedDB.");
+  if (typeof globalThis.indexedDB === "undefined") {
+    throw new Error(
+      "Local story analysis jobs require IndexedDB in this runtime.",
+    );
   }
 
   const providerTarget = toProviderTarget(input);
@@ -152,7 +160,7 @@ export async function runLocalStoryAnalysisJob(
       versionHash: promptVersionHash,
     },
     providerTarget,
-    runtimeTarget: "local-browser",
+    runtimeTarget: input.runtimeTarget ?? "local-browser",
     plannedAt: new Date().toISOString(),
   });
   const jobStore = new IndexedDbJobStore();
