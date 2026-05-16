@@ -158,6 +158,12 @@ Data Health includes a per-story JSON backup export. The backup file includes st
 
 This is a local download only. It does not upload data, call external APIs, or replace future full import/restore tooling.
 
+## Story Backup Validation Preview
+
+Data Health can validate a story backup JSON file before any restore flow exists. The validation reads the file locally, checks schema version, required data arrays, manifest counts, and whether the backup story id matches the current story page.
+
+Validation is read-only. It does not write to IndexedDB, restore data, upload files, or call external APIs.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

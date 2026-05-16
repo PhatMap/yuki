@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { type ChangeEvent, useState } from "react";
 import {
   AlertTriangle,
   BookOpen,
@@ -26,6 +26,10 @@ import {
   createStoryBackupPayload,
   downloadStoryBackup,
 } from "@/lib/backup/story-backup";
+import {
+  readStoryBackupFile,
+  type StoryBackupValidationResult,
+} from "@/lib/backup/story-backup-validation";
 import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
 import type { AiJobCacheEntry } from "@/lib/ai/jobs/cache-store-types";
 import {
@@ -482,6 +486,9 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
   const [isMigratingLegacyData, setIsMigratingLegacyData] = useState(false);
   const [isClearingAiCache, setIsClearingAiCache] = useState(false);
   const [isExportingStoryBackup, setIsExportingStoryBackup] = useState(false);
+  const [isValidatingStoryBackup, setIsValidatingStoryBackup] = useState(false);
+  const [backupValidationResult, setBackupValidationResult] =
+    useState<StoryBackupValidationResult>();
   const [actionMessage, setActionMessage] = useState("");
 
   async function handleRefreshInspection() {
@@ -607,6 +614,35 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       setActionMessage("Failed to export story backup.");
     } finally {
       setIsExportingStoryBackup(false);
+    }
+  }
+
+  async function handleValidateStoryBackupFile(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setIsValidatingStoryBackup(true);
+    setActionMessage("");
+    setBackupValidationResult(undefined);
+
+    try {
+      const result = await readStoryBackupFile(file, storyId);
+
+      setBackupValidationResult(result);
+      setActionMessage(
+        result.isValid
+          ? "Story backup file is valid."
+          : "Story backup file has validation errors.",
+      );
+    } catch (error) {
+      console.error("Failed to validate story backup", error);
+      setActionMessage("Failed to validate story backup.");
+    } finally {
+      setIsValidatingStoryBackup(false);
+      event.target.value = "";
     }
   }
 
@@ -982,6 +1018,86 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       rewrite drafts, AI jobs, job tasks, and AI cache entries into one local JSON
                       backup file.
                     </p>
+                    <div className="rounded-xl border bg-background p-3">
+                      <label className="block">
+                        <span className="text-sm font-medium">Validate backup JSON</span>
+                        <input
+                          className="mt-2 block w-full text-sm"
+                          type="file"
+                          accept="application/json,.json"
+                          disabled={isValidatingStoryBackup}
+                          onChange={handleValidateStoryBackupFile}
+                        />
+                      </label>
+
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Reads a backup file locally and validates schema/counts only. This does not
+                        restore or write any data.
+                      </p>
+                    </div>
+
+                    {backupValidationResult ? (
+                      <div className="rounded-xl border bg-background p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium">Backup validation</p>
+                          <Badge
+                            variant={backupValidationResult.isValid ? "secondary" : "destructive"}
+                          >
+                            {backupValidationResult.isValid ? "valid" : "invalid"}
+                          </Badge>
+                        </div>
+
+                        {backupValidationResult.payload ? (
+                          <div className="mt-3 grid gap-2 text-xs text-muted-foreground">
+                            <p>
+                              Story:{" "}
+                              {backupValidationResult.payload.manifest.storyTitle ??
+                                backupValidationResult.payload.manifest.storyId}
+                            </p>
+                            <p>
+                              Exported:{" "}
+                              {new Date(
+                                backupValidationResult.payload.manifest.exportedAt,
+                              ).toLocaleString("vi-VN")}
+                            </p>
+                            <p>
+                              Chapters:{" "}
+                              {backupValidationResult.payload.manifest.counts.chapters.toLocaleString(
+                                "vi-VN",
+                              )}{" "}
+                              · Chunks:{" "}
+                              {backupValidationResult.payload.manifest.counts.chunks.toLocaleString(
+                                "vi-VN",
+                              )}
+                            </p>
+                            <p>
+                              AI jobs:{" "}
+                              {backupValidationResult.payload.manifest.counts.aiJobs.toLocaleString(
+                                "vi-VN",
+                              )}{" "}
+                              · Cache entries:{" "}
+                              {backupValidationResult.payload.manifest.counts.aiJobCacheEntries.toLocaleString(
+                                "vi-VN",
+                              )}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {backupValidationResult.issues.length > 0 ? (
+                          <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                            {backupValidationResult.issues.map((issue, index) => (
+                              <li key={`${issue.severity}-${index}`}>
+                                [{issue.severity}] {issue.message}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            No validation issues found.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
 
                     <Button
                       className="w-full"
