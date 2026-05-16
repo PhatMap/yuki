@@ -86,6 +86,12 @@ When the active AI provider is `mock`, the dashboard can use this local aggregat
 
 Real provider behavior is unchanged: Gemini proxy and future providers still use the existing `runAiPipeline` contract until a real batch aggregation provider is implemented.
 
+## Local Aggregated Result Handoff
+
+The Story Analysis Dashboard keeps the local aggregated mock result in component state for display/debug visibility, but the active run must pass the freshly produced aggregated result through a local variable inside `handleStartAnalysis`.
+
+This avoids relying on React state updates synchronously inside the same async analysis run.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

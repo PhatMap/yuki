@@ -253,6 +253,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setLocalAggregatedResult(undefined);
     setJobRuntimeNote("");
     setLocalJobState(undefined);
+    let localAnalysisResult: StoryAnalysisResult | undefined;
 
     if (runtimeConfig.jobRuntime === "local-browser") {
       try {
@@ -288,7 +289,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           percentComplete: localJobResult.progress.percentComplete,
           message: localJobResult.progress.message,
         });
-        setLocalAggregatedResult(localJobResult.analysisResult);
+        localAnalysisResult = localJobResult.analysisResult;
+        setLocalAggregatedResult(localAnalysisResult);
       } catch (error) {
         console.error("Failed to run local story analysis job", error);
         setStorageError(
@@ -317,7 +319,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         );
 
         setLocalJobState(toLocalJobState(workerResult.summary));
-        setLocalAggregatedResult(workerResult.analysisResult);
+        localAnalysisResult = workerResult.analysisResult;
+        setLocalAggregatedResult(localAnalysisResult);
       } catch (error) {
         console.error("Failed to run local worker story analysis job", error);
         setStorageError(
@@ -340,13 +343,13 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       chapters,
       chunks,
     });
-    const shouldUseLocalAggregatedMockResult =
-      runtimeSettings?.providerId === "mock" && localAggregatedResult;
+    const localMockAnalysisResult =
+      runtimeSettings?.providerId === "mock" ? localAnalysisResult : undefined;
 
-    const effectivePipelineResult: AiPipelineResult = shouldUseLocalAggregatedMockResult
+    const effectivePipelineResult: AiPipelineResult = localMockAnalysisResult
       ? {
           ...pipelineResult,
-          analysisResult: localAggregatedResult,
+          analysisResult: localMockAnalysisResult,
         }
       : pipelineResult;
 
@@ -493,6 +496,14 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           {localJobState?.message ? (
             <p className="mt-3 text-sm text-muted-foreground">
               {localJobState.message}
+            </p>
+          ) : null}
+
+          {localAggregatedResult?.updatedAt ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Local aggregated mock result ready at{" "}
+              {new Date(localAggregatedResult.updatedAt).toLocaleString("vi-VN")}
+              .
             </p>
           ) : null}
 
