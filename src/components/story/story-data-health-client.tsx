@@ -20,6 +20,10 @@ import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IndexedDbJobStore } from "@/lib/ai/jobs/local/indexed-db-job-store";
+import { IndexedDbJobCacheStore } from "@/lib/ai/jobs/local/indexed-db-job-cache-store";
+import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
+import type { AiJobCacheEntry } from "@/lib/ai/jobs/cache-store-types";
 import {
   getAnalysisResult,
   getAnalysisStatus,
@@ -74,6 +78,9 @@ interface DataHealthInspection {
     branchChanges: BranchChange[];
     continuityIssues: BranchContinuityIssue[];
     rewriteDrafts: RewriteDraft[];
+    aiJobs: AiJob[];
+    aiJobTasks: AiJobTask[];
+    aiJobCacheEntries: AiJobCacheEntry[];
   };
   legacyFallback: {
     stories: ParsedLegacyFallbackValue<Story[]>;
@@ -224,9 +231,14 @@ async function inspectStoryData(
     branchChanges: [],
     continuityIssues: [],
     rewriteDrafts: [],
+    aiJobs: [],
+    aiJobTasks: [],
+    aiJobCacheEntries: [],
   };
 
   try {
+    const jobStore = new IndexedDbJobStore();
+    const cacheStore = new IndexedDbJobCacheStore();
     const [
       story,
       chapters,
@@ -237,6 +249,8 @@ async function inspectStoryData(
       branchChanges,
       continuityIssues,
       rewriteDrafts,
+      jobs,
+      cacheEntries,
     ] = await Promise.all([
       getStoryById(storyId),
       getImportedChapters(storyId),
@@ -247,7 +261,16 @@ async function inspectStoryData(
       getBranchChanges(storyId),
       getContinuityIssues(storyId),
       getRewriteDrafts(storyId),
+      jobStore.listJobsByStory(storyId),
+      cacheStore.listByStory(storyId),
     ]);
+    const jobTasks = jobs.length
+      ? (
+          await Promise.all(
+            jobs.map((job) => jobStore.listTasksByJob(job.id)),
+          )
+        ).flat()
+      : [];
 
     indexedDb.story = story;
     indexedDb.chapters = chapters;
@@ -258,6 +281,9 @@ async function inspectStoryData(
     indexedDb.branchChanges = branchChanges;
     indexedDb.continuityIssues = continuityIssues;
     indexedDb.rewriteDrafts = rewriteDrafts;
+    indexedDb.aiJobs = jobs;
+    indexedDb.aiJobTasks = jobTasks;
+    indexedDb.aiJobCacheEntries = cacheEntries;
   } catch (error) {
     indexedDbError =
       error instanceof Error ? error.message : "IndexedDB read failed";
@@ -361,6 +387,15 @@ function buildWarnings({
   if (!legacyFallback.settings.exists) {
     warnings.push("Story settings are missing.");
   }
+  if (indexedDb.aiJobs.length > 0 && indexedDb.aiJobTasks.length === 0) {
+    warnings.push("AI jobs exist but AI job tasks are missing.");
+  }
+  if (
+    indexedDb.aiJobCacheEntries.length === 0 &&
+    indexedDb.aiJobs.some((job) => job.status === "completed")
+  ) {
+    warnings.push("Completed AI jobs exist but no AI job cache entries were found.");
+  }
 
   Object.values(legacyFallback).forEach((item) => {
     if (item.status === "error") {
@@ -441,6 +476,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
   const [inspection, setInspection] = useState<DataHealthInspection>();
   const [isLoading, setIsLoading] = useState(false);
   const [isMigratingLegacyData, setIsMigratingLegacyData] = useState(false);
+  const [isClearingAiCache, setIsClearingAiCache] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
 
   async function handleRefreshInspection() {
@@ -535,6 +571,23 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
     }
   }
 
+  async function handleClearAiCache() {
+    setIsClearingAiCache(true);
+    setActionMessage("");
+
+    try {
+      const cacheStore = new IndexedDbJobCacheStore();
+      await cacheStore.clearByStory(storyId);
+      await handleRefreshInspection();
+      setActionMessage("AI job cache entries cleared for this story.");
+    } catch (error) {
+      console.error("Failed to clear AI job cache entries", error);
+      setActionMessage("Failed to clear AI job cache entries.");
+    } finally {
+      setIsClearingAiCache(false);
+    }
+  }
+
   const localStory = localStoryForId(
     storyId,
     inspection?.legacyFallback.stories.value ?? null,
@@ -588,7 +641,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
           />
         ) : (
           <>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
               <StatCard
                 icon={<Database className="h-4 w-4" />}
                 title="Overall health"
@@ -610,6 +663,18 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                 icon={<AlertTriangle className="h-4 w-4" />}
                 title="Warnings"
                 value={inspection.warnings.length}
+              />
+              <StatCard
+                icon={<Database className="h-4 w-4" />}
+                title="AI jobs"
+                value={inspection.indexedDb.aiJobs.length}
+                description={`${inspection.indexedDb.aiJobTasks.length} tasks`}
+              />
+              <StatCard
+                icon={<Database className="h-4 w-4" />}
+                title="AI cache"
+                value={inspection.indexedDb.aiJobCacheEntries.length}
+                description="cached task outputs"
               />
             </section>
 
@@ -744,6 +809,70 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
+                <SectionCard title="AI job and cache state">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <HealthRow
+                      label="AI jobs"
+                      state={getCountState(inspection.indexedDb.aiJobs.length)}
+                      value={`${inspection.indexedDb.aiJobs.length} job(s)`}
+                    />
+                    <HealthRow
+                      label="AI job tasks"
+                      state={getCountState(inspection.indexedDb.aiJobTasks.length)}
+                      value={`${inspection.indexedDb.aiJobTasks.length} task(s)`}
+                    />
+                    <HealthRow
+                      label="AI cache entries"
+                      state={getCountState(inspection.indexedDb.aiJobCacheEntries.length)}
+                      value={`${inspection.indexedDb.aiJobCacheEntries.length} cache entrie(s)`}
+                    />
+                    <HealthRow
+                      label="Cache hits"
+                      state={getCountState(
+                        inspection.indexedDb.aiJobCacheEntries.reduce(
+                          (total, entry) => total + entry.hitCount,
+                          0,
+                        ),
+                      )}
+                      value={`${inspection.indexedDb.aiJobCacheEntries.reduce(
+                        (total, entry) => total + entry.hitCount,
+                        0,
+                      )} hit(s)`}
+                    />
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Recent AI jobs">
+                  {inspection.indexedDb.aiJobs.length > 0 ? (
+                    <div className="space-y-2">
+                      {inspection.indexedDb.aiJobs.slice(0, 5).map((job) => (
+                        <div key={job.id} className="app-list-item">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="break-all font-mono text-xs">{job.id}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {job.kind} · {job.runtimeTarget} · {job.providerTarget.providerId}/{job.providerTarget.model}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Updated {new Date(job.updatedAt).toLocaleString("vi-VN")}
+                              </p>
+                            </div>
+                            <Badge variant={getStateBadgeVariant(job.status === "failed" ? "error" : "healthy")}>
+                              {job.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="app-list-item">
+                      <p className="text-sm text-muted-foreground">
+                        No AI jobs found for this story.
+                      </p>
+                    </div>
+                  )}
+                </SectionCard>
+
                 <SectionCard title="Legacy fallback keys">
                   <div className="space-y-2">
                     {Object.values(inspection.legacyFallback).map((item) => (
@@ -814,6 +943,21 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                         {legacyFallbackKeys.settings(storyId)}
                       </span>
                       . No delete-all control is provided here.
+                    </p>
+
+                    <Button
+                      className="w-full"
+                      type="button"
+                      variant="outline"
+                      disabled={isClearingAiCache}
+                      onClick={handleClearAiCache}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {isClearingAiCache ? "Clearing AI cache..." : "Clear AI cache for this story"}
+                    </Button>
+                    <p className="app-muted-text">
+                      Clears derived AI job cache entries only. Story, chapters, analysis result,
+                      jobs, and tasks are preserved.
                     </p>
                     {actionMessage ? (
                       <p className="app-muted-text">{actionMessage}</p>

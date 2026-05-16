@@ -104,6 +104,12 @@ The import page uses `AbortController` when running the local import worker. Lon
 
 This keeps large local imports safer for 3000+ chapter stories without adding backend infrastructure.
 
+## AI Job and Cache Inspection
+
+Data Health includes local AI job, task, and cache counts for each story. This makes the local-first job system inspectable after analysis runs.
+
+The clear action only removes derived AI cache entries for the current story. It does not delete story text, chapters, saved analysis result, jobs, or task history.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
