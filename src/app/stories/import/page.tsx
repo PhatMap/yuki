@@ -107,7 +107,7 @@ export default function ImportNovelPage() {
 
       if (importedChapters.length === 0) {
         setIsCreating(false);
-        setCreateError("KhÃ´ng thá»ƒ táº¡o chÆ°Æ¡ng tá»« ná»™i dung Ä‘Ã£ nháº­p.");
+        setCreateError("Không thể tạo chương từ nội dung đã nhập.");
         return;
       }
 
@@ -153,7 +153,7 @@ export default function ImportNovelPage() {
         <PageHeader
           eyebrow="Import Novel"
           title="Import Novel"
-          description="Náº¡p truyá»‡n cÃ³ sáºµn Ä‘á»ƒ phÃ¢n tÃ­ch chÆ°Æ¡ng, nhÃ¢n váº­t, timeline, váº­t pháº©m, thuáº­t ngá»¯ vÃ  vÄƒn phong."
+          description="Nạp truyện có sẵn để phân tích chương, nhân vật, timeline, vật phẩm, thuật ngữ và văn phong."
         />
 
         <div className="space-y-3">
@@ -181,34 +181,34 @@ export default function ImportNovelPage() {
           >
             <div className="app-form-grid">
               <div className="grid gap-2">
-                <Label htmlFor="novel-title">TÃªn truyá»‡n</Label>
+                <Label htmlFor="novel-title">Tên truyện</Label>
                 <Input
                   id="novel-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="VÃ­ dá»¥: ThiÃªn Kiáº¿m LÆ°u VÃ¢n"
+                  placeholder="Ví dụ: Thiên Kiếm Lưu Vân"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="novel-author">TÃ¡c giáº£</Label>
+                <Label htmlFor="novel-author">Tác giả</Label>
                 <Input
                   id="novel-author"
                   value={author}
                   onChange={(event) => setAuthor(event.target.value)}
-                  placeholder="TÃªn tÃ¡c giáº£ hoáº·c nguá»“n"
+                  placeholder="Tên tác giả hoặc nguồn"
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="novel-content">Ná»™i dung truyá»‡n</Label>
+              <Label htmlFor="novel-content">Nội dung truyện</Label>
               <Textarea
                 id="novel-content"
                 className="min-h-[520px] text-sm leading-6"
                 value={novelText}
                 onChange={(event) => setNovelText(event.target.value)}
-                placeholder="Paste toÃ n bá»™ truyá»‡n hoáº·c nhiá»u chÆ°Æ¡ng vÃ o Ä‘Ã¢y..."
+                placeholder="Paste toàn bộ truyện hoặc nhiều chương vào đây..."
               />
             </div>
 
@@ -227,7 +227,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isCreating}
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isCreating ? "Äang táº¡o..." : "Create story from import"}
+                {isCreating ? "Đang tạo..." : "Create story from import"}
               </Button>
             </div>
 
@@ -236,7 +236,7 @@ export default function ImportNovelPage() {
                 <ProgressMeter
                   value={importProgress.percentComplete}
                   label={importProgress.status}
-                  description={`${importProgress.message} ${importProgress.chapterCount.toLocaleString("vi-VN")} chapters Â· ${importProgress.chunkCount.toLocaleString("vi-VN")} chunks`}
+                  description={`${importProgress.message} ${importProgress.chapterCount.toLocaleString("vi-VN")} chapters · ${importProgress.chunkCount.toLocaleString("vi-VN")} chunks`}
                 />
               </div>
             ) : null}
@@ -248,15 +248,15 @@ export default function ImportNovelPage() {
             ) : null}
           </SectionCard>
 
-          <SectionCard title="Preview chÆ°Æ¡ng">
+          <SectionCard title="Preview chương">
             {detectedChapters.length > 0 ? (
               <div className="space-y-3">
                 <div className="rounded-lg border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
-                    {detectedChapters.length} chÆ°Æ¡ng detected
+                    {detectedChapters.length} chương detected
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    Khoáº£ng {totalWordCount.toLocaleString("vi-VN")} tá»« Â·{" "}
+                    Khoảng {totalWordCount.toLocaleString("vi-VN")} từ ·{" "}
                     {detectedChunks.length.toLocaleString("vi-VN")} chunks
                   </p>
                 </div>
@@ -268,13 +268,13 @@ export default function ImportNovelPage() {
                       key={chapter.id}
                     >
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        ChÆ°Æ¡ng {chapter.chapterNumber}
+                        Chương {chapter.chapterNumber}
                       </p>
                       <h2 className="mt-1 text-sm font-semibold">
                         {chapter.title}
                       </h2>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {chapter.wordCount.toLocaleString("vi-VN")} tá»« Æ°á»›c tÃ­nh
+                        {chapter.wordCount.toLocaleString("vi-VN")} từ ước tính
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {(
@@ -288,8 +288,8 @@ export default function ImportNovelPage() {
               </div>
             ) : (
               <EmptyState
-                title="ChÆ°a detect chÆ°Æ¡ng"
-                description="Paste ná»™i dung truyá»‡n rá»“i báº¥m Detect chapters Ä‘á»ƒ xem preview."
+                title="Chưa detect chương"
+                description="Paste nội dung truyện rồi bấm Detect chapters để xem preview."
               />
             )}
           </SectionCard>
