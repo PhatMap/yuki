@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
+import type { AiJobCacheEntry } from "@/lib/ai/jobs/cache-store-types";
 import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
 import type {
   AnalysisStatus,
@@ -57,6 +58,7 @@ export class AiStoryDatabase extends Dexie {
   globalPromptTemplates!: Table<GlobalPromptTemplate, string>;
   aiJobs!: Table<AiJob, string>;
   aiJobTasks!: Table<AiJobTask, string>;
+  aiJobCacheEntries!: Table<AiJobCacheEntry, string>;
 
   constructor() {
     super("ai-story-app-db");
@@ -151,6 +153,30 @@ export class AiStoryDatabase extends Dexie {
       aiJobTasks:
         "id, jobId, kind, status, sequence, cacheKey, attempts, createdAt, updatedAt",
     });
+
+    this.version(6).stores({
+      stories:
+        "id, title, author, source, genre, tone, canonAdherence, isFanwork, createdAt, updatedAt",
+      storySetups: "storyId, updatedAt",
+      importedChapters: "id, storyId, chapterNumber, title, wordCount, status",
+      chapterChunks:
+        "id, storyId, chapterId, chapterNumber, chunkIndex, wordCount, status",
+      analysisStatuses:
+        "storyId, totalChapters, parsedChapters, chunkedChapters, analyzedChapters, totalChunks, updatedAt",
+      analysisResults: "storyId, updatedAt",
+      branches: "id, storyId, type, status, divergesFromChapter, updatedAt",
+      branchChanges:
+        "id, storyId, branchId, type, chapterNumber, impactScope, status, updatedAt",
+      continuityIssues: "id, storyId, branchId, changeId, severity, status",
+      rewriteDrafts:
+        "id, storyId, branchChangeId, targetChapterId, status, updatedAt",
+      globalPromptTemplates: "id, category, updatedAt",
+      aiJobs: "id, storyId, kind, status, runtimeTarget, createdAt, updatedAt",
+      aiJobTasks:
+        "id, jobId, kind, status, sequence, cacheKey, attempts, createdAt, updatedAt",
+      aiJobCacheEntries:
+        "cacheKey, namespace, storyId, jobId, taskId, providerId, model, promptTemplateId, promptVersionHash, contentHash, createdAt, updatedAt, lastHitAt, hitCount",
+    });
   }
 }
 
@@ -220,6 +246,9 @@ export async function saveLegacyStoryMigrationData({
       db.branchChanges,
       db.continuityIssues,
       db.rewriteDrafts,
+      db.aiJobs,
+      db.aiJobTasks,
+      db.aiJobCacheEntries,
     ],
     async () => {
       if (story) {
@@ -410,6 +439,7 @@ export async function clearStoryData(storyId: string) {
       const jobIds = jobs.map((job) => job.id);
 
       await db.aiJobs.where("storyId").equals(storyId).delete();
+      await db.aiJobCacheEntries.where("storyId").equals(storyId).delete();
 
       if (jobIds.length > 0) {
         await db.aiJobTasks.where("jobId").anyOf(jobIds).delete();

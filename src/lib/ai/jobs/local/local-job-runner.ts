@@ -1,7 +1,8 @@
-import type { AiJobStore } from "@/lib/ai/jobs/adapters";
+import type { AiJobCacheStore, AiJobStore } from "@/lib/ai/jobs/adapters";
 import { calculateAiJobProgress } from "@/lib/ai/jobs/progress";
 import type { AiJob, AiJobProgress, AiJobTask } from "@/lib/ai/jobs/types";
 import { LocalJobQueue } from "@/lib/ai/jobs/local/local-job-queue";
+import { createCacheMetadataFromTask } from "@/lib/ai/jobs/local/indexed-db-job-cache-store";
 import {
   type MockJobTaskResult,
   runMockJobTask,
@@ -12,6 +13,7 @@ export interface LocalJobRunnerOptions<Output = MockJobTaskResult> {
   signal?: AbortSignal;
   queue?: LocalJobQueue;
   store?: AiJobStore;
+  cacheStore?: AiJobCacheStore<Output>;
   onProgress?: (progress: AiJobProgress, tasks: AiJobTask[]) => void;
   handler?: (
     task: AiJobTask,
@@ -96,10 +98,22 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
       );
 
       try {
-        if (await options.isTaskCached?.(task, job)) {
+        const hasCacheKey = Boolean(task.cacheKey);
+        const cachedValueFromStore =
+          hasCacheKey && options.cacheStore
+            ? await options.cacheStore.get(task.cacheKey as string)
+            : undefined;
+        const hasCachedValueFromStore = cachedValueFromStore !== undefined;
+        const hasCachedTaskFromCallback = hasCachedValueFromStore
+          ? true
+          : await options.isTaskCached?.(task, job);
+
+        if (hasCachedTaskFromCallback) {
           const cachedOutput = options.createCachedResult
             ? await options.createCachedResult(task, job)
-            : await defaultCachedResult<Output>(task, job);
+            : hasCachedValueFromStore
+              ? cachedValueFromStore
+              : await defaultCachedResult<Output>(task, job);
 
           outputs.set(task.id, cachedOutput);
           await queue.skipTask(task.id, cachedOutput);
@@ -108,6 +122,14 @@ export async function runLocalAiJob<Output = MockJobTaskResult>(
 
           outputs.set(task.id, output);
           await queue.completeTask(task.id, output);
+
+          if (task.cacheKey && options.cacheStore) {
+            await options.cacheStore.set(
+              task.cacheKey,
+              output,
+              createCacheMetadataFromTask(task, job),
+            );
+          }
         }
 
         await persistSnapshot(queue, job.id, options.store);

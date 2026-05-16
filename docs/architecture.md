@@ -21,6 +21,7 @@ Large stories can reach 3000+ chapters. Direct frontend loops inside React compo
 - `src/lib/ai/jobs/local/local-job-runner.ts` runs queued tasks with bounded concurrency, progress callbacks, cancellation, retries, and mock execution.
 - `src/lib/ai/jobs/local/mock-job-task-handler.ts` returns predictable mock task results without calling any provider.
 - `src/lib/ai/jobs/local/indexed-db-job-store.ts` persists local job and task state through the shared `AiJobStore` interface.
+- `src/lib/ai/jobs/local/indexed-db-job-cache-store.ts` persists reusable task output by cache key through `AiJobCacheStore`.
 
 This keeps React screens focused on UI while job planning, batching, progress, retries, and caching can move behind adapters.
 
@@ -35,6 +36,14 @@ Durable local job state lives in IndexedDB through `IndexedDbJobStore`. The loca
 This is not a cloud queue. There is no Supabase table, Redis list, Cloudflare Queue, worker deployment, auth layer, or paid-service requirement. The local implementation exercises the same concepts future adapters need: task status transitions, dependency checks, retries, cache skips, bounded concurrency, cancellation, and progress calculation.
 
 Future cloud job stores, such as Supabase-backed metadata tables, can implement the same `AiJobStore` interface. That keeps resume/inspection persistence separate from the execution queue, whether tasks run in the browser, a local worker, or a later cloud worker.
+
+## Local Cache Store
+
+Cache keys are derived from content fingerprint + prompt fingerprint + provider/model identity. For story analysis this is produced by `createAiJobCacheKey`, which includes story scope plus a stable digest built from content hash and prompt version context.
+
+`IndexedDbJobCacheStore` stores derived task outputs in IndexedDB so repeated local analysis work can be skipped when a matching cache key already exists. Cache entries include hit metadata (`lastHitAt`, `hitCount`) and optional story/job/task/provider/prompt fields for inspection and cleanup.
+
+The cache is not the source of truth for stories or job state. It is reusable derived output that can be regenerated from canonical story text and prompts. Future Redis/Upstash or other cloud cache adapters can implement the same `AiJobCacheStore` interface.
 
 ## Adapter Direction
 
