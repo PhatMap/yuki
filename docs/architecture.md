@@ -63,6 +63,19 @@ Both local runtimes still preserve the current product contract: local job outpu
 
 `cloud-queue` remains future work for a later Supabase/Redis/Cloudflare adapter.
 
+## UI Motion Policy
+
+Yuki can use small animation patterns for state feedback, especially around job progress, runtime status, and long-running local processing.
+
+Animation must stay lightweight:
+- no large animation dependency by default
+- no blocking core product flow
+- respect `prefers-reduced-motion`
+- avoid decorative animation on dense reader text
+- keep analysis/rewrite progress readable before visual effects
+
+ReactBits-style components can be adapted selectively, but copied components must be reviewed for dependencies, accessibility, bundle impact, and license/source compatibility before being added to the project.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

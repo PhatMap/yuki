@@ -58,6 +58,8 @@ import { EmptyState } from "@/components/app/empty-state";
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
+import { AnimatedStatusCard } from "@/components/app/animated-status-card";
+import { ProgressMeter } from "@/components/app/progress-meter";
 import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
@@ -113,6 +115,18 @@ function shortenJobId(jobId: string) {
   if (jobId.length <= 36) return jobId;
 
   return `${jobId.slice(0, 18)}...${jobId.slice(-12)}`;
+}
+
+function formatJobProgressValue(state?: LocalAnalysisJobState) {
+  if (!state) return "idle";
+
+  return `${state.completedTasks}/${state.totalTasks}`;
+}
+
+function formatJobProgressDescription(state?: LocalAnalysisJobState) {
+  if (!state) return "No local job has started yet.";
+
+  return `${state.skippedTasks} skipped/cache hits · ${state.failedTasks} failed`;
 }
 
 function toLocalJobState(
@@ -423,28 +437,30 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             />
           </div>
 
-          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <RuntimeTile label="Job Runtime" value={runtimeConfig.jobRuntime} />
-            <RuntimeTile
-              label="Job Status"
-              value={localJobState?.status ?? "idle"}
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <AnimatedStatusCard
+              eyebrow="Local execution"
+              title="Job Runtime"
+              value={runtimeConfig.jobRuntime}
+              description="Controls whether analysis job planning runs in the browser, a local worker, or a future cloud queue."
             />
-            <RuntimeTile
-              label="Job ID"
-              value={
+
+            <AnimatedStatusCard
+              eyebrow="Story analysis job"
+              title={localJobState?.status ?? "idle"}
+              value={formatJobProgressValue(localJobState)}
+              description={
                 localJobState?.jobId
                   ? shortenJobId(localJobState.jobId)
                   : "not started"
               }
-            />
-            <RuntimeTile
-              label="Job Progress"
-              value={
-                localJobState
-                  ? `${localJobState.percentComplete}% (${localJobState.completedTasks}/${localJobState.totalTasks} completed, ${localJobState.skippedTasks} skipped, ${localJobState.failedTasks} failed)`
-                  : "0%"
-              }
-            />
+            >
+              <ProgressMeter
+                value={localJobState?.percentComplete ?? 0}
+                label="Job progress"
+                description={formatJobProgressDescription(localJobState)}
+              />
+            </AnimatedStatusCard>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
