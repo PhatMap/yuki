@@ -116,6 +116,12 @@ The preferred job runtime is stored in IndexedDB with the global AI runtime sett
 
 The public env value `NEXT_PUBLIC_JOB_RUNTIME` remains a fallback for fresh installs and environments without saved runtime settings.
 
+## Cancelable Local Analysis Jobs
+
+The Analysis Dashboard uses `AbortController` for local-browser and local-worker story analysis jobs. Users can cancel the local orchestration stage before the final `runAiPipeline` save flow starts.
+
+Cancellation currently applies to the local job planning/runner stage. The existing pipeline contract remains unchanged.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

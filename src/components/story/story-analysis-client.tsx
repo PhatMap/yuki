@@ -6,6 +6,7 @@ import {
   type ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -160,6 +161,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
   const [localJobState, setLocalJobState] = useState<LocalAnalysisJobState>();
   const [jobRuntimeNote, setJobRuntimeNote] = useState("");
+  const [isLocalJobRunning, setIsLocalJobRunning] = useState(false);
+  const analysisAbortControllerRef = useRef<AbortController | null>(null);
   const runtimeConfig = useMemo(() => getPublicRuntimeConfig(), []);
 
   useEffect(() => {
@@ -245,6 +248,41 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     : "Loading";
   const activeJobRuntime = runtimeSettings?.jobRuntime ?? runtimeConfig.jobRuntime;
 
+  function createAnalysisAbortController() {
+    analysisAbortControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    analysisAbortControllerRef.current = controller;
+
+    return controller;
+  }
+
+  function clearAnalysisAbortController(controller: AbortController) {
+    if (analysisAbortControllerRef.current === controller) {
+      analysisAbortControllerRef.current = null;
+    }
+  }
+
+  function isAbortError(error: unknown) {
+    return error instanceof DOMException && error.name === "AbortError";
+  }
+
+  function handleCancelAnalysisJob() {
+    analysisAbortControllerRef.current?.abort();
+    analysisAbortControllerRef.current = null;
+    setIsLocalJobRunning(false);
+    setIsSavingAnalysis(false);
+    setLocalJobState((current) =>
+      current
+        ? {
+            ...current,
+            status: "cancelled",
+            message: "Local analysis job was cancelled.",
+          }
+        : current,
+    );
+  }
+
   async function handleStartAnalysis() {
     if (isSavingAnalysis) return;
 
@@ -255,6 +293,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     setJobRuntimeNote("");
     setLocalJobState(undefined);
     let localAnalysisResult: StoryAnalysisResult | undefined;
+    const controller = createAnalysisAbortController();
+    setIsLocalJobRunning(
+      activeJobRuntime === "local-browser" || activeJobRuntime === "local-worker",
+    );
 
     if (activeJobRuntime === "local-browser") {
       try {
@@ -264,6 +306,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           chapters,
           chunks,
           runtimeSettings: runtimeSettings ?? undefined,
+          signal: controller.signal,
           onProgress: (progress, tasks) => {
             const jobId = tasks[0]?.jobId ?? localJobState?.jobId ?? "";
 
@@ -280,6 +323,23 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           },
         });
 
+        if (localJobResult.runnerResult.cancelled) {
+          setLocalJobState({
+            jobId: localJobResult.job.id,
+            status: "cancelled",
+            totalTasks: localJobResult.progress.totalTasks,
+            completedTasks: localJobResult.completedTasks,
+            skippedTasks: localJobResult.skippedTasks,
+            failedTasks: localJobResult.failedTasks,
+            percentComplete: localJobResult.progress.percentComplete,
+            message: "Local analysis job was cancelled.",
+          });
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setIsSavingAnalysis(false);
+          return;
+        }
+
         setLocalJobState({
           jobId: localJobResult.job.id,
           status: localJobResult.job.status,
@@ -293,12 +353,22 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         localAnalysisResult = localJobResult.analysisResult;
         setLocalAggregatedResult(localAnalysisResult);
       } catch (error) {
+        if (isAbortError(error)) {
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setStorageError("");
+          setIsSavingAnalysis(false);
+          return;
+        }
+
         console.error("Failed to run local story analysis job", error);
         setStorageError(
           error instanceof Error
             ? `Local job orchestration failed: ${error.message}`
             : "Local job orchestration failed.",
         );
+        clearAnalysisAbortController(controller);
+        setIsLocalJobRunning(false);
         setIsSavingAnalysis(false);
         return;
       }
@@ -313,6 +383,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             runtimeSettings: runtimeSettings ?? undefined,
           },
           {
+            signal: controller.signal,
             onProgress: (snapshot) => {
               setLocalJobState(toLocalJobState(snapshot));
             },
@@ -323,12 +394,22 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         localAnalysisResult = workerResult.analysisResult;
         setLocalAggregatedResult(localAnalysisResult);
       } catch (error) {
+        if (isAbortError(error)) {
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setStorageError("");
+          setIsSavingAnalysis(false);
+          return;
+        }
+
         console.error("Failed to run local worker story analysis job", error);
         setStorageError(
           error instanceof Error
             ? `Local worker job orchestration failed: ${error.message}`
             : "Local worker job orchestration failed.",
         );
+        clearAnalysisAbortController(controller);
+        setIsLocalJobRunning(false);
         setIsSavingAnalysis(false);
         return;
       }
@@ -338,6 +419,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       );
     }
 
+    clearAnalysisAbortController(controller);
+    setIsLocalJobRunning(false);
     const pipelineResult = await runAiPipeline({
       storyId,
       story,
@@ -434,6 +517,16 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 <Play className="mr-2 h-4 w-4" />
                 {isSavingAnalysis ? "Running..." : "Run analysis"}
               </Button>
+
+              {isLocalJobRunning ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelAnalysisJob}
+                >
+                  Cancel local job
+                </Button>
+              ) : null}
             </>
           }
         />

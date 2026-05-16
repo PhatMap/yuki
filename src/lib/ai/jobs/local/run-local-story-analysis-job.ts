@@ -51,6 +51,7 @@ export interface RunLocalStoryAnalysisJobInput {
   providerTarget?: LocalStoryAnalysisProviderTarget;
   runtimeTarget?: AiJobRuntimeTarget;
   batchSize?: number;
+  signal?: AbortSignal;
   onProgress?: (progress: AiJobProgress, tasks: AiJobTask[]) => void;
 }
 
@@ -183,6 +184,7 @@ export async function runLocalStoryAnalysisJob(
     {
       store: jobStore,
       cacheStore,
+      signal: input.signal,
       onProgress: input.onProgress,
       handler: (task, job, signal) =>
         runLocalStoryAnalysisTask(
