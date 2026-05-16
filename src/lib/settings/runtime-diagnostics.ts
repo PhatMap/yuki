@@ -3,7 +3,10 @@ import {
   getActiveRuntimeModel,
 } from "@/lib/settings/ai-runtime-settings";
 import { getPromptTemplates } from "@/lib/prompts/prompt-registry";
-import { runGeminiProxyRouteDiagnostics } from "@/lib/settings/gemini-proxy-runtime-diagnostics";
+import {
+  runGeminiProxyModelDiagnostics,
+  runGeminiProxyRouteDiagnostics,
+} from "@/lib/settings/gemini-proxy-runtime-diagnostics";
 import { runOllamaConnectivityDiagnostics } from "@/lib/settings/ollama-runtime-diagnostics";
 import { runRuntimeDiagnosticsWorkerSmokeTest } from "@/lib/settings/run-runtime-diagnostics-worker-smoke-test";
 import type { AiRuntimeSettings } from "@/lib/settings/ai-runtime-settings";
@@ -186,6 +189,10 @@ export async function runRuntimeDiagnostics(
     settings.providerId === "gemini-proxy"
       ? await runGeminiProxyRouteDiagnostics(settings.geminiProxyEndpoint)
       : undefined;
+  const geminiProxyModelDiagnostics =
+    settings.providerId === "gemini-proxy"
+      ? await runGeminiProxyModelDiagnostics(settings.geminiProxyEndpoint)
+      : undefined;
   const ollamaDiagnostics =
     settings.providerId === "ollama"
       ? await runOllamaConnectivityDiagnostics({
@@ -355,7 +362,41 @@ export async function runRuntimeDiagnostics(
         message:
           geminiProxyRouteDiagnostics?.message ??
           "Gemini proxy route diagnostics were not run.",
-        detail: settings.geminiProxyEndpoint,
+        detail: [
+          `endpoint=${settings.geminiProxyEndpoint || "empty"}`,
+          `adapter=${geminiProxyRouteDiagnostics?.adapter ?? "unknown"}`,
+          `keyCount=${String(geminiProxyRouteDiagnostics?.keyCount ?? 0)}`,
+          `baseUrlConfigured=${String(
+            geminiProxyRouteDiagnostics?.baseUrlConfigured ?? false,
+          )}`,
+        ].join(" | "),
+      }),
+      createItem({
+        id: "gemini-proxy-key-pool",
+        label: "Gemini proxy key pool",
+        status:
+          (geminiProxyRouteDiagnostics?.keyCount ?? 0) > 0 ? "pass" : "warning",
+        message:
+          (geminiProxyRouteDiagnostics?.keyCount ?? 0) > 0
+            ? `Server-side key pool has ${geminiProxyRouteDiagnostics?.keyCount} key(s).`
+            : "No server-side Gemini proxy key is configured.",
+        detail: "Keys are server-only and not exposed to browser.",
+      }),
+      createItem({
+        id: "gemini-proxy-model-discovery",
+        label: "Gemini proxy model discovery",
+        status:
+          geminiProxyModelDiagnostics?.ok &&
+          (geminiProxyModelDiagnostics.modelCount ?? 0) > 0
+            ? "pass"
+            : "warning",
+        message:
+          geminiProxyModelDiagnostics?.message ??
+          "Gemini proxy model discovery was not run.",
+        detail:
+          geminiProxyModelDiagnostics?.models.length
+            ? geminiProxyModelDiagnostics.models.slice(0, 8).join(", ")
+            : undefined,
       }),
     );
   } else if (settings.providerId === "ollama") {

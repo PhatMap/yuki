@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import {
   callGeminiGenerateContent,
+  getGeminiProxyServerConfig,
+  isGeminiProxyConfigError,
   normalizeGeminiModel,
   validateGeminiProxyRequestBody,
 } from "@/lib/ai/gemini-proxy-server";
@@ -22,16 +24,18 @@ function createErrorResponse(errorMessage: string): GeminiProxyErrorResponse {
 }
 
 export async function GET() {
-  const configured = Boolean(process.env.GEMINI_API_KEY?.trim());
+  const config = getGeminiProxyServerConfig();
 
   return NextResponse.json(
     {
       provider: "gemini-proxy",
       ok: true,
-      configured,
-      message: configured
-        ? "Gemini proxy route is configured."
-        : "GEMINI_API_KEY is missing.",
+      configured: config.configured,
+      adapter: config.adapter,
+      keyCount: config.keyCount,
+      baseUrlConfigured: Boolean(config.baseUrl),
+      modelSource: config.modelSource,
+      message: config.message,
     },
     { status: 200 },
   );
@@ -64,18 +68,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-
-  if (!apiKey) {
-    return NextResponse.json(
-      createErrorResponse("GEMINI_API_KEY is not configured on the server."),
-      { status: 500 },
-    );
-  }
-
   try {
     const analysisResult = await callGeminiGenerateContent({
-      apiKey,
       body: validatedBody,
     });
     const responseBody: GeminiProxySuccessResponse = {
@@ -87,13 +81,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(responseBody);
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Gemini proxy request failed.";
+
     return NextResponse.json(
-      createErrorResponse(
-        error instanceof Error
-          ? error.message
-          : "Gemini proxy request failed.",
-      ),
-      { status: 502 },
+      createErrorResponse(errorMessage),
+      { status: isGeminiProxyConfigError(error) ? 500 : 502 },
     );
   }
 }

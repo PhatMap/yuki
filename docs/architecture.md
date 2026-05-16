@@ -230,6 +230,22 @@ Global Settings includes a one-click Gemini Core profile action that applies pro
 
 The profile is not auto-saved; users still confirm with Save Settings. Server-side `/api/ai/gemini` requires `GEMINI_API_KEY` in server environment variables, and the browser never receives that key. Ollama remains a fallback/experiment path.
 
+## Gemini Proxy Adapter Profiles
+
+`/api/ai/gemini` is the single browser-facing core endpoint for real analysis calls.
+
+Server-side adapter profiles are supported:
+- `google-generative-language`: official Google Gemini REST using `GEMINI_API_KEY` (server-only).
+- `openai-compatible`: OpenAI-compatible Gemini proxy using `GEMINI_PROXY_BASE_URL` and `GEMINI_PROXY_API_KEYS` (server-only).
+
+Key pools are resolved only on the server. Runtime diagnostics and readiness endpoints expose key counts and adapter metadata only; raw keys are never returned to the browser.
+
+`/api/ai/gemini/models` supports model discovery:
+- static recommended models for the Google adapter
+- remote `/v1/models` fetch for openai-compatible adapter
+
+This preserves the older Gemini Proxy setup concept (profile + model picker + endpoint test + multi-key support) while keeping secrets out of browser storage.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

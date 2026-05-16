@@ -166,6 +166,10 @@ export function GlobalSettingsClient() {
   const [isExportingAppBackup, setIsExportingAppBackup] = useState(false);
   const [isValidatingAppBackup, setIsValidatingAppBackup] = useState(false);
   const [isRestoringAppBackup, setIsRestoringAppBackup] = useState(false);
+  const [geminiProxyDiscoveredModels, setGeminiProxyDiscoveredModels] =
+    useState<string[]>([]);
+  const [isFetchingGeminiProxyModels, setIsFetchingGeminiProxyModels] =
+    useState(false);
   const [appBackupValidationResult, setAppBackupValidationResult] =
     useState<AppBackupValidationResult>();
 
@@ -207,6 +211,25 @@ export function GlobalSettingsClient() {
   const shouldWarnGeminiModel =
     settings.providerId === "gemini-proxy" &&
     isInvalidGeminiProxyModel(settings.defaultModel);
+  const geminiProxyModelPickerOptions = useMemo(() => {
+    const normalizedCurrentModel = settings.defaultModel.trim();
+    const combinedModels = [
+      ...geminiProxyModelOptions,
+      ...geminiProxyDiscoveredModels,
+    ].map((model) => model.trim());
+    const deduplicatedModels = Array.from(
+      new Set(combinedModels.filter((model) => model.length > 0)),
+    );
+
+    if (
+      normalizedCurrentModel &&
+      !deduplicatedModels.includes(normalizedCurrentModel)
+    ) {
+      deduplicatedModels.unshift(normalizedCurrentModel);
+    }
+
+    return deduplicatedModels;
+  }, [geminiProxyDiscoveredModels, settings.defaultModel]);
 
   function updateSettings<K extends keyof AiRuntimeSettings>(
     key: K,
@@ -278,6 +301,91 @@ export function GlobalSettingsClient() {
     setMessage(
       "Gemini Core profile applied locally. Click Save Settings to persist it.",
     );
+  }
+
+  async function handleFetchGeminiProxyModels() {
+    setIsFetchingGeminiProxyModels(true);
+    setMessage("");
+
+    try {
+      const endpoint =
+        settings.geminiProxyEndpoint.trim() || GEMINI_CORE_DEFAULT_ENDPOINT;
+
+      if (
+        endpoint.startsWith("http://") ||
+        endpoint.startsWith("https://")
+      ) {
+        setMessage(
+          "Absolute Gemini proxy endpoints are not fetched directly from this browser UI. Use Runtime Diagnostics or your server-side models route.",
+        );
+        return;
+      }
+
+      if (!endpoint.startsWith("/")) {
+        setMessage(
+          "Gemini proxy endpoint should be a relative app route like /api/ai/gemini.",
+        );
+        return;
+      }
+
+      const normalizedEndpoint = endpoint.replace(/\/+$/g, "");
+      const modelsEndpoint =
+        normalizedEndpoint === "/api/ai/gemini" ||
+        normalizedEndpoint.endsWith("/api/ai/gemini")
+          ? `${normalizedEndpoint}/models`
+          : `${normalizedEndpoint}/models`;
+      const response = await fetch(modelsEndpoint, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        setMessage(
+          `Could not fetch Gemini proxy models (HTTP ${response.status}).`,
+        );
+        return;
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        setMessage("Gemini proxy models response was invalid.");
+        return;
+      }
+      const payloadRecord = payload as Record<string, unknown>;
+
+      const models = Array.isArray(payloadRecord.models)
+        ? payloadRecord.models.filter(
+            (model): model is string => typeof model === "string",
+          )
+        : [];
+      const deduplicatedModels = Array.from(
+        new Set(models.map((model) => model.trim()).filter((model) => model)),
+      );
+
+      if (deduplicatedModels.length === 0) {
+        const maybeMessage =
+          typeof payloadRecord.message === "string"
+            ? payloadRecord.message
+            : "Gemini proxy model discovery returned no models.";
+
+        setMessage(maybeMessage);
+        return;
+      }
+
+      setGeminiProxyDiscoveredModels(deduplicatedModels);
+      setMessage(`Gemini proxy models loaded: ${deduplicatedModels.length}.`);
+
+      if (
+        isInvalidGeminiProxyModel(settings.defaultModel) &&
+        deduplicatedModels[0]
+      ) {
+        updateSettings("defaultModel", deduplicatedModels[0]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch Gemini proxy models", error);
+      setMessage("Could not fetch Gemini proxy models.");
+    } finally {
+      setIsFetchingGeminiProxyModels(false);
+    }
   }
 
   async function handleRunRuntimeDiagnostics() {
@@ -624,13 +732,29 @@ export function GlobalSettingsClient() {
                       updateSettings("defaultModel", event.target.value)
                     }
                   >
-                    {geminiProxyModelOptions.map((model) => (
+                    {geminiProxyModelPickerOptions.map((model) => (
                       <option key={model} value={model}>
                         {model}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleFetchGeminiProxyModels}
+                  disabled={isFetchingGeminiProxyModels}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {isFetchingGeminiProxyModels
+                    ? "Fetching models..."
+                    : "Fetch Gemini Proxy Models"}
+                </Button>
+                <p className="app-muted-text">
+                  Models are fetched from the server proxy route. API keys stay
+                  server-only.
+                </p>
               </div>
             </SectionCard>
 
