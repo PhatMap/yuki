@@ -391,6 +391,14 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         );
 
         setLocalJobState(toLocalJobState(workerResult.summary));
+
+        if (workerResult.summary.status === "cancelled") {
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setIsSavingAnalysis(false);
+          return;
+        }
+
         localAnalysisResult = workerResult.analysisResult;
         setLocalAggregatedResult(localAnalysisResult);
       } catch (error) {

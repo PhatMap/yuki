@@ -57,8 +57,13 @@ export function runLocalStoryAnalysisWorkerJob(
       { type: "module" },
     );
     let settled = false;
+    let cancelFallbackTimeout: ReturnType<typeof setTimeout> | undefined;
 
     function cleanup() {
+      if (cancelFallbackTimeout) {
+        clearTimeout(cancelFallbackTimeout);
+      }
+
       worker.terminate();
       options.signal?.removeEventListener("abort", handleAbort);
     }
@@ -80,7 +85,16 @@ export function runLocalStoryAnalysisWorkerJob(
     }
 
     function handleAbort() {
-      settleReject(createAbortError());
+      if (settled) return;
+
+      worker.postMessage({
+        type: "cancel",
+        requestId,
+      });
+
+      cancelFallbackTimeout = setTimeout(() => {
+        settleReject(createAbortError());
+      }, 3000);
     }
 
     options.signal?.addEventListener("abort", handleAbort, { once: true });

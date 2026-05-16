@@ -122,6 +122,12 @@ The Analysis Dashboard uses `AbortController` for local-browser and local-worker
 
 Cancellation currently applies to the local job planning/runner stage. The existing pipeline contract remains unchanged.
 
+## Graceful Local Worker Cancellation
+
+Local worker analysis cancellation uses a cancel message before terminating the worker. This gives the worker-side local runner a chance to persist the final cancelled job/task snapshot into IndexedDB.
+
+If the worker does not respond after a short fallback timeout, the main thread still terminates it to avoid leaving a stuck worker alive.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

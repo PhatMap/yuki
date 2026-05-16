@@ -1,7 +1,7 @@
 import { runLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/run-local-story-analysis-job";
 import type {
+  LocalStoryAnalysisWorkerIncomingMessage,
   LocalStoryAnalysisWorkerMessage,
-  LocalStoryAnalysisWorkerRequest,
   LocalStoryAnalysisWorkerProgressSnapshot,
 } from "@/lib/ai/jobs/local/worker/local-story-analysis-worker-types";
 
@@ -35,10 +35,33 @@ function createProgressSnapshot({
   };
 }
 
+let activeAbortController: AbortController | null = null;
+let activeRequestId: string | null = null;
+
+function isCancelRequest(
+  message: LocalStoryAnalysisWorkerIncomingMessage,
+): message is { type: "cancel"; requestId: string } {
+  return "type" in message && message.type === "cancel";
+}
+
 globalThis.addEventListener(
   "message",
-  async (event: MessageEvent<LocalStoryAnalysisWorkerRequest>) => {
+  async (event: MessageEvent<LocalStoryAnalysisWorkerIncomingMessage>) => {
     const request = event.data;
+
+    if (isCancelRequest(request)) {
+      if (activeAbortController && activeRequestId === request.requestId) {
+        activeAbortController.abort(
+          new DOMException("Local worker analysis job cancelled.", "AbortError"),
+        );
+      }
+
+      return;
+    }
+
+    const controller = new AbortController();
+    activeAbortController = controller;
+    activeRequestId = request.requestId;
 
     try {
       const result = await runLocalStoryAnalysisJob({
@@ -50,6 +73,7 @@ globalThis.addEventListener(
         providerTarget: request.providerTarget,
         runtimeTarget: "local-worker",
         batchSize: request.batchSize,
+        signal: controller.signal,
         onProgress: (progress, tasks) => {
           const jobId = tasks[0]?.jobId ?? "";
 
@@ -91,6 +115,11 @@ globalThis.addEventListener(
         requestId: request.requestId,
         errorMessage: getErrorMessage(error),
       });
+    } finally {
+      if (activeRequestId === request.requestId) {
+        activeAbortController = null;
+        activeRequestId = null;
+      }
     }
   },
 );

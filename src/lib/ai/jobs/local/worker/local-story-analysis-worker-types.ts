@@ -25,6 +25,15 @@ export interface LocalStoryAnalysisWorkerRequest {
   batchSize?: number;
 }
 
+export interface LocalStoryAnalysisWorkerCancelRequest {
+  type: "cancel";
+  requestId: string;
+}
+
+export type LocalStoryAnalysisWorkerIncomingMessage =
+  | LocalStoryAnalysisWorkerRequest
+  | LocalStoryAnalysisWorkerCancelRequest;
+
 export interface LocalStoryAnalysisWorkerProgressSnapshot {
   jobId: string;
   status: string;
