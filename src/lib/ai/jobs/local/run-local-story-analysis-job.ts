@@ -154,6 +154,16 @@ export async function runLocalStoryAnalysisJob(
   }
 
   const providerTarget = toProviderTarget(input);
+
+  if (
+    providerTarget.providerId !== "mock" &&
+    providerTarget.providerId !== "gemini-proxy"
+  ) {
+    throw new Error(
+      `Provider ${providerTarget.providerId} is not supported by local batch analysis yet.`,
+    );
+  }
+
   const promptTemplate = await getPromptTemplateById(DEFAULT_PROMPT_TEMPLATE_ID);
   const promptVersionHash = createPromptVersionHash(promptTemplate);
   const items =
@@ -192,8 +202,10 @@ export async function runLocalStoryAnalysisJob(
           job,
           {
             storyId: input.storyId,
+            story: input.story,
             chapters: input.chapters,
             chunks: input.chunks,
+            runtimeSettings: input.runtimeSettings,
           },
           signal,
         ),

@@ -185,22 +185,14 @@ export function listAiPipelineProviders() {
   return Object.values(providers);
 }
 
-export async function runAiPipeline(
+export async function runAiPipelineWithSettings(
   input: AiPipelineInput,
-  providerId?: AiPipelineProviderId,
+  settings: AiRuntimeSettings,
 ): Promise<AiPipelineResult> {
   const startedAt = new Date().toISOString();
-  const storedSettings = await getAiRuntimeSettings();
-  const runtimeProviderId = providerId ?? storedSettings.providerId;
-
-  const effectiveSettings: AiRuntimeSettings = {
-    ...storedSettings,
-    providerId: runtimeProviderId,
-  };
-
-  const context = await createExecutionContext(input, effectiveSettings);
+  const context = await createExecutionContext(input, settings);
   const pipelineProviderId = mapRuntimeProviderToPipelineProviderId(
-    effectiveSettings.providerId,
+    settings.providerId,
   );
 
   if (!pipelineProviderId) {
@@ -215,4 +207,19 @@ export async function runAiPipeline(
   const provider = getAiPipelineProvider(pipelineProviderId);
 
   return provider.run(input, context);
+}
+
+export async function runAiPipeline(
+  input: AiPipelineInput,
+  providerId?: AiPipelineProviderId,
+): Promise<AiPipelineResult> {
+  const storedSettings = await getAiRuntimeSettings();
+  const runtimeProviderId = providerId ?? storedSettings.providerId;
+
+  const effectiveSettings: AiRuntimeSettings = {
+    ...storedSettings,
+    providerId: runtimeProviderId,
+  };
+
+  return runAiPipelineWithSettings(input, effectiveSettings);
 }

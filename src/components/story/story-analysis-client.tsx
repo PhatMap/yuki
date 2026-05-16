@@ -247,6 +247,9 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     ? getActiveRuntimeEndpoint(runtimeSettings)
     : "Loading";
   const activeJobRuntime = runtimeSettings?.jobRuntime ?? runtimeConfig.jobRuntime;
+  const canUseLocalAggregatedAnalysis =
+    runtimeSettings?.providerId === "mock" ||
+    runtimeSettings?.providerId === "gemini-proxy";
 
   function createAnalysisAbortController() {
     analysisAbortControllerRef.current?.abort();
@@ -429,21 +432,56 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
     clearAnalysisAbortController(controller);
     setIsLocalJobRunning(false);
-    const pipelineResult = await runAiPipeline({
-      storyId,
-      story,
-      chapters,
-      chunks,
-    });
-    const localMockAnalysisResult =
-      runtimeSettings?.providerId === "mock" ? localAnalysisResult : undefined;
+    const usedLocalBatchRuntime =
+      activeJobRuntime === "local-browser" || activeJobRuntime === "local-worker";
+    let effectivePipelineResult: AiPipelineResult;
 
-    const effectivePipelineResult: AiPipelineResult = localMockAnalysisResult
-      ? {
-          ...pipelineResult,
-          analysisResult: localMockAnalysisResult,
-        }
-      : pipelineResult;
+    if (canUseLocalAggregatedAnalysis && usedLocalBatchRuntime) {
+      if (!runtimeSettings || !localAnalysisResult) {
+        setStorageError(
+          "Local batch analysis did not return an aggregated analysis result.",
+        );
+        setIsSavingAnalysis(false);
+        return;
+      }
+
+      effectivePipelineResult = {
+        providerId: runtimeSettings.providerId,
+        providerLabel: runtimeProviderLabel,
+        status: "completed",
+        analysisResult: localAnalysisResult,
+        steps: [
+          {
+            status: "completed",
+            currentStep: "complete",
+            message:
+              runtimeSettings.providerId === "gemini-proxy"
+                ? "Gemini Proxy batch analysis completed through local jobs."
+                : "Mock batch analysis completed through local jobs.",
+            completedSteps: ["complete"],
+            totalSteps: 1,
+          },
+        ],
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        runtime: {
+          settings: runtimeSettings,
+          providerId: runtimeSettings.providerId,
+          providerLabel: runtimeProviderLabel,
+          endpoint: runtimeEndpoint,
+          model: runtimeModel,
+          temperature: runtimeSettings.temperature,
+          maxOutputTokens: runtimeSettings.maxOutputTokens,
+        },
+      };
+    } else {
+      effectivePipelineResult = await runAiPipeline({
+        storyId,
+        story,
+        chapters,
+        chunks,
+      });
+    }
 
     setLastPipelineResult(effectivePipelineResult);
 
@@ -603,9 +641,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           {localAggregatedResult?.updatedAt ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Local aggregated mock result ready at{" "}
+              Local aggregated result ready at{" "}
               {new Date(localAggregatedResult.updatedAt).toLocaleString("vi-VN")}
               .
+            </p>
+          ) : null}
+
+          {runtimeSettings?.providerId === "gemini-proxy" &&
+          localAggregatedResult ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Gemini Proxy batch result is ready and will be saved without a
+              second full-story request.
             </p>
           ) : null}
 

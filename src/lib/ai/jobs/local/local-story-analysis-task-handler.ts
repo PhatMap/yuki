@@ -1,22 +1,35 @@
 import { runMockAnalysis } from "@/lib/mock-analysis";
+import { runAiPipelineWithSettings } from "@/lib/ai/pipeline";
+import type { AiPipelineInput } from "@/lib/ai/types";
 import type { StoryAnalysisTaskInput } from "@/lib/ai/jobs/story-analysis-job-planner";
 import type { AiJob, AiJobTask } from "@/lib/ai/jobs/types";
+import type { AiRuntimeSettings } from "@/lib/settings/ai-runtime-settings";
+import {
+  getActiveRuntimeEndpoint,
+  getActiveRuntimeModel,
+} from "@/lib/settings/ai-runtime-settings";
 import type {
   ChapterChunk,
   ImportedChapter,
+  Story,
   StoryAnalysisResult,
 } from "@/lib/types";
 
 export interface LocalStoryAnalysisTaskSource {
   storyId: string;
+  story?: Story;
   chapters: ImportedChapter[];
   chunks: ChapterChunk[];
+  runtimeSettings?: AiRuntimeSettings;
 }
 
 export interface LocalStoryAnalysisTaskOutput {
   taskId: string;
   jobId: string;
   kind: string;
+  providerId: string;
+  model?: string;
+  endpoint?: string;
   cacheKey?: string;
   processedAt: string;
   chapterIds: string[];
@@ -98,7 +111,43 @@ function selectTaskChapters(
   return createFallbackChaptersFromChunks({
     storyId: source.storyId,
     chunks: selectedChunks,
-  });
+  }).sort((left, right) => left.chapterNumber - right.chapterNumber);
+}
+
+function selectTaskChunks(
+  taskInput: StoryAnalysisTaskInput,
+  source: LocalStoryAnalysisTaskSource,
+) {
+  const chunkIdSet = new Set(taskInput.chunkIds);
+
+  return source.chunks
+    .filter((chunk) => chunkIdSet.has(chunk.id))
+    .sort((left, right) => {
+      if (left.chapterNumber !== right.chapterNumber) {
+        return left.chapterNumber - right.chapterNumber;
+      }
+
+      return left.chunkIndex - right.chunkIndex;
+    });
+}
+
+function createTaskPipelineInput(
+  taskInput: StoryAnalysisTaskInput,
+  source: LocalStoryAnalysisTaskSource,
+  selectedChapters: ImportedChapter[],
+  selectedChunks: ChapterChunk[],
+): AiPipelineInput {
+  return {
+    storyId: source.storyId,
+    story: source.story,
+    chapters: selectedChapters,
+    chunks:
+      taskInput.chunkIds.length > 0
+        ? selectedChunks
+        : selectedChunks.length > 0
+          ? selectedChunks
+          : undefined,
+  };
 }
 
 export async function runLocalStoryAnalysisTask(
@@ -110,7 +159,56 @@ export async function runLocalStoryAnalysisTask(
   waitForAbort(signal);
 
   const selectedChapters = selectTaskChapters(task.input, source);
-  const partialResult = runMockAnalysis(source.storyId, selectedChapters);
+  const selectedChunks = selectTaskChunks(task.input, source);
+  const providerId = source.runtimeSettings?.providerId ?? "mock";
+  const model = source.runtimeSettings
+    ? getActiveRuntimeModel(source.runtimeSettings)
+    : "mock-local";
+  const endpoint = source.runtimeSettings
+    ? getActiveRuntimeEndpoint(source.runtimeSettings)
+    : "local mock runtime";
+  let partialResult: StoryAnalysisResult;
+  let summary = "";
+
+  if (providerId === "mock") {
+    partialResult = runMockAnalysis(source.storyId, selectedChapters);
+    summary = `Local mock analysis processed ${selectedChapters.length} chapter(s).`;
+  } else if (providerId === "gemini-proxy") {
+    if (!source.runtimeSettings) {
+      throw new Error(
+        "Gemini Proxy batch task requires runtime settings in local source.",
+      );
+    }
+
+    const pipelineInput = createTaskPipelineInput(
+      task.input,
+      source,
+      selectedChapters,
+      selectedChunks,
+    );
+    waitForAbort(signal);
+    const pipelineResult = await runAiPipelineWithSettings(
+      pipelineInput,
+      source.runtimeSettings,
+    );
+    waitForAbort(signal);
+
+    if (pipelineResult.status !== "completed" || !pipelineResult.analysisResult) {
+      throw new Error(
+        pipelineResult.errorMessage ??
+          "Gemini Proxy batch task did not return analysis result.",
+      );
+    }
+
+    partialResult = pipelineResult.analysisResult;
+    summary = `Gemini Proxy analysis processed chapter(s): ${task.input.chapterNumbers.join(
+      ", ",
+    )}.`;
+  } else {
+    throw new Error(
+      `Provider ${providerId} is not supported by local batch analysis yet.`,
+    );
+  }
 
   waitForAbort(signal);
 
@@ -118,12 +216,15 @@ export async function runLocalStoryAnalysisTask(
     taskId: task.id,
     jobId: job.id,
     kind: task.kind,
+    providerId,
+    model,
+    endpoint,
     cacheKey: task.cacheKey,
     processedAt: new Date().toISOString(),
     chapterIds: task.input.chapterIds,
     chunkIds: task.input.chunkIds,
     chapterNumbers: task.input.chapterNumbers,
     partialResult,
-    summary: `Local mock analysis processed ${selectedChapters.length} chapter(s).`,
+    summary,
   };
 }

@@ -256,6 +256,18 @@ Raw key values are never exposed to the browser. Runtime diagnostics expose only
 
 This is failover at request level, not a full queue or global rate limiter.
 
+## Gemini Proxy Batch Analysis Jobs
+
+Gemini Proxy now runs through local story-analysis job batches instead of a single full-story provider call when local-browser or local-worker runtime is selected.
+
+Each planned task executes through the existing browser pipeline provider contract, which calls the server-side `/api/ai/gemini` route. The server route still applies adapter profile selection, server-side key-pool failover, and retry policy.
+
+Task outputs remain cache-aware through the local job cache fingerprint (content + prompt + provider/model context). Partial `StoryAnalysisResult` outputs are aggregated into one final story-level result before the normal save flow persists analysis data.
+
+When Gemini Proxy batch aggregation succeeds, the dashboard saves that aggregated result directly and does not perform a second full-story Gemini request.
+
+Mock remains a deterministic local batch path. Ollama remains outside this local batch provider set for now.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
