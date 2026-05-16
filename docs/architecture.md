@@ -128,6 +128,12 @@ Local worker analysis cancellation uses a cancel message before terminating the 
 
 If the worker does not respond after a short fallback timeout, the main thread still terminates it to avoid leaving a stuck worker alive.
 
+## Runtime Diagnostics
+
+Global Settings includes a runtime diagnostics panel for local-first development. It checks browser IndexedDB availability, Web Worker support, selected job runtime behavior, and whether the selected provider is currently wired into the browser analysis pipeline.
+
+Diagnostics are read-only. They do not call external AI APIs, mutate story data, or change runtime settings.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

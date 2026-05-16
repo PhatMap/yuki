@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,11 @@ import {
   type AiRuntimeProviderId,
   type AiRuntimeSettings,
 } from "@/lib/settings/ai-runtime-settings";
+import {
+  runRuntimeDiagnostics,
+  type RuntimeDiagnosticStatus,
+  type RuntimeDiagnosticsReport,
+} from "@/lib/settings/runtime-diagnostics";
 
 const geminiProxyModelOptions = [
   "gemini-2.5-flash",
@@ -111,6 +117,13 @@ function getJobRuntimeIcon(jobRuntime: AiRuntimeSettings["jobRuntime"]) {
   return <Gauge className="h-5 w-5" />;
 }
 
+function getRuntimeDiagnosticBadgeVariant(status: RuntimeDiagnosticStatus) {
+  if (status === "pass") return "secondary";
+  if (status === "fail") return "destructive";
+
+  return "outline";
+}
+
 export function GlobalSettingsClient() {
   const [settings, setSettings] = useState<AiRuntimeSettings>(
     defaultAiRuntimeSettings,
@@ -118,6 +131,9 @@ export function GlobalSettingsClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [runtimeDiagnostics, setRuntimeDiagnostics] =
+    useState<RuntimeDiagnosticsReport>();
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -216,6 +232,23 @@ export function GlobalSettingsClient() {
     ].join("\n");
 
     setMessage(report);
+  }
+
+  async function handleRunRuntimeDiagnostics() {
+    setIsRunningDiagnostics(true);
+    setMessage("");
+
+    try {
+      const report = await runRuntimeDiagnostics(settings);
+
+      setRuntimeDiagnostics(report);
+      setMessage(`Runtime diagnostics completed: ${report.overallStatus}.`);
+    } catch (error) {
+      console.error("Failed to run runtime diagnostics", error);
+      setMessage("Could not run runtime diagnostics.");
+    } finally {
+      setIsRunningDiagnostics(false);
+    }
   }
 
   return (
@@ -568,6 +601,56 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
+            <SectionCard title="Runtime Diagnostics">
+              {runtimeDiagnostics ? (
+                <div className="space-y-2">
+                  <div className="rounded-xl border bg-background p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">Overall status</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(runtimeDiagnostics.generatedAt).toLocaleString("vi-VN")}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={getRuntimeDiagnosticBadgeVariant(
+                          runtimeDiagnostics.overallStatus,
+                        )}
+                      >
+                        {runtimeDiagnostics.overallStatus}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {runtimeDiagnostics.items.map((item) => (
+                    <div key={item.id} className="rounded-xl border bg-background p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{item.label}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {item.message}
+                          </p>
+                          {item.detail ? (
+                            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                              {item.detail}
+                            </p>
+                          ) : null}
+                        </div>
+                        <Badge variant={getRuntimeDiagnosticBadgeVariant(item.status)}>
+                          {item.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="app-muted-text">
+                  Run diagnostics to verify IndexedDB, Web Worker, selected job runtime,
+                  and provider wiring.
+                </p>
+              )}
+            </SectionCard>
+
             <SectionCard title="Actions">
               <div className="space-y-3">
                 <Button
@@ -588,6 +671,17 @@ export function GlobalSettingsClient() {
                 >
                   <TestTube className="mr-2 h-4 w-4" />
                   Local Test Preview
+                </Button>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleRunRuntimeDiagnostics}
+                  disabled={isRunningDiagnostics}
+                >
+                  <TestTube className="mr-2 h-4 w-4" />
+                  {isRunningDiagnostics ? "Checking runtime..." : "Run Runtime Diagnostics"}
                 </Button>
 
                 <Button
