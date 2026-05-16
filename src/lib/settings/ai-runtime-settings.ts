@@ -14,6 +14,9 @@ export interface AiRuntimeSettings {
   jobRuntime: PublicJobRuntime;
   defaultModel: string;
   geminiProxyEndpoint: string;
+  geminiBatchSize: number;
+  geminiBatchConcurrency: number;
+  geminiRequestDelayMs: number;
   customOpenAiBaseUrl: string;
   customOpenAiModel: string;
   geminiDirectBaseUrl: string;
@@ -48,6 +51,9 @@ export const defaultAiRuntimeSettings: AiRuntimeSettings = {
   jobRuntime: "local-worker",
   defaultModel: GEMINI_CORE_DEFAULT_MODEL,
   geminiProxyEndpoint: GEMINI_CORE_DEFAULT_ENDPOINT,
+  geminiBatchSize: 10,
+  geminiBatchConcurrency: 1,
+  geminiRequestDelayMs: 1200,
   customOpenAiBaseUrl: "",
   customOpenAiModel: "",
   geminiDirectBaseUrl: "https://generativelanguage.googleapis.com",
@@ -137,6 +143,28 @@ export function normalizeGeminiProxyModel(value: string | undefined): string {
   return normalized;
 }
 
+export function normalizeGeminiBatchSize(value: number) {
+  if (!Number.isFinite(value)) return defaultAiRuntimeSettings.geminiBatchSize;
+
+  return Math.min(50, Math.max(1, Math.round(value)));
+}
+
+export function normalizeGeminiBatchConcurrency(value: number) {
+  if (!Number.isFinite(value)) {
+    return defaultAiRuntimeSettings.geminiBatchConcurrency;
+  }
+
+  return Math.min(4, Math.max(1, Math.round(value)));
+}
+
+export function normalizeGeminiRequestDelayMs(value: number) {
+  if (!Number.isFinite(value)) {
+    return defaultAiRuntimeSettings.geminiRequestDelayMs;
+  }
+
+  return Math.min(30000, Math.max(0, Math.round(value)));
+}
+
 function normalizeAiRuntimeSettings(
   settings?: Partial<AiRuntimeSettings>,
 ): AiRuntimeSettings {
@@ -149,6 +177,21 @@ function normalizeAiRuntimeSettings(
     defaultModel: normalizeGeminiProxyModel(settings?.defaultModel),
     geminiProxyEndpoint:
       settings?.geminiProxyEndpoint?.trim() || GEMINI_CORE_DEFAULT_ENDPOINT,
+    geminiBatchSize: normalizeGeminiBatchSize(
+      Number(settings?.geminiBatchSize ?? defaultAiRuntimeSettings.geminiBatchSize),
+    ),
+    geminiBatchConcurrency: normalizeGeminiBatchConcurrency(
+      Number(
+        settings?.geminiBatchConcurrency ??
+          defaultAiRuntimeSettings.geminiBatchConcurrency,
+      ),
+    ),
+    geminiRequestDelayMs: normalizeGeminiRequestDelayMs(
+      Number(
+        settings?.geminiRequestDelayMs ??
+          defaultAiRuntimeSettings.geminiRequestDelayMs,
+      ),
+    ),
     temperature: normalizeTemperature(
       Number(settings?.temperature ?? defaultAiRuntimeSettings.temperature),
     ),
@@ -254,8 +297,39 @@ export function createGeminiCoreRuntimeSettings(
     defaultModel: normalizeGeminiProxyModel(current.defaultModel),
     geminiProxyEndpoint:
       current.geminiProxyEndpoint?.trim() || GEMINI_CORE_DEFAULT_ENDPOINT,
+    geminiBatchSize: normalizeGeminiBatchSize(current.geminiBatchSize),
+    geminiBatchConcurrency: normalizeGeminiBatchConcurrency(
+      current.geminiBatchConcurrency,
+    ),
+    geminiRequestDelayMs: normalizeGeminiRequestDelayMs(
+      current.geminiRequestDelayMs,
+    ),
     temperature: normalizeTemperature(current.temperature),
     maxOutputTokens: normalizeMaxOutputTokens(current.maxOutputTokens),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createGeminiSafeBatchProfile(
+  current: AiRuntimeSettings,
+): AiRuntimeSettings {
+  return {
+    ...createGeminiCoreRuntimeSettings(current),
+    geminiBatchSize: 5,
+    geminiBatchConcurrency: 1,
+    geminiRequestDelayMs: 2500,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createGeminiFastBatchProfile(
+  current: AiRuntimeSettings,
+): AiRuntimeSettings {
+  return {
+    ...createGeminiCoreRuntimeSettings(current),
+    geminiBatchSize: 20,
+    geminiBatchConcurrency: 2,
+    geminiRequestDelayMs: 800,
     updatedAt: new Date().toISOString(),
   };
 }

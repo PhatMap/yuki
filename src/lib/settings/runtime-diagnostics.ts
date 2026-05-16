@@ -333,6 +333,11 @@ export async function runRuntimeDiagnostics(
     const geminiProxyModel = settings.defaultModel.trim();
     const trimmedEndpoint = settings.geminiProxyEndpoint.trim();
     const isRelativeEndpoint = trimmedEndpoint.startsWith("/");
+    const geminiBatchSize = settings.geminiBatchSize;
+    const geminiBatchConcurrency = settings.geminiBatchConcurrency;
+    const geminiRequestDelayMs = settings.geminiRequestDelayMs;
+    const hasAggressiveGeminiBatchControls =
+      geminiBatchConcurrency > 2 || geminiRequestDelayMs < 500;
 
     items.push(
       endpointDiagnostic,
@@ -344,6 +349,15 @@ export async function runRuntimeDiagnostics(
           ? `Gemini Proxy model is set to ${geminiProxyModel}.`
           : "Gemini Proxy model should be a Gemini model such as gemini-2.5-flash.",
         detail: geminiProxyModel || "empty model",
+      }),
+      createItem({
+        id: "gemini-batch-controls",
+        label: "Gemini batch controls",
+        status: hasAggressiveGeminiBatchControls ? "warning" : "pass",
+        message: `Batch size ${geminiBatchSize}, concurrency ${geminiBatchConcurrency}, delay ${geminiRequestDelayMs}ms.`,
+        detail: hasAggressiveGeminiBatchControls
+          ? "Aggressive settings may hit provider rate limits faster."
+          : undefined,
       }),
       createItem({
         id: "gemini-proxy-route",

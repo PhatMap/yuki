@@ -45,6 +45,29 @@ function waitForAbort(signal?: AbortSignal) {
   throw signal.reason ?? new DOMException("Aborted", "AbortError");
 }
 
+async function delayWithAbort(ms: number, signal?: AbortSignal) {
+  if (ms <= 0) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+
+    function onAbort() {
+      cleanup();
+      reject(signal?.reason ?? new DOMException("Aborted", "AbortError"));
+    }
+
+    function cleanup() {
+      clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbort);
+    }
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 function getChapterContentFromChunks(chunks: ChapterChunk[]) {
   return chunks
     .slice()
@@ -186,6 +209,8 @@ export async function runLocalStoryAnalysisTask(
       selectedChapters,
       selectedChunks,
     );
+    waitForAbort(signal);
+    await delayWithAbort(source.runtimeSettings.geminiRequestDelayMs, signal);
     waitForAbort(signal);
     const pipelineResult = await runAiPipelineWithSettings(
       pipelineInput,

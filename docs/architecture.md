@@ -268,6 +268,23 @@ When Gemini Proxy batch aggregation succeeds, the dashboard saves that aggregate
 
 Mock remains a deterministic local batch path. Ollama remains outside this local batch provider set for now.
 
+## Gemini Batch Controls
+
+Gemini Proxy batch analysis now supports user-tunable batch controls in global runtime settings:
+- batch size
+- local concurrency
+- per-task request delay in milliseconds
+
+These controls help large 3000+ chapter workflows reduce aggressive request bursts and lower rate-limit risk.
+
+Cached tasks do not call the provider and therefore do not wait on request delay. Delay applies only to real Gemini batch task calls.
+
+Two quick profiles are available:
+- safe profile: conservative pacing for stability
+- fast profile: more aggressive throughput
+
+This is still local orchestration control, not a global distributed queue or rate limiter.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:

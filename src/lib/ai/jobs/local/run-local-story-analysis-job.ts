@@ -170,9 +170,15 @@ export async function runLocalStoryAnalysisJob(
     input.chunks.length > 0
       ? createChunkSourceItems(input.storyId, input.chunks)
       : createChapterSourceItems(input.storyId, input.chapters);
+  const isGeminiProxyProvider = providerTarget.providerId === "gemini-proxy";
+  const inferredBatchSize = isGeminiProxyProvider
+    ? input.runtimeSettings?.geminiBatchSize ?? 10
+    : items.length > 300
+      ? 25
+      : 10;
   const batchSize = Math.max(
     1,
-    Math.min(50, Math.round(input.batchSize ?? (items.length > 300 ? 25 : 10))),
+    Math.min(50, Math.round(input.batchSize ?? inferredBatchSize)),
   );
   const plan = planStoryAnalysisJob({
     storyId: input.storyId,
@@ -194,6 +200,9 @@ export async function runLocalStoryAnalysisJob(
     {
       store: jobStore,
       cacheStore,
+      concurrency: isGeminiProxyProvider
+        ? input.runtimeSettings?.geminiBatchConcurrency
+        : undefined,
       signal: input.signal,
       onProgress: input.onProgress,
       handler: (task, job, signal) =>

@@ -655,6 +655,14 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             </p>
           ) : null}
 
+          {runtimeSettings?.providerId === "gemini-proxy" ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Gemini batch: size {runtimeSettings.geminiBatchSize}, concurrency{" "}
+              {runtimeSettings.geminiBatchConcurrency}, delay{" "}
+              {runtimeSettings.geminiRequestDelayMs}ms.
+            </p>
+          ) : null}
+
           {lastPipelineResult?.promptContext?.missingVariables.length ? (
             <p className="mt-3 text-sm text-destructive">
               Missing prompt variables:{" "}

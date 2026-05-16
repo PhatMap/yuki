@@ -29,7 +29,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   aiRuntimeProviderOptions,
+  createGeminiFastBatchProfile,
   createGeminiCoreRuntimeSettings,
+  createGeminiSafeBatchProfile,
   defaultAiRuntimeSettings,
   GEMINI_CORE_DEFAULT_ENDPOINT,
   GEMINI_CORE_DEFAULT_MODEL,
@@ -37,6 +39,9 @@ import {
   getActiveRuntimeModel,
   getAiRuntimeProviderLabel,
   getAiRuntimeSettings,
+  normalizeGeminiBatchConcurrency,
+  normalizeGeminiBatchSize,
+  normalizeGeminiRequestDelayMs,
   normalizeMaxOutputTokens,
   normalizeTemperature,
   resetAiRuntimeSettings,
@@ -300,6 +305,24 @@ export function GlobalSettingsClient() {
     setSettings(nextSettings);
     setMessage(
       "Gemini Core profile applied locally. Click Save Settings to persist it.",
+    );
+  }
+
+  function handleUseGeminiSafeBatchProfile() {
+    const nextSettings = createGeminiSafeBatchProfile(settings);
+
+    setSettings(nextSettings);
+    setMessage(
+      "Gemini Safe Batch profile applied locally. Click Save Settings to persist it.",
+    );
+  }
+
+  function handleUseGeminiFastBatchProfile() {
+    const nextSettings = createGeminiFastBatchProfile(settings);
+
+    setSettings(nextSettings);
+    setMessage(
+      "Gemini Fast Batch profile applied locally. Click Save Settings to persist it.",
     );
   }
 
@@ -708,6 +731,96 @@ export function GlobalSettingsClient() {
             </SectionCard>
 
             <SectionCard
+              title="Gemini batch controls"
+              description="Controls batch size, local concurrency, and request delay for Gemini Proxy story analysis."
+            >
+              <div className="space-y-4">
+                <div className="grid gap-2 md:grid-cols-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="gemini-batch-size">Batch size</Label>
+                    <Input
+                      id="gemini-batch-size"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={settings.geminiBatchSize}
+                      onChange={(event) =>
+                        updateSettings(
+                          "geminiBatchSize",
+                          normalizeGeminiBatchSize(Number(event.target.value)),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="gemini-batch-concurrency">
+                      Batch concurrency
+                    </Label>
+                    <Input
+                      id="gemini-batch-concurrency"
+                      type="number"
+                      min="1"
+                      max="4"
+                      value={settings.geminiBatchConcurrency}
+                      onChange={(event) =>
+                        updateSettings(
+                          "geminiBatchConcurrency",
+                          normalizeGeminiBatchConcurrency(
+                            Number(event.target.value),
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="gemini-request-delay-ms">
+                      Request delay (ms)
+                    </Label>
+                    <Input
+                      id="gemini-request-delay-ms"
+                      type="number"
+                      min="0"
+                      max="30000"
+                      step="100"
+                      value={settings.geminiRequestDelayMs}
+                      onChange={(event) =>
+                        updateSettings(
+                          "geminiRequestDelayMs",
+                          normalizeGeminiRequestDelayMs(
+                            Number(event.target.value),
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleUseGeminiSafeBatchProfile}
+                    disabled={isLoading || isSaving}
+                  >
+                    Use Safe Batch Profile
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleUseGeminiFastBatchProfile}
+                    disabled={isLoading || isSaving}
+                  >
+                    Use Fast Batch Profile
+                  </Button>
+                </div>
+                <p className="app-muted-text">
+                  Safe: 5 per batch, concurrency 1, delay 2500ms. Fast: 20 per
+                  batch, concurrency 2, delay 800ms. Values are local settings
+                  and require Save Settings to persist.
+                </p>
+              </div>
+            </SectionCard>
+
+            <SectionCard
               title="Gemini Proxy"
               description="Provider dự kiến dùng cho deploy. Endpoint là route proxy của app hoặc API server sau này."
             >
@@ -984,6 +1097,28 @@ export function GlobalSettingsClient() {
                   model {GEMINI_CORE_DEFAULT_MODEL}, and local-worker runtime.
                   Requires GEMINI_API_KEY in .env.local or deploy environment.
                 </p>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleUseGeminiSafeBatchProfile}
+                  disabled={isLoading || isSaving}
+                >
+                  <Server className="mr-2 h-4 w-4" />
+                  Use Safe Batch Profile
+                </Button>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleUseGeminiFastBatchProfile}
+                  disabled={isLoading || isSaving}
+                >
+                  <Server className="mr-2 h-4 w-4" />
+                  Use Fast Batch Profile
+                </Button>
 
                 <Button
                   className="w-full"
