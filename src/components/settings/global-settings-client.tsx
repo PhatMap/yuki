@@ -46,6 +46,7 @@ import {
   type RuntimeDiagnosticStatus,
   type RuntimeDiagnosticsReport,
 } from "@/lib/settings/runtime-diagnostics";
+import { requestBrowserStoragePersistence } from "@/lib/settings/browser-storage-persistence";
 
 const geminiProxyModelOptions = [
   "gemini-2.5-flash",
@@ -134,6 +135,8 @@ export function GlobalSettingsClient() {
   const [runtimeDiagnostics, setRuntimeDiagnostics] =
     useState<RuntimeDiagnosticsReport>();
   const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
+  const [isRequestingStoragePersistence, setIsRequestingStoragePersistence] =
+    useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -248,6 +251,25 @@ export function GlobalSettingsClient() {
       setMessage("Could not run runtime diagnostics.");
     } finally {
       setIsRunningDiagnostics(false);
+    }
+  }
+
+  async function handleRequestStoragePersistence() {
+    setIsRequestingStoragePersistence(true);
+    setMessage("");
+
+    try {
+      const result = await requestBrowserStoragePersistence();
+
+      setMessage(result.message);
+
+      const report = await runRuntimeDiagnostics(settings);
+      setRuntimeDiagnostics(report);
+    } catch (error) {
+      console.error("Failed to request persistent browser storage", error);
+      setMessage("Could not request persistent browser storage.");
+    } finally {
+      setIsRequestingStoragePersistence(false);
     }
   }
 
@@ -683,6 +705,24 @@ export function GlobalSettingsClient() {
                   <TestTube className="mr-2 h-4 w-4" />
                   {isRunningDiagnostics ? "Checking runtime..." : "Run Runtime Diagnostics"}
                 </Button>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleRequestStoragePersistence}
+                  disabled={isRequestingStoragePersistence}
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  {isRequestingStoragePersistence
+                    ? "Requesting storage..."
+                    : "Request Persistent Storage"}
+                </Button>
+                <p className="app-muted-text">
+                  Requests browser-level persistent storage for this origin. This can reduce
+                  the risk of browser eviction for large local IndexedDB data, but the browser
+                  may still deny the request.
+                </p>
 
                 <Button
                   className="w-full"

@@ -146,6 +146,12 @@ Runtime Diagnostics includes browser storage quota checks through the Storage Es
 
 This is important for local-first operation because imported chapters, chunks, analysis results, local jobs, and AI cache entries are stored in IndexedDB. The diagnostic is read-only and does not request persistent storage permission.
 
+## Persistent Storage Request
+
+Global Settings includes an explicit user action to request persistent browser storage through the Storage Manager API.
+
+The request is not automatic. It only runs after the user clicks the action, and the browser may still deny it. This improves safety for large local-first IndexedDB workflows but does not replace export/backup features.
+
 ## Adapter Direction
 
 No cloud adapter is implemented in this step. The interfaces are shaped so future free-tier integrations can plug in without rewriting product flows:
