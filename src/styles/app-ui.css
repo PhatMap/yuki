@@ -1977,7 +1977,7 @@
   .app-container :where([data-slot="card"]) {
     min-width: 0;
     border-color: hsl(var(--border) / 0.82);
-    background-color: hsl(var(--background) / 0.96);
+    background-color: hsl(var(--card) / 0.94);
     box-shadow:
       0 1px 2px hsl(var(--foreground) / 0.04),
       0 12px 32px hsl(var(--foreground) / 0.025);
@@ -2041,7 +2041,7 @@
   }
 
   .app-dashboard-card {
-    @apply min-w-0 rounded-2xl border bg-background p-4 shadow-sm transition sm:p-5;
+    @apply min-w-0 rounded-2xl border bg-card/90 p-4 shadow-sm transition sm:p-5;
   }
 
   .app-dashboard-card:hover {
@@ -2069,7 +2069,7 @@
   }
 
   .app-dashboard-list-item {
-    @apply min-w-0 rounded-xl border bg-background p-3.5 shadow-sm transition hover:border-primary/25 hover:bg-muted/30;
+    @apply min-w-0 rounded-xl border bg-card/88 p-3.5 shadow-sm transition hover:border-primary/25 hover:bg-muted/30;
   }
 
   .app-dashboard-list-title {
@@ -2109,7 +2109,7 @@
   }
 
   .app-dashboard-metric {
-    @apply min-w-0 rounded-2xl border bg-background p-4 shadow-sm;
+    @apply min-w-0 rounded-2xl border bg-card/90 p-4 shadow-sm;
   }
 
   .app-dashboard-metric-label {

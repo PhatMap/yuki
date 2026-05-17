@@ -324,6 +324,8 @@ The palette uses deep navy backgrounds and frosted dark surfaces, with ice-blue 
 
 This is a visual foundation update only. Layout flows, AI/runtime/job/cache behavior, and data logic remain unchanged.
 
+A follow-up visual QA pass further improved contrast and readability by removing remaining bright control surfaces, strengthening border visibility, and tuning muted text legibility for dense diagnostics and data-heavy panels.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:
