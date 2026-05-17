@@ -1,9 +1,11 @@
 import { runLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/run-local-story-analysis-job";
 import { resumeLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/resume-local-story-analysis-job";
 import type {
+  LocalStoryAnalysisWorkerCancelRequest,
   LocalStoryAnalysisWorkerIncomingMessage,
   LocalStoryAnalysisWorkerMessage,
   LocalStoryAnalysisWorkerProgressSnapshot,
+  LocalStoryAnalysisWorkerResumeRequest,
 } from "@/lib/ai/jobs/local/worker/local-story-analysis-worker-types";
 
 function postWorkerMessage(message: LocalStoryAnalysisWorkerMessage) {
@@ -23,6 +25,9 @@ function createProgressSnapshot({
   failedTasks,
   percentComplete,
   message,
+  hasFailedTasks,
+  hasCompletedAllTasks,
+  canSaveAggregatedResult,
 }: LocalStoryAnalysisWorkerProgressSnapshot): LocalStoryAnalysisWorkerProgressSnapshot {
   return {
     jobId,
@@ -33,6 +38,9 @@ function createProgressSnapshot({
     failedTasks,
     percentComplete,
     message,
+    hasFailedTasks,
+    hasCompletedAllTasks,
+    canSaveAggregatedResult,
   };
 }
 
@@ -41,13 +49,13 @@ let activeRequestId: string | null = null;
 
 function isCancelRequest(
   message: LocalStoryAnalysisWorkerIncomingMessage,
-): message is { type: "cancel"; requestId: string } {
+): message is LocalStoryAnalysisWorkerCancelRequest {
   return "type" in message && message.type === "cancel";
 }
 
 function isResumeRequest(
   message: LocalStoryAnalysisWorkerIncomingMessage,
-): message is { type: "resume"; requestId: string } {
+): message is LocalStoryAnalysisWorkerResumeRequest {
   return "type" in message && message.type === "resume";
 }
 

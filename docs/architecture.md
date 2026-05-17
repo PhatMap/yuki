@@ -106,7 +106,7 @@ When a local batch job produces some successful task outputs while other tasks f
 
 This prevents long Gemini jobs (3000+ chapters) from silently saving incomplete story analysis as completed. For example, if 100 tasks succeed and 5 fail, the app will not save the partial analysis as done.
 
-Future retry/resume tools can use persisted jobs, tasks, and cache to recover and complete analysis for failed items.
+Retry/resume reuses persisted jobs, tasks, and cache, but still enforces the same save rule: the final aggregated analysis is saved only when all planned tasks are completed or skipped with valid output coverage.
 
 ## Local Import Worker
 

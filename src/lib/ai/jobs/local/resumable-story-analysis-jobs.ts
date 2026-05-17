@@ -34,17 +34,12 @@ export function summarizeStoryAnalysisJob(
   const queuedTasks = tasks.filter((t) => t.status === "queued").length;
   const retryableTasks =
     failedTasks + pendingTasks + runningTasks + queuedTasks;
-  const hasCompletedOrSkipped = completedTasks + skippedTasks > 0;
   const hasRetryableTasks = retryableTasks > 0;
-  const canResume = hasCompletedOrSkipped && hasRetryableTasks;
+  const canResume = hasRetryableTasks;
 
   let message = "";
   if (canResume) {
     message = `${retryableTasks} tasks can be retried (${failedTasks} failed, ${pendingTasks} pending, ${runningTasks} running, ${queuedTasks} queued).`;
-  } else if (failedTasks > 0) {
-    message = `Job has ${failedTasks} failed tasks but no completed/skipped tasks to preserve.`;
-  } else if (queuedTasks > 0 || runningTasks > 0 || pendingTasks > 0) {
-    message = `Job has ${retryableTasks} incomplete tasks but no completed/skipped progress.`;
   } else {
     message = "Job is complete or cancelled.";
   }
@@ -89,7 +84,14 @@ export async function listResumableStoryAnalysisJobs(
     }
   }
 
-  return summaries;
+  return summaries.sort((left, right) => {
+    const leftTime = Date.parse(left.updatedAt ?? left.createdAt ?? "");
+    const rightTime = Date.parse(right.updatedAt ?? right.createdAt ?? "");
+    const safeLeft = Number.isFinite(leftTime) ? leftTime : 0;
+    const safeRight = Number.isFinite(rightTime) ? rightTime : 0;
+
+    return safeRight - safeLeft;
+  });
 }
 
 export async function getLatestResumableStoryAnalysisJob(

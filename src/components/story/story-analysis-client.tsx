@@ -173,6 +173,20 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const analysisAbortControllerRef = useRef<AbortController | null>(null);
   const runtimeConfig = useMemo(() => getPublicRuntimeConfig(), []);
 
+  async function refreshLatestResumableJob() {
+    setIsLoadingResumableJob(true);
+
+    try {
+      const resumable = await getLatestResumableStoryAnalysisJob(storyId);
+      setLatestResumableJob(resumable?.canResume ? resumable : null);
+    } catch (error) {
+      console.error("Failed to refresh resumable job for story", error);
+      setLatestResumableJob(null);
+    } finally {
+      setIsLoadingResumableJob(false);
+    }
+  }
+
   useEffect(() => {
     let isActive = true;
 
@@ -224,16 +238,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     let isActive = true;
 
     async function loadResumableJob() {
-      setIsLoadingResumableJob(true);
-
       try {
         const resumable = await getLatestResumableStoryAnalysisJob(storyId);
-
-        if (isActive && resumable?.canResume) {
-          setLatestResumableJob(resumable);
-        } else if (isActive) {
-          setLatestResumableJob(null);
-        }
+        if (!isActive) return;
+        setLatestResumableJob(resumable?.canResume ? resumable : null);
       } catch (error) {
         console.error("Failed to load resumable job for story", error);
         if (isActive) {
@@ -402,6 +410,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           setStorageError(
             `Local batch analysis failed: ${localJobResult.failedTasks} failed, ${localJobResult.completedTasks} completed, ${localJobResult.skippedTasks} skipped. No partial analysis was saved.`,
           );
+          await refreshLatestResumableJob();
           setIsSavingAnalysis(false);
           return;
         }
@@ -423,6 +432,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           setStorageError(
             "Local batch analysis did not complete all tasks. No partial analysis was saved.",
           );
+          await refreshLatestResumableJob();
           setIsSavingAnalysis(false);
           return;
         }
@@ -454,6 +464,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             ? `Local job orchestration failed: ${error.message}`
             : "Local job orchestration failed.",
         );
+        await refreshLatestResumableJob();
         clearAnalysisAbortController(controller);
         setIsLocalJobRunning(false);
         setIsSavingAnalysis(false);
@@ -495,6 +506,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           );
           clearAnalysisAbortController(controller);
           setIsLocalJobRunning(false);
+          await refreshLatestResumableJob();
           setIsSavingAnalysis(false);
           return;
         }
@@ -505,6 +517,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           );
           clearAnalysisAbortController(controller);
           setIsLocalJobRunning(false);
+          await refreshLatestResumableJob();
           setIsSavingAnalysis(false);
           return;
         }
@@ -526,6 +539,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             ? `Local worker job orchestration failed: ${error.message}`
             : "Local worker job orchestration failed.",
         );
+        await refreshLatestResumableJob();
         clearAnalysisAbortController(controller);
         setIsLocalJobRunning(false);
         setIsSavingAnalysis(false);
@@ -549,6 +563,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         setStorageError(
           "Local batch analysis did not return an aggregated analysis result. No partial analysis was saved.",
         );
+        await refreshLatestResumableJob();
         setIsSavingAnalysis(false);
         return;
       }
@@ -601,6 +616,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         effectivePipelineResult.errorMessage ??
           `${effectivePipelineResult.providerLabel} did not return an analysis result.`,
       );
+      await refreshLatestResumableJob();
       setIsSavingAnalysis(false);
       return;
     }
@@ -657,62 +673,79 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     const isWorkerRuntime = activeJobRuntime === "local-worker";
 
     try {
-      const resumeResult = isWorkerRuntime
-        ? await runResumeLocalStoryAnalysisWorkerJob(
-            {
-              storyId,
-              jobId: latestResumableJob?.jobId,
-              story,
-              chapters,
-              chunks,
-              runtimeSettings: runtimeSettings ?? undefined,
-            },
-            {
-              signal: controller.signal,
-              onProgress: (snapshot) => {
-                setLocalJobState(toLocalJobState(snapshot));
-              },
-            },
-          )
-        : await resumeLocalStoryAnalysisJob({
+      let localWorkerResumeResult:
+        | Awaited<ReturnType<typeof runResumeLocalStoryAnalysisWorkerJob>>
+        | undefined;
+      let localBrowserResumeResult:
+        | Awaited<ReturnType<typeof resumeLocalStoryAnalysisJob>>
+        | undefined;
+
+      if (isWorkerRuntime) {
+        localWorkerResumeResult = await runResumeLocalStoryAnalysisWorkerJob(
+          {
             storyId,
             jobId: latestResumableJob?.jobId,
             story,
             chapters,
             chunks,
             runtimeSettings: runtimeSettings ?? undefined,
+          },
+          {
             signal: controller.signal,
-            onProgress: (progress, tasks) => {
-              const jobId = tasks[0]?.jobId ?? latestResumableJob?.jobId ?? "";
-
-              setLocalJobState({
-                jobId,
-                status: "running",
-                totalTasks: progress.totalTasks,
-                completedTasks: progress.completedTasks,
-                skippedTasks: progress.skippedTasks,
-                failedTasks: progress.failedTasks,
-                percentComplete: progress.percentComplete,
-                message: progress.message,
-              });
+            onProgress: (snapshot) => {
+              setLocalJobState(toLocalJobState(snapshot));
             },
-          });
+          },
+        );
+      } else {
+        localBrowserResumeResult = await resumeLocalStoryAnalysisJob({
+          storyId,
+          jobId: latestResumableJob?.jobId,
+          story,
+          chapters,
+          chunks,
+          runtimeSettings: runtimeSettings ?? undefined,
+          signal: controller.signal,
+          onProgress: (progress, tasks) => {
+            const jobId = tasks[0]?.jobId ?? latestResumableJob?.jobId ?? "";
 
-      const summary = isWorkerRuntime
-        ? resumeResult.summary
-        : {
-            jobId: resumeResult.job.id,
-            status: resumeResult.job.status,
-            totalTasks: resumeResult.progress.totalTasks,
-            completedTasks: resumeResult.completedTasks,
-            skippedTasks: resumeResult.skippedTasks,
-            failedTasks: resumeResult.failedTasks,
-            percentComplete: resumeResult.progress.percentComplete,
-            message: resumeResult.progress.message,
-            hasFailedTasks: resumeResult.hasFailedTasks,
-            hasCompletedAllTasks: resumeResult.hasCompletedAllTasks,
-            canSaveAggregatedResult: resumeResult.canSaveAggregatedResult,
-          };
+            setLocalJobState({
+              jobId,
+              status: "running",
+              totalTasks: progress.totalTasks,
+              completedTasks: progress.completedTasks,
+              skippedTasks: progress.skippedTasks,
+              failedTasks: progress.failedTasks,
+              percentComplete: progress.percentComplete,
+              message: progress.message,
+            });
+          },
+        });
+      }
+
+      const summary =
+        localWorkerResumeResult?.summary ??
+        (localBrowserResumeResult
+          ? {
+              jobId: localBrowserResumeResult.job.id,
+              status: localBrowserResumeResult.job.status,
+              totalTasks: localBrowserResumeResult.progress.totalTasks,
+              completedTasks: localBrowserResumeResult.completedTasks,
+              skippedTasks: localBrowserResumeResult.skippedTasks,
+              failedTasks: localBrowserResumeResult.failedTasks,
+              percentComplete: localBrowserResumeResult.progress.percentComplete,
+              message: localBrowserResumeResult.progress.message,
+              hasFailedTasks: localBrowserResumeResult.hasFailedTasks,
+              hasCompletedAllTasks:
+                localBrowserResumeResult.hasCompletedAllTasks,
+              canSaveAggregatedResult:
+                localBrowserResumeResult.canSaveAggregatedResult,
+            }
+          : undefined);
+
+      if (!summary) {
+        throw new Error("Resume batch did not return a progress summary.");
+      }
 
       setLocalJobState(toLocalJobState(summary));
 
@@ -720,6 +753,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         setStorageError(
           `Resume batch failed: ${summary.failedTasks} failed, ${summary.completedTasks} completed, ${summary.skippedTasks} skipped. No partial analysis was saved.`,
         );
+        await refreshLatestResumableJob();
         clearAnalysisAbortController(controller);
         setIsResumingBatch(false);
         return;
@@ -729,20 +763,22 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         setStorageError(
           "Resume batch did not complete all tasks. No partial analysis was saved.",
         );
+        await refreshLatestResumableJob();
         clearAnalysisAbortController(controller);
         setIsResumingBatch(false);
         return;
       }
 
-      localAnalysisResult = isWorkerRuntime
-        ? resumeResult.analysisResult
-        : resumeResult.analysisResult;
+      localAnalysisResult =
+        localWorkerResumeResult?.analysisResult ??
+        localBrowserResumeResult?.analysisResult;
       setLocalAggregatedResult(localAnalysisResult);
 
       if (!localAnalysisResult) {
         setStorageError(
           "Resume batch did not return an aggregated analysis result. No partial analysis was saved.",
         );
+        await refreshLatestResumableJob();
         clearAnalysisAbortController(controller);
         setIsResumingBatch(false);
         return;
@@ -769,6 +805,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       } catch (error) {
         console.error("Failed to save resume analysis to IndexedDB", error);
         setStorageError("Could not save resume analysis to IndexedDB.");
+        await refreshLatestResumableJob();
         clearAnalysisAbortController(controller);
         setIsResumingBatch(false);
         return;
@@ -799,12 +836,14 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           ? `Resume batch orchestration failed: ${error.message}`
           : "Resume batch orchestration failed.",
       );
+      await refreshLatestResumableJob();
       clearAnalysisAbortController(controller);
       setIsResumingBatch(false);
     }
   }
 
   return (
+    <PageShell>
       <PageContainer>
         <PageHeader
           eyebrow="Novel Analysis"
@@ -847,7 +886,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 </Button>
               ) : null}
 
-              {latestResumableJob && !isLocalJobRunning && !isResumingBatch ? (
+              {latestResumableJob &&
+              !isLoadingResumableJob &&
+              !isLocalJobRunning &&
+              !isResumingBatch ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -905,7 +947,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               />
             </AnimatedStatusCard>
 
-            {latestResumableJob && !isLocalJobRunning ? (
+            {latestResumableJob && !isLoadingResumableJob && !isLocalJobRunning ? (
               <AnimatedStatusCard
                 eyebrow="Failed/incomplete batch"
                 title="Resume available"

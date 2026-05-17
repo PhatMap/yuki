@@ -1,8 +1,5 @@
-import { createStableContentHash } from "@/lib/ai/jobs/cache-key";
 import {
-  type StoryAnalysisSourceItem,
   type StoryAnalysisTaskInput,
-  planStoryAnalysisJob,
 } from "@/lib/ai/jobs/story-analysis-job-planner";
 import { aggregateLocalStoryAnalysisResult } from "@/lib/ai/jobs/local/aggregate-local-story-analysis-result";
 import type { AiJob, AiJobProgress, AiJobTask } from "@/lib/ai/jobs/types";
@@ -11,15 +8,11 @@ import {
   runLocalStoryAnalysisTask,
 } from "@/lib/ai/jobs/local/local-story-analysis-task-handler";
 import {
-  type LocalJobRunnerResult,
   runLocalAiJob,
 } from "@/lib/ai/jobs/local/local-job-runner";
 import { IndexedDbJobCacheStore } from "@/lib/ai/jobs/local/indexed-db-job-cache-store";
 import { IndexedDbJobStore } from "@/lib/ai/jobs/local/indexed-db-job-store";
-import { getPromptTemplateById } from "@/lib/prompts/prompt-runtime";
 import {
-  getActiveRuntimeEndpoint,
-  getActiveRuntimeModel,
   type AiRuntimeSettings,
 } from "@/lib/settings/ai-runtime-settings";
 import type {
@@ -29,51 +22,7 @@ import type {
   StoryAnalysisResult,
 } from "@/lib/types";
 import { applyTaskStatus } from "@/lib/ai/jobs/local/job-store-helpers";
-
-const DEFAULT_PROMPT_TEMPLATE_ID = "import-analysis";
-
-function createChunkSourceItems(
-  storyId: string,
-  chunks: ChapterChunk[],
-): StoryAnalysisSourceItem[] {
-  return chunks.map((chunk) => ({
-    id: chunk.id,
-    storyId,
-    chapterId: chunk.chapterId,
-    chunkId: chunk.id,
-    chapterNumber: chunk.chapterNumber,
-    chunkIndex: chunk.chunkIndex,
-    title: `Chapter ${chunk.chapterNumber} chunk ${chunk.chunkIndex + 1}`,
-    wordCount: chunk.wordCount,
-    contentHash: createStableContentHash({
-      chapterId: chunk.chapterId,
-      chapterNumber: chunk.chapterNumber,
-      chunkIndex: chunk.chunkIndex,
-      content: chunk.content,
-      wordCount: chunk.wordCount,
-    }),
-  }));
-}
-
-function createChapterSourceItems(
-  storyId: string,
-  chapters: ImportedChapter[],
-): StoryAnalysisSourceItem[] {
-  return chapters.map((chapter) => ({
-    id: chapter.id,
-    storyId,
-    chapterId: chapter.id,
-    chapterNumber: chapter.chapterNumber,
-    title: chapter.title,
-    wordCount: chapter.wordCount,
-    contentHash: createStableContentHash({
-      chapterId: chapter.id,
-      chapterNumber: chapter.chapterNumber,
-      content: chapter.cleanContent || chapter.rawContent,
-      wordCount: chapter.wordCount,
-    }),
-  }));
-}
+import { calculateAiJobProgress } from "@/lib/ai/jobs/progress";
 
 export interface ResumeLocalStoryAnalysisJobInput {
   storyId: string;
@@ -102,6 +51,35 @@ export interface ResumeLocalStoryAnalysisJobResult {
   canSaveAggregatedResult: boolean;
 }
 
+function toTimestamp(value?: string) {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toReusableTaskOutput(
+  value: unknown,
+): LocalStoryAnalysisTaskOutput | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const output = value as Partial<LocalStoryAnalysisTaskOutput>;
+
+  if (
+    typeof output.taskId !== "string" ||
+    typeof output.jobId !== "string" ||
+    typeof output.kind !== "string" ||
+    !output.partialResult ||
+    typeof output.partialResult !== "object"
+  ) {
+    return undefined;
+  }
+
+  return output as LocalStoryAnalysisTaskOutput;
+}
+
 export async function resumeLocalStoryAnalysisJob(
   input: ResumeLocalStoryAnalysisJobInput,
 ): Promise<ResumeLocalStoryAnalysisJobResult> {
@@ -127,9 +105,11 @@ export async function resumeLocalStoryAnalysisJob(
     tasksBefore = await jobStore.listTasksByJob(input.jobId);
   } else {
     const allJobs = await jobStore.listJobsByStory(input.storyId);
-    const storyAnalysisJobs = allJobs.filter(
-      (j) => j.kind === "story-analysis",
-    );
+    const storyAnalysisJobs = allJobs
+      .filter((j) => j.kind === "story-analysis")
+      .sort((left, right) => {
+        return toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt);
+      });
     if (storyAnalysisJobs.length === 0) {
       throw new Error(
         "No story analysis jobs found for this story. Run analysis first.",
@@ -159,21 +139,31 @@ export async function resumeLocalStoryAnalysisJob(
   const tasksAfter: AiJobTask[] = [];
 
   for (const task of tasksBefore) {
-    if (task.status === "completed" || task.status === "skipped") {
-      tasksAfter.push(task);
-      if (task.cacheKey) {
-        const cachedOutput = await cacheStore.get(task.cacheKey);
-        if (cachedOutput) {
-          outputs.set(task.id, cachedOutput);
-          reusedCachedTasks++;
-        }
-      }
-    } else if (
+    const storedTaskOutput = toReusableTaskOutput(task.output);
+    const cachedOutput = task.cacheKey
+      ? await cacheStore.get(task.cacheKey)
+      : undefined;
+    const reusableOutput = cachedOutput ?? storedTaskOutput;
+    const isCompletedOrSkipped =
+      task.status === "completed" || task.status === "skipped";
+    const isRetryableStatus =
       task.status === "failed" ||
       task.status === "pending" ||
       task.status === "queued" ||
-      task.status === "running"
-    ) {
+      task.status === "running";
+
+    if (reusableOutput) {
+      outputs.set(task.id, reusableOutput);
+      if (cachedOutput) {
+        reusedCachedTasks++;
+      }
+    }
+
+    if (isCompletedOrSkipped && !reusableOutput) {
+      const retryTask = applyTaskStatus(task, "pending");
+      tasksToRetry.push(retryTask);
+      tasksAfter.push(retryTask);
+    } else if (isRetryableStatus) {
       const retryTask = applyTaskStatus(task, "pending");
       tasksToRetry.push(retryTask);
       tasksAfter.push(retryTask);
@@ -225,11 +215,40 @@ export async function resumeLocalStoryAnalysisJob(
   }
 
   const finalTasks = await jobStore.listTasksByJob(job.id);
+
+  for (const task of finalTasks) {
+    if (outputs.has(task.id)) continue;
+
+    const storedTaskOutput = toReusableTaskOutput(task.output);
+    if (storedTaskOutput) {
+      outputs.set(task.id, storedTaskOutput);
+      continue;
+    }
+
+    if (!task.cacheKey) continue;
+
+    const cachedOutput = await cacheStore.get(task.cacheKey);
+    if (cachedOutput) {
+      outputs.set(task.id, cachedOutput);
+      reusedCachedTasks++;
+    }
+  }
+
   const skippedTasks = finalTasks.filter((t) => t.status === "skipped").length;
   const completedTasks = finalTasks.filter(
     (t) => t.status === "completed",
   ).length;
   const failedTasks = finalTasks.filter((t) => t.status === "failed").length;
+  const incompleteTasks = finalTasks.filter(
+    (t) =>
+      t.status === "pending" || t.status === "queued" || t.status === "running",
+  ).length;
+  const terminalTasks = finalTasks.filter(
+    (t) => t.status === "completed" || t.status === "skipped",
+  );
+  const missingOutputTaskCount = terminalTasks.filter(
+    (task) => !outputs.has(task.id),
+  ).length;
 
   const analysisResult =
     outputs.size > 0
@@ -243,14 +262,49 @@ export async function resumeLocalStoryAnalysisJob(
   const hasCompletedAllTasks =
     !runnerResult.cancelled &&
     failedTasks === 0 &&
+    incompleteTasks === 0 &&
     completedTasks + skippedTasks === finalTasks.length;
   const canSaveAggregatedResult =
-    Boolean(analysisResult) && hasCompletedAllTasks;
+    Boolean(analysisResult) &&
+    hasCompletedAllTasks &&
+    missingOutputTaskCount === 0;
+
+  const mergedProgress = calculateAiJobProgress(
+    finalTasks,
+    runnerResult.cancelled
+      ? "Local resume job cancelled."
+      : canSaveAggregatedResult
+        ? "Local resume job finished."
+        : "Local resume job incomplete.",
+  );
+  const mergedJobStatus: AiJob["status"] = runnerResult.cancelled
+    ? "cancelled"
+    : failedTasks > 0
+      ? "failed"
+      : incompleteTasks > 0
+        ? "queued"
+        : "completed";
+  const persistedJob = await jobStore.getJob(job.id);
+  const mergedJob: AiJob = {
+    ...(persistedJob ?? runnerResult.job),
+    status: mergedJobStatus,
+    progress: mergedProgress,
+    taskIds: finalTasks.map((task) => task.id),
+    updatedAt: new Date().toISOString(),
+    completedAt:
+      mergedJobStatus === "completed" ||
+      mergedJobStatus === "failed" ||
+      mergedJobStatus === "cancelled"
+        ? new Date().toISOString()
+        : undefined,
+  };
+
+  await jobStore.saveJob(mergedJob);
 
   return {
-    job: runnerResult.job,
+    job: mergedJob,
     tasks: finalTasks,
-    progress: runnerResult.job.progress,
+    progress: mergedProgress,
     outputs: Array.from(outputs.values()),
     analysisResult,
     skippedTasks,
