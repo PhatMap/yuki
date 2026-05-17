@@ -122,8 +122,8 @@ export function HomeDashboardClient() {
       <PageContainer>
         <PageHeader
           eyebrow="Yuki"
-          title="Long novel AI workspace"
-          description="Import, inspect, analyze, rewrite, and manage continuity for long-form stories."
+          title="Local-first story workspace"
+          description="Yuki stores stories in IndexedDB on this browser. Import story text, run Gemini Proxy analysis, and manage backups through Data Health."
           action={
             <>
               <Button asChild>
@@ -148,31 +148,43 @@ export function HomeDashboardClient() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={<Library className="h-4 w-4" />}
-            title="IndexedDB stories"
+            title="Local stories"
             value={storedItems.length.toLocaleString("vi-VN")}
             description="Story metadata loaded from IndexedDB."
           />
           <StatCard
-            icon={<Sparkles className="h-4 w-4" />}
-            title="Starter stories"
-            value={starterItems.length.toLocaleString("vi-VN")}
-            description="Mock stories available for demo flow."
+            icon={<Database className="h-4 w-4" />}
+            title="IndexedDB storage"
+            value="Local"
+            description="Stories and analysis data are browser-local."
           />
           <StatCard
             icon={<BarChart3 className="h-4 w-4" />}
-            title="Main flow"
-            value="Import"
-            description="Recommended start for long novels."
+            title="Gemini Core"
+            value="Proxy"
+            description="Recommended real-AI path via /api/ai/gemini."
           />
           <StatCard
-            icon={<Database className="h-4 w-4" />}
-            title="Storage"
-            value="Local"
-            description="IndexedDB-first pages with starter fallback."
+            icon={<Sparkles className="h-4 w-4" />}
+            title="Backup readiness"
+            value="Data Health"
+            description="Per-story backup and restore checks are available."
           />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <SectionCard
+            title="Yuki Workflow"
+            description="Recommended local-first flow for long novel projects."
+          >
+            <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
+              <li>Import Story</li>
+              <li>Analyze with Gemini Proxy</li>
+              <li>Check Data Health and Backups</li>
+              <li>Continue Reading / Planning / Rewrite</li>
+            </ol>
+          </SectionCard>
+
           <SectionCard
             title="Quick actions"
             description="Use the current local-first workflow. Backend, Supabase, vector DB, and roleplay are still intentionally outside the active scope."
@@ -241,7 +253,7 @@ export function HomeDashboardClient() {
           ) : (
             <EmptyState
               title="No local stories yet"
-              description="Import a story to make it appear here. Starter stories are still available below for testing the workspace."
+              description="Import a story to create IndexedDB chapters/chunks for analysis."
               action={
                 <Button asChild>
                   <Link href="/stories/import">
@@ -338,7 +350,7 @@ function StoryCard({ story }: { story: HomeStory }) {
           <Button asChild size="sm">
             <Link href={`/stories/${story.id}/workspace`}>
               <PenLine className="mr-2 h-4 w-4" />
-              Workspace
+              Open Workspace
             </Link>
           </Button>
 

@@ -348,6 +348,10 @@ The Story Data Health page clarifies local IndexedDB inspection, per-story backu
 
 This is a presentation-only update; backup/restore guards, IndexedDB schema, AI job/cache behavior, and clear-cache logic remain unchanged.
 
+## Home and Stories UX
+
+Home and Stories pages now clarify the local-first Yuki workflow: import story data into IndexedDB, run Gemini Proxy analysis, verify Data Health/backups, and continue into reading or planning views. This is presentation-only; story loading and storage behavior remain unchanged.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:

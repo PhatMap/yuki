@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
 import StoryCard from "@/components/story/story-card";
 import StoryTree from "@/components/story/story-tree";
 import { getAllStories, getImportedChapters } from "@/lib/db/indexed-db";
@@ -93,13 +94,8 @@ export default function StoriesPage() {
   const displayedBranches: StoryBranch[] =
     storySource === "mock" ? mockBranches : [];
 
-  const pageDescription = useMemo(() => {
-    if (storySource === "indexeddb") {
-      return "Browse story projects saved in IndexedDB and open the active workspace for planning, analysis, timeline, relationships, and rewrite work.";
-    }
-
-    return "Browse starter story projects and open the active workspace for planning, analysis, timeline, relationships, and rewrite work.";
-  }, [storySource]);
+  const pageDescription =
+    "Browse local stories stored in IndexedDB. Import a story, open workspace, run analysis, or check Data Health.";
 
   return (
     <PageShell>
@@ -114,11 +110,18 @@ export default function StoriesPage() {
                 New story
               </Link>
               <Link href="/stories/import" className="app-secondary-action">
-                Import novel
+                Import story
               </Link>
             </div>
           }
         />
+
+        <SectionCard title="Local Story Library">
+          <p className="text-sm leading-6 text-muted-foreground">
+            Stories are local to this browser profile unless exported. Use Data
+            Health backup for long projects.
+          </p>
+        </SectionCard>
 
         <section className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-4">
