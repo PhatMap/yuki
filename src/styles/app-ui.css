@@ -1,6 +1,9 @@
 @layer components {
   .app-page {
-    @apply min-h-screen bg-muted/30 text-foreground;
+    @apply min-h-screen bg-background text-foreground;
+    background:
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 30rem),
+      linear-gradient(to bottom, hsl(var(--muted) / 0.52), hsl(var(--background)));
   }
 
   .app-container {
@@ -8,7 +11,7 @@
   }
 
   .app-page-header {
-    @apply flex flex-col gap-4 rounded-2xl border bg-background/95 p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between;
+    @apply flex flex-col gap-4 rounded-2xl border bg-card/92 p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between;
   }
 
   .app-page-eyebrow {
@@ -60,23 +63,26 @@
   }
 
   .app-warning-box {
-    @apply flex gap-3 rounded-xl border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground;
+    @apply flex gap-3 rounded-xl border p-4 text-sm leading-6;
+    border-color: hsl(var(--warning) / 0.45);
+    background-color: hsl(var(--warning) / 0.12);
+    color: hsl(var(--foreground) / 0.9);
   }
 
   .app-empty-state {
-    @apply rounded-2xl border border-dashed bg-background p-6 text-sm leading-6 text-muted-foreground;
+    @apply rounded-2xl border border-dashed bg-card/70 p-6 text-sm leading-6 text-muted-foreground;
   }
 
   .app-workspace {
-    @apply min-h-screen bg-muted/30;
+    @apply min-h-screen bg-background;
     background:
-      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 28rem),
-      linear-gradient(to bottom, hsl(var(--muted) / 0.45), hsl(var(--background)));
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 30rem),
+      linear-gradient(to bottom, hsl(var(--muted) / 0.5), hsl(var(--background)));
     animation: app-page-enter 180ms ease-out;
   }
 
   .app-workspace-topbar {
-    @apply border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80;
+    @apply border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/82;
   }
 
   .app-workspace-grid {
@@ -98,11 +104,11 @@
   }
 
   .app-list-button {
-    @apply flex w-full items-center justify-between gap-2 rounded-xl border bg-background px-3 py-2.5 text-left text-sm leading-5 transition hover:border-primary/30 hover:bg-muted/60;
+    @apply flex w-full items-center justify-between gap-2 rounded-xl border bg-card/82 px-3 py-2.5 text-left text-sm leading-5 transition hover:border-primary/30 hover:bg-muted/65;
   }
 
   .app-list-item {
-    @apply rounded-xl border bg-background p-3.5 shadow-sm;
+    @apply rounded-xl border bg-card/82 p-3.5 shadow-sm;
   }
 
   .app-code-block {
@@ -110,7 +116,7 @@
   }
 
   .app-readable-panel {
-    @apply rounded-2xl border bg-background p-4 shadow-sm sm:p-5;
+    @apply rounded-2xl border bg-card/88 p-4 shadow-sm sm:p-5;
   }
 
   .app-readable-text {
@@ -122,12 +128,12 @@
   }
 
   .app-editor-textarea {
-    @apply min-h-[360px] w-full resize-y rounded-xl border bg-background px-3.5 py-3 font-mono text-sm leading-7 shadow-sm outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30;
+    @apply min-h-[360px] w-full resize-y rounded-xl border bg-card/82 px-3.5 py-3 font-mono text-sm leading-7 shadow-sm outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30;
     tab-size: 2;
   }
 
   .app-table-wrap {
-    @apply overflow-x-auto rounded-xl border bg-background;
+    @apply overflow-x-auto rounded-xl border bg-card/86;
   }
 
   .app-table {
@@ -135,7 +141,7 @@
   }
 
   .app-table thead {
-    @apply bg-muted/70 text-xs uppercase tracking-wide text-muted-foreground;
+    @apply bg-muted/78 text-xs uppercase tracking-wide text-muted-foreground;
   }
 
   .app-table th {
@@ -155,15 +161,15 @@
   }
 
   .app-story-shell {
-    @apply min-h-screen bg-muted/30;
+    @apply min-h-screen bg-background;
     background:
-      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 28rem),
-      linear-gradient(to bottom, hsl(var(--muted) / 0.45), hsl(var(--background)));
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 30rem),
+      linear-gradient(to bottom, hsl(var(--muted) / 0.5), hsl(var(--background)));
     animation: app-page-enter 180ms ease-out;
   }
 
   .app-story-shell-nav {
-    @apply sticky top-0 z-30 border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80;
+    @apply sticky top-0 z-30 border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/82;
     z-index: 40;
     background:
       linear-gradient(to right, hsl(var(--background) / 0.98), hsl(var(--background) / 0.92)),
@@ -229,7 +235,7 @@
   .app-story-nav-group {
     @apply rounded-xl border bg-background p-1.5 transition;
     min-width: max-content;
-    background-color: hsl(var(--background) / 0.86);
+    background-color: hsl(var(--card) / 0.82);
     transition:
       border-color 160ms ease,
       background-color 160ms ease,
@@ -321,7 +327,7 @@
   }
 
   .app-story-nav-link:not(.app-story-nav-link-active):hover {
-    @apply border-border bg-muted/70;
+    @apply border-border bg-muted/75;
     transform: translateY(-1px);
   }
 
@@ -375,11 +381,11 @@
   }
 
   .app-story-loading-panel {
-    @apply grid gap-5 rounded-2xl border bg-background p-5 shadow-sm;
+    @apply grid gap-5 rounded-2xl border bg-card/88 p-5 shadow-sm;
   }
 
   .app-density-card {
-    @apply rounded-2xl border bg-background shadow-sm;
+    @apply rounded-2xl border bg-card/88 shadow-sm;
   }
 
   .app-density-card-header {
@@ -399,7 +405,7 @@
   }
 
   .app-loading-panel {
-    @apply rounded-2xl border bg-background p-5 shadow-sm;
+    @apply rounded-2xl border bg-card/88 p-5 shadow-sm;
   }
 
   .app-loading-skeleton {
@@ -411,7 +417,10 @@
   }
 
   .app-success-callout {
-    @apply rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-700 shadow-sm dark:text-emerald-300;
+    @apply rounded-2xl border p-4 text-sm leading-6 shadow-sm;
+    border-color: hsl(var(--success) / 0.36);
+    background-color: hsl(var(--success) / 0.14);
+    color: hsl(var(--success));
   }
 
   .app-info-callout {
@@ -1059,7 +1068,10 @@
   }
 
   .app-chip-success {
-    @apply inline-flex max-w-full items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold leading-none text-emerald-700 dark:text-emerald-300;
+    @apply inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold leading-none;
+    border-color: hsl(var(--success) / 0.36);
+    background-color: hsl(var(--success) / 0.14);
+    color: hsl(var(--success));
   }
 
   .app-status-list {
@@ -1264,8 +1276,8 @@
 
   .app-page {
     background:
-      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 28rem),
-      linear-gradient(to bottom, hsl(var(--muted) / 0.45), hsl(var(--background)));
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.09), transparent 30rem),
+      linear-gradient(to bottom, hsl(var(--muted) / 0.56), hsl(var(--background)));
   }
 
   .app-page-header,
@@ -1279,7 +1291,12 @@
   .app-error-callout,
   .app-section-card,
   .app-container :where(.rounded-2xl.border.bg-background) {
-    background-color: hsl(var(--background) / 0.96);
+    background:
+      linear-gradient(
+        to bottom,
+        hsl(var(--card) / 0.96),
+        hsl(var(--card) / 0.88)
+      );
     backdrop-filter: blur(8px);
   }
 
@@ -1334,11 +1351,11 @@
   }
 
   .app-container :where(.border) {
-    border-color: hsl(var(--border) / 0.82);
+    border-color: hsl(var(--border) / 0.9);
   }
 
   .app-container :where(.bg-muted, .bg-muted\/30, .bg-muted\/40, .bg-muted\/50, .bg-muted\/60, .bg-muted\/70) {
-    background-color: hsl(var(--muted) / 0.58);
+    background-color: hsl(var(--muted) / 0.64);
   }
 
   .app-code-block,
@@ -1374,7 +1391,7 @@
   }
 
   .app-container :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-    background-color: hsl(var(--background) / 0.96);
+    background-color: hsl(var(--card) / 0.9);
   }
 
   .app-container :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea)::placeholder {
@@ -1397,11 +1414,11 @@
 
   .app-subtle-panel {
     background:
-      linear-gradient(to bottom right, hsl(var(--muted) / 0.48), hsl(var(--background) / 0.82));
+      linear-gradient(to bottom right, hsl(var(--muted) / 0.56), hsl(var(--card) / 0.84));
   }
 
   .app-key-value-row {
-    background-color: hsl(var(--background) / 0.9);
+    background-color: hsl(var(--card) / 0.86);
   }
 
   @media (max-width: 640px) {
@@ -1409,7 +1426,7 @@
     .app-page {
       background:
         radial-gradient(circle at top, hsl(var(--primary) / 0.08), transparent 18rem),
-        linear-gradient(to bottom, hsl(var(--muted) / 0.42), hsl(var(--background)));
+        linear-gradient(to bottom, hsl(var(--muted) / 0.52), hsl(var(--background)));
     }
 
     .app-page-header,

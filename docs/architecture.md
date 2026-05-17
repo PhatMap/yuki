@@ -316,6 +316,14 @@ No cloud adapter is implemented in this step. The interfaces are shaped so futur
 - Redis/Upstash cache or lock store for optional cache coordination later.
 - Worker or Edge Function runner for moving provider calls away from the browser later.
 
+## Yuki Night Snow Theme
+
+Yuki now uses a dark-first "Night Snow" theme foundation to reduce eye strain during long reading, diagnostics, and batch analysis sessions.
+
+The palette uses deep navy backgrounds and frosted dark surfaces, with ice-blue primary actions, mint success accents, and soft warning/error colors. Borders, focus rings, and muted text are tuned for readability on dark backgrounds.
+
+This is a visual foundation update only. Layout flows, AI/runtime/job/cache behavior, and data logic remain unchanged.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:
