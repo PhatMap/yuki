@@ -400,3 +400,7 @@ All flags have local defaults. A fresh clone should run with no environment vari
 - Existing IndexedDB behavior is preserved.
 - AI calls remain behind existing provider/proxy boundaries.
 - Job planning is pure and testable; execution adapters can be added later.
+
+## UI Copy Cleanup
+
+A follow-up UI copy audit fixed remaining garbled visible text, stale labels, duplicated reader/workspace copy, and obvious dark-theme leftovers. This was presentation-only and did not change runtime, storage, AI, import, backup, retry/resume, or job behavior.

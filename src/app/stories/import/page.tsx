@@ -210,7 +210,7 @@ export default function ImportNovelPage() {
     <PageShell>
       <PageContainer className="max-w-6xl">
         <PageHeader
-          eyebrow="Import Novel"
+          eyebrow="Import Story"
           title="Import Story"
           description="Paste raw novel text, detect chapters locally, and save chapters/chunks into IndexedDB for analysis."
         />
@@ -251,27 +251,27 @@ export default function ImportNovelPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <SectionCard
             icon={<Upload className="h-5 w-5" />}
-            title="Novel source"
+            title="Story source"
             contentClassName="space-y-5"
           >
             <div className="app-form-grid">
               <div className="grid gap-2">
-                <Label htmlFor="novel-title">Tên truyện</Label>
+                <Label htmlFor="novel-title">Story title</Label>
                 <Input
                   id="novel-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Ví dụ: Thiên Kiếm Lưu Vân"
+                  placeholder="Example: Moonlit Blade Chronicles"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="novel-author">Tác giả</Label>
+                <Label htmlFor="novel-author">Author</Label>
                 <Input
                   id="novel-author"
                   value={author}
                   onChange={(event) => setAuthor(event.target.value)}
-                  placeholder="Tên tác giả hoặc nguồn"
+                  placeholder="Author name or source"
                 />
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function ImportNovelPage() {
                 className="min-h-[520px] text-sm leading-6"
                 value={novelText}
                 onChange={(event) => setNovelText(event.target.value)}
-                placeholder="Paste toàn bộ truyện hoặc nhiều chương vào đây..."
+                placeholder="Paste the full story text or multiple chapters here..."
               />
               <ImportHint>
                 Paste the full text here. Chapter detection runs locally; no AI
@@ -299,7 +299,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isDetecting || isCreating}
               >
                 <BookOpenCheck className="mr-2 h-4 w-4" />
-                {isDetecting ? "Đang detect..." : "Detect chapters locally"}
+                {isDetecting ? "Detecting..." : "Detect chapters locally"}
               </Button>
               <Button
                 type="button"
@@ -307,7 +307,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isCreating || isDetecting}
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isCreating ? "Đang tạo..." : "Create story in IndexedDB"}
+                {isCreating ? "Creating..." : "Create story in IndexedDB"}
               </Button>
               {isDetecting || isCreating ? (
                 <Button
@@ -349,7 +349,7 @@ export default function ImportNovelPage() {
             ) : null}
           </SectionCard>
 
-          <SectionCard title="Preview chương">
+          <SectionCard title="Chapter preview">
             {detectedChapters.length > 0 ? (
               <div className="space-y-3">
                 <ImportHint>
@@ -358,10 +358,10 @@ export default function ImportNovelPage() {
                 </ImportHint>
                 <div className="rounded-lg border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
-                    {detectedChapters.length} chương detected
+                    {detectedChapters.length} chapters detected
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    Khoảng {totalWordCount.toLocaleString("vi-VN")} từ ·{" "}
+                    Approx. {totalWordCount.toLocaleString("vi-VN")} words |{" "}
                     {detectedChunks.length.toLocaleString("vi-VN")} chunks
                   </p>
                 </div>
@@ -373,13 +373,13 @@ export default function ImportNovelPage() {
                       key={chapter.id}
                     >
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Chương {chapter.chapterNumber}
+                        Chapter {chapter.chapterNumber}
                       </p>
                       <h2 className="mt-1 text-sm font-semibold">
                         {chapter.title}
                       </h2>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {chapter.wordCount.toLocaleString("vi-VN")} từ ước tính
+                        {chapter.wordCount.toLocaleString("vi-VN")} estimated words
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {(
@@ -393,8 +393,8 @@ export default function ImportNovelPage() {
               </div>
             ) : (
               <EmptyState
-                title="Chưa detect chương"
-                description="Paste nội dung truyện rồi bấm Detect chapters để xem preview."
+                title="No chapters detected"
+                description="Paste story text and click Detect chapters to preview the chapter split."
               />
             )}
           </SectionCard>

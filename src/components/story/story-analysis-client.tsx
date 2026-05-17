@@ -848,7 +848,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         <PageHeader
           eyebrow="Novel Analysis"
           title={story?.title ?? "Imported Novel"}
-          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Analysis uses global runtime settings and Prompt Manager templates.`}
+          description={`${story?.author ? `Author: ${story.author}. ` : ""}Analysis uses global runtime settings and Prompt Manager templates.`}
           action={
             <>
               <Button asChild variant="outline">
@@ -1038,7 +1038,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           localAggregatedResult ? (
             <p className="mt-2 text-sm text-muted-foreground">
               Gemini Proxy batch result is ready and will be saved without a
-              second full-story request.
+              second full-story provider request.
             </p>
           ) : null}
 
@@ -1138,8 +1138,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 </div>
               ) : (
                 <EmptyState
-                  title="Chưa có imported chapters"
-                  description="Chưa có dữ liệu trong IndexedDB cho story này."
+                  title="No imported chapters"
+                  description="No local IndexedDB data found for this story."
                 />
               )}
             </SectionCard>

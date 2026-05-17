@@ -29,7 +29,7 @@ export default function StoryCard({
       </p>
 
       <div className="mt-5 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <span>{chapterCount} chương</span>
+        <span>{chapterCount} chapters</span>
         <div className="flex flex-wrap gap-2">
           <Link
             className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"

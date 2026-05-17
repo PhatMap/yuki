@@ -657,7 +657,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   })
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Chưa có chương nào.
+                    No local story data found for this route.
                   </p>
                 )}
               </CardContent>

@@ -403,8 +403,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
       <PageContainer className="max-w-[96rem]">
         <PageHeader
           eyebrow="Reader"
-          title={story?.title ?? "Đọc truyện"}
-          description="Đọc truyện đã import theo chương. Nếu có rewrite draft cho chương hiện tại, Reader có thể preview bản sửa ngay tại đây."
+          title={story?.title ?? "Story Reader"}
+          description="Read imported chapters from IndexedDB. If this chapter has a rewrite draft, you can preview it directly here."
           action={
             <>
               <Button asChild variant="outline">
@@ -462,17 +462,16 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
             <p className="app-muted-text">
               Loading local chapters from IndexedDB...
             </p>
-            <p className="app-muted-text">Đang đọc chương từ IndexedDB...</p>
           </SectionCard>
         ) : chapters.length === 0 ? (
           <EmptyState
-            title="Chưa có chương để đọc"
-            description="Import truyện trước để Reader hiển thị toàn bộ chương đã nạp."
+            title="No readable chapters found for this story."
+            description="Import a story first so Reader can display saved chapters."
             action={
               <Button asChild>
                 <Link href="/stories/import">
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Import truyện
+                  Import Story
                 </Link>
               </Button>
             }
@@ -658,8 +657,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                   </>
                 ) : (
                   <EmptyState
-                    title="Không tìm thấy chương"
-                    description="Chọn một chương trong danh sách bên trái."
+                    title="No chapter selected"
+                    description="Select a chapter from the list."
                   />
                 )}
               </main>
