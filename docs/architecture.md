@@ -70,6 +70,7 @@ Both local runtimes still preserve the current product contract: local job outpu
 Yuki can use small animation patterns for state feedback, especially around job progress, runtime status, and long-running local processing.
 
 Animation must stay lightweight:
+
 - no large animation dependency by default
 - no blocking core product flow
 - respect `prefers-reduced-motion`
@@ -91,6 +92,21 @@ Real provider behavior is unchanged: Gemini proxy and future providers still use
 The Story Analysis Dashboard keeps the local aggregated mock result in component state for display/debug visibility, but the active run must pass the freshly produced aggregated result through a local variable inside `handleStartAnalysis`.
 
 This avoids relying on React state updates synchronously inside the same async analysis run.
+
+## Batch Analysis Save Safety
+
+Local batch analysis only saves aggregated result when all planned tasks are completed or skipped from valid cache. Failed tasks block the save.
+
+When a local batch job produces some successful task outputs while other tasks fail:
+
+- The failed tasks are counted and reported in the UI
+- The aggregated analysis result is **not** persisted as completed analysis
+- An error message shows the breakdown: "failed: X, completed: Y, skipped: Z"
+- Users can inspect failed task details in the local job store via browser diagnostics
+
+This prevents long Gemini jobs (3000+ chapters) from silently saving incomplete story analysis as completed. For example, if 100 tasks succeed and 5 fail, the app will not save the partial analysis as done.
+
+Future retry/resume tools can use persisted jobs, tasks, and cache to recover and complete analysis for failed items.
 
 ## Local Import Worker
 
@@ -235,12 +251,14 @@ The profile is not auto-saved; users still confirm with Save Settings. Server-si
 `/api/ai/gemini` is the single browser-facing core endpoint for real analysis calls.
 
 Server-side adapter profiles are supported:
+
 - `google-generative-language`: official Google Gemini REST using `GEMINI_API_KEY` (server-only).
 - `openai-compatible`: OpenAI-compatible Gemini proxy using `GEMINI_PROXY_BASE_URL` and `GEMINI_PROXY_API_KEYS` (server-only).
 
 Key pools are resolved only on the server. Runtime diagnostics and readiness endpoints expose key counts and adapter metadata only; raw keys are never returned to the browser.
 
 `/api/ai/gemini/models` supports model discovery:
+
 - static recommended models for the Google adapter
 - remote `/v1/models` fetch for openai-compatible adapter
 
@@ -271,6 +289,7 @@ Mock remains a deterministic local batch path. Ollama remains outside this local
 ## Gemini Batch Controls
 
 Gemini Proxy batch analysis now supports user-tunable batch controls in global runtime settings:
+
 - batch size
 - local concurrency
 - per-task request delay in milliseconds
@@ -280,6 +299,7 @@ These controls help large 3000+ chapter workflows reduce aggressive request burs
 Cached tasks do not call the provider and therefore do not wait on request delay. Delay applies only to real Gemini batch task calls.
 
 Two quick profiles are available:
+
 - safe profile: conservative pacing for stability
 - fast profile: more aggressive throughput
 

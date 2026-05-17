@@ -65,6 +65,9 @@ export interface LocalStoryAnalysisJobResult {
   skippedTasks: number;
   completedTasks: number;
   failedTasks: number;
+  hasFailedTasks: boolean;
+  hasCompletedAllTasks: boolean;
+  canSaveAggregatedResult: boolean;
 }
 
 const DEFAULT_PROMPT_TEMPLATE_ID = "import-analysis";
@@ -113,12 +116,14 @@ function createChapterSourceItems(
 }
 
 function createPromptVersionHash(
-  template: {
-    id: string;
-    updatedAt: string;
-    editablePrompt: string;
-    lockedContract: string;
-  } | undefined,
+  template:
+    | {
+        id: string;
+        updatedAt: string;
+        editablePrompt: string;
+        lockedContract: string;
+      }
+    | undefined,
 ) {
   return createStableContentHash({
     templateId: template?.id ?? DEFAULT_PROMPT_TEMPLATE_ID,
@@ -138,7 +143,9 @@ function toProviderTarget(input: RunLocalStoryAnalysisJobInput) {
   return {
     providerId: settings?.providerId ?? "mock",
     model: settings ? getActiveRuntimeModel(settings) : "mock-local",
-    endpoint: settings ? getActiveRuntimeEndpoint(settings) : "local mock runtime",
+    endpoint: settings
+      ? getActiveRuntimeEndpoint(settings)
+      : "local mock runtime",
     temperature: settings?.temperature,
     maxOutputTokens: settings?.maxOutputTokens,
   };
@@ -164,7 +171,9 @@ export async function runLocalStoryAnalysisJob(
     );
   }
 
-  const promptTemplate = await getPromptTemplateById(DEFAULT_PROMPT_TEMPLATE_ID);
+  const promptTemplate = await getPromptTemplateById(
+    DEFAULT_PROMPT_TEMPLATE_ID,
+  );
   const promptVersionHash = createPromptVersionHash(promptTemplate);
   const items =
     input.chunks.length > 0
@@ -172,7 +181,7 @@ export async function runLocalStoryAnalysisJob(
       : createChapterSourceItems(input.storyId, input.chapters);
   const isGeminiProxyProvider = providerTarget.providerId === "gemini-proxy";
   const inferredBatchSize = isGeminiProxyProvider
-    ? input.runtimeSettings?.geminiBatchSize ?? 10
+    ? (input.runtimeSettings?.geminiBatchSize ?? 10)
     : items.length > 300
       ? 25
       : 10;
@@ -238,6 +247,14 @@ export async function runLocalStoryAnalysisJob(
         })
       : undefined;
 
+  const hasFailedTasks = failedTasks > 0;
+  const hasCompletedAllTasks =
+    runnerResult.cancelled === false &&
+    failedTasks === 0 &&
+    completedTasks + skippedTasks === runnerResult.tasks.length;
+  const canSaveAggregatedResult =
+    Boolean(analysisResult) && hasCompletedAllTasks;
+
   return {
     job: runnerResult.job,
     tasks: runnerResult.tasks,
@@ -248,5 +265,8 @@ export async function runLocalStoryAnalysisJob(
     skippedTasks,
     completedTasks,
     failedTasks,
+    hasFailedTasks,
+    hasCompletedAllTasks,
+    canSaveAggregatedResult,
   };
 }

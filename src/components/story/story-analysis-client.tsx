@@ -246,7 +246,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const runtimeEndpoint = runtimeSettings
     ? getActiveRuntimeEndpoint(runtimeSettings)
     : "Loading";
-  const activeJobRuntime = runtimeSettings?.jobRuntime ?? runtimeConfig.jobRuntime;
+  const activeJobRuntime =
+    runtimeSettings?.jobRuntime ?? runtimeConfig.jobRuntime;
   const canUseLocalAggregatedAnalysis =
     runtimeSettings?.providerId === "mock" ||
     runtimeSettings?.providerId === "gemini-proxy";
@@ -298,7 +299,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     let localAnalysisResult: StoryAnalysisResult | undefined;
     const controller = createAnalysisAbortController();
     setIsLocalJobRunning(
-      activeJobRuntime === "local-browser" || activeJobRuntime === "local-worker",
+      activeJobRuntime === "local-browser" ||
+        activeJobRuntime === "local-worker",
     );
 
     if (activeJobRuntime === "local-browser") {
@@ -339,6 +341,47 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           });
           clearAnalysisAbortController(controller);
           setIsLocalJobRunning(false);
+          setIsSavingAnalysis(false);
+          return;
+        }
+
+        if (localJobResult.hasFailedTasks) {
+          setLocalJobState({
+            jobId: localJobResult.job.id,
+            status: localJobResult.job.status,
+            totalTasks: localJobResult.progress.totalTasks,
+            completedTasks: localJobResult.completedTasks,
+            skippedTasks: localJobResult.skippedTasks,
+            failedTasks: localJobResult.failedTasks,
+            percentComplete: localJobResult.progress.percentComplete,
+            message: "Local batch analysis finished with failed task(s).",
+          });
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setStorageError(
+            `Local batch analysis failed: ${localJobResult.failedTasks} failed, ${localJobResult.completedTasks} completed, ${localJobResult.skippedTasks} skipped. No partial analysis was saved.`,
+          );
+          setIsSavingAnalysis(false);
+          return;
+        }
+
+        if (!localJobResult.canSaveAggregatedResult) {
+          setLocalJobState({
+            jobId: localJobResult.job.id,
+            status: localJobResult.job.status,
+            totalTasks: localJobResult.progress.totalTasks,
+            completedTasks: localJobResult.completedTasks,
+            skippedTasks: localJobResult.skippedTasks,
+            failedTasks: localJobResult.failedTasks,
+            percentComplete: localJobResult.progress.percentComplete,
+            message:
+              "Local batch analysis did not complete all tasks. No partial analysis was saved.",
+          });
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setStorageError(
+            "Local batch analysis did not complete all tasks. No partial analysis was saved.",
+          );
           setIsSavingAnalysis(false);
           return;
         }
@@ -402,6 +445,29 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           return;
         }
 
+        if (
+          workerResult.summary.hasFailedTasks ||
+          workerResult.summary.failedTasks > 0
+        ) {
+          setStorageError(
+            `Local worker batch analysis failed: ${workerResult.summary.failedTasks} failed, ${workerResult.summary.completedTasks} completed, ${workerResult.summary.skippedTasks} skipped. No partial analysis was saved.`,
+          );
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setIsSavingAnalysis(false);
+          return;
+        }
+
+        if (!workerResult.summary.canSaveAggregatedResult) {
+          setStorageError(
+            "Local worker batch analysis did not complete all tasks. No partial analysis was saved.",
+          );
+          clearAnalysisAbortController(controller);
+          setIsLocalJobRunning(false);
+          setIsSavingAnalysis(false);
+          return;
+        }
+
         localAnalysisResult = workerResult.analysisResult;
         setLocalAggregatedResult(localAnalysisResult);
       } catch (error) {
@@ -433,13 +499,14 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     clearAnalysisAbortController(controller);
     setIsLocalJobRunning(false);
     const usedLocalBatchRuntime =
-      activeJobRuntime === "local-browser" || activeJobRuntime === "local-worker";
+      activeJobRuntime === "local-browser" ||
+      activeJobRuntime === "local-worker";
     let effectivePipelineResult: AiPipelineResult;
 
     if (canUseLocalAggregatedAnalysis && usedLocalBatchRuntime) {
       if (!runtimeSettings || !localAnalysisResult) {
         setStorageError(
-          "Local batch analysis did not return an aggregated analysis result.",
+          "Local batch analysis did not return an aggregated analysis result. No partial analysis was saved.",
         );
         setIsSavingAnalysis(false);
         return;
@@ -630,7 +697,15 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           </div>
 
           {jobRuntimeNote ? (
-            <p className="mt-3 text-sm text-muted-foreground">{jobRuntimeNote}</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {jobRuntimeNote}
+            </p>
+          ) : null}
+
+          {localJobState && localJobState.failedTasks > 0 ? (
+            <p className="mt-3 text-sm text-destructive">
+              Some batch tasks failed. The app will not save partial analysis.
+            </p>
           ) : null}
 
           {localJobState?.message ? (
@@ -642,7 +717,9 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           {localAggregatedResult?.updatedAt ? (
             <p className="mt-2 text-sm text-muted-foreground">
               Local aggregated result ready at{" "}
-              {new Date(localAggregatedResult.updatedAt).toLocaleString("vi-VN")}
+              {new Date(localAggregatedResult.updatedAt).toLocaleString(
+                "vi-VN",
+              )}
               .
             </p>
           ) : null}

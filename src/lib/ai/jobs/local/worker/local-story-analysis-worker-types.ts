@@ -43,6 +43,9 @@ export interface LocalStoryAnalysisWorkerProgressSnapshot {
   failedTasks: number;
   percentComplete: number;
   message?: string;
+  hasFailedTasks?: boolean;
+  hasCompletedAllTasks?: boolean;
+  canSaveAggregatedResult?: boolean;
 }
 
 export interface LocalStoryAnalysisWorkerProgressMessage {

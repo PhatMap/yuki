@@ -52,7 +52,10 @@ globalThis.addEventListener(
     if (isCancelRequest(request)) {
       if (activeAbortController && activeRequestId === request.requestId) {
         activeAbortController.abort(
-          new DOMException("Local worker analysis job cancelled.", "AbortError"),
+          new DOMException(
+            "Local worker analysis job cancelled.",
+            "AbortError",
+          ),
         );
       }
 
@@ -106,6 +109,9 @@ globalThis.addEventListener(
           failedTasks: result.failedTasks,
           percentComplete: result.progress.percentComplete,
           message: result.progress.message,
+          hasFailedTasks: result.hasFailedTasks,
+          hasCompletedAllTasks: result.hasCompletedAllTasks,
+          canSaveAggregatedResult: result.canSaveAggregatedResult,
         }),
         analysisResult: result.analysisResult,
       });
