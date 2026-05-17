@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, type ReactNode, useState } from "react";
 import {
   AlertTriangle,
   BookOpen,
@@ -716,8 +716,8 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       <PageContainer>
         <PageHeader
           eyebrow="Data Health"
-          title={story?.title ?? "Storage Inspector"}
-          description="Inspect local story data across IndexedDB and legacy fallback keys."
+          title="Story Data Health"
+          description="Inspect local IndexedDB story data, AI jobs, cache entries, and backup/restore readiness."
           action={
             <>
               <Button
@@ -740,6 +740,25 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
             </>
           }
         />
+
+        <SectionCard title="Local Data Safety">
+          <div className="space-y-2">
+            <DataHealthHint>
+              Yuki stores story data locally in IndexedDB.
+            </DataHealthHint>
+            <DataHealthHint>
+              Backups are local JSON files; full story backups are handled per
+              story.
+            </DataHealthHint>
+            <DataHealthHint>
+              AI job/cache inspection helps debug Gemini batch runs and resume
+              failed work.
+            </DataHealthHint>
+            <DataHealthHint>
+              Destructive actions are separated and should be used carefully.
+            </DataHealthHint>
+          </div>
+        </SectionCard>
 
         {!inspection ? (
           <EmptyState
@@ -923,6 +942,22 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                 </SectionCard>
 
                 <SectionCard title="AI job and cache state">
+                  <div className="mb-3 space-y-1">
+                    <DataHealthHint>
+                      AI jobs and cache entries are used by Gemini Proxy batch
+                      analysis.
+                    </DataHealthHint>
+                    <DataHealthHint>
+                      Cache hits can skip completed work.
+                    </DataHealthHint>
+                    <DataHealthHint>
+                      Failed or incomplete jobs may be resumable from the Story
+                      Analysis Dashboard.
+                    </DataHealthHint>
+                    <DataHealthHint>
+                      Clearing AI cache does not delete story text or chapters.
+                    </DataHealthHint>
+                  </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <HealthRow
                       label="AI jobs"
@@ -1069,9 +1104,9 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       {isExportingStoryBackup ? "Exporting backup..." : "Export story backup JSON"}
                     </Button>
                     <p className="app-muted-text">
-                      Exports this story, imported chapters, chunks, saved analysis, branches,
-                      rewrite drafts, AI jobs, job tasks, and AI cache entries into one local JSON
-                      backup file.
+                      Export creates a local JSON backup for the current story.
+                      App-level settings backup lives in Global Settings; full
+                      story content backup lives here.
                     </p>
                     <div className="rounded-xl border bg-background p-3">
                       <label className="block">
@@ -1086,8 +1121,8 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       </label>
 
                       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Reads a backup file locally and validates schema/counts only. This does not
-                        restore or write any data.
+                        Validate reads a backup file locally without writing
+                        data.
                       </p>
                     </div>
 
@@ -1170,9 +1205,9 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                         </Button>
 
                         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                          Restore is only enabled when the selected backup is valid and its storyId
-                          matches the current story. The restore overwrites local IndexedDB data for
-                          this story only.
+                          Restore is guarded and only allowed when backup
+                          storyId matches the current story. The restore
+                          overwrites local IndexedDB data for this story only.
                         </p>
                       </div>
                     ) : null}
@@ -1188,8 +1223,9 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       {isClearingAiCache ? "Clearing AI cache..." : "Clear AI cache for this story"}
                     </Button>
                     <p className="app-muted-text">
-                      Clears derived AI job cache entries only. Story, chapters, analysis result,
-                      jobs, and tasks are preserved.
+                      Clear AI cache removes cached AI task outputs for this
+                      story only. It does not delete chapters, story text, or
+                      saved analysis.
                     </p>
                     {actionMessage ? (
                       <p className="app-muted-text">{actionMessage}</p>
@@ -1259,4 +1295,8 @@ function StorageKeyRow<T>({ item }: { item: ParsedLegacyFallbackValue<T> }) {
       </div>
     </div>
   );
+}
+
+function DataHealthHint({ children }: { children: ReactNode }) {
+  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
 }

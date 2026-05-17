@@ -342,6 +342,12 @@ The Import page clarifies the local-first large story import flow: raw text is p
 
 This is a presentation-only update; import parsing, worker behavior, and IndexedDB storage logic remain unchanged.
 
+## Data Health UX
+
+The Story Data Health page clarifies local IndexedDB inspection, per-story backup/restore, AI job/cache state, and safe/destructive maintenance actions. It supports large local-first projects by making backup readiness, Gemini batch cache state, and resumable job visibility easier to understand.
+
+This is a presentation-only update; backup/restore guards, IndexedDB schema, AI job/cache behavior, and clear-cache logic remain unchanged.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:
