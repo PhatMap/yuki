@@ -65,7 +65,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
     description: "World, timeline, relation",
     items: [
       {
-        label: "Bible",
+        label: "Story Bible",
         href: "bible",
         icon: Layers3,
       },
@@ -80,7 +80,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         icon: HeartHandshake,
       },
       {
-        label: "World",
+        label: "World Tracker",
         href: "world-tracker",
         icon: GitBranch,
       },
@@ -91,12 +91,12 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
     description: "Plan and draft changes",
     items: [
       {
-        label: "Planner",
+        label: "Rewrite Planner",
         href: "rewrite-planner",
         icon: PenLine,
       },
       {
-        label: "Draft",
+        label: "Rewrite Draft",
         href: "rewrite-draft",
         icon: FileText,
       },
@@ -130,7 +130,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
     description: "Data, proxy, scale tools",
     items: [
       {
-        label: "Data",
+        label: "Data Health",
         href: "data-health",
         icon: Database,
       },

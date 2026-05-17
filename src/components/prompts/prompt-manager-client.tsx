@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Database, RotateCcw, Save, Sparkles } from "lucide-react";
 
 import { PageContainer } from "@/components/app/page-container";
@@ -176,7 +176,7 @@ export function PromptManagerClient() {
         <PageHeader
           eyebrow="AI Runtime"
           title="Prompt Manager"
-          description="Manage global Yuki prompts for import analysis, rewrite planning, rewrite drafting, and future story generation. Templates are stored in IndexedDB, not localStorage."
+          description="Edit global prompt templates stored in IndexedDB. Prompt contracts protect required output shapes for analysis and rewrite flows."
           action={
             <>
               <Button
@@ -207,10 +207,28 @@ export function PromptManagerClient() {
           </section>
         ) : null}
 
+        <SectionCard title="Prompt Safety">
+          <div className="space-y-2">
+            <PromptManagerHint>
+              Editable prompt text controls model behavior.
+            </PromptManagerHint>
+            <PromptManagerHint>
+              Locked contract describes required output shape and should not be
+              bypassed.
+            </PromptManagerHint>
+            <PromptManagerHint>
+              Variables are inserted at runtime.
+            </PromptManagerHint>
+            <PromptManagerHint>
+              Reset restores the selected template or all templates to defaults.
+            </PromptManagerHint>
+          </div>
+        </SectionCard>
+
         <SectionCard
           icon={<Database className="h-5 w-5" />}
-          title="Prompt groups"
-          description="Filter global prompts by workflow area. These templates are not connected to the AI pipeline yet."
+          title="Category"
+          description="Filter prompt templates by workflow area."
         >
           <div className="app-chip-row">
             {categoryFilters.map((category) => (
@@ -270,13 +288,19 @@ function PromptTemplateEditor({
       contentClassName="space-y-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="app-chip-row">
-          <span className="app-chip-primary">{template.category}</span>
+        <div>
+          <p className="mb-2 text-sm font-medium text-muted-foreground">
+            Variables
+          </p>
+          <div className="app-chip-row">
+          <span className="app-chip-primary">Template: {template.title}</span>
+          <span className="app-chip">Category: {template.category}</span>
           {template.variables.map((variable) => (
             <span className="app-chip" key={variable}>
               {"{{" + variable + "}}"}
             </span>
           ))}
+          </div>
         </div>
 
         <Button
@@ -290,9 +314,18 @@ function PromptTemplateEditor({
         </Button>
       </div>
 
+      <PromptManagerHint>
+        Variables are filled by the runtime. Missing variables will be reported
+        before provider output is trusted.
+      </PromptManagerHint>
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <label className="grid gap-2">
           <span className="text-sm font-medium">Editable prompt</span>
+          <PromptManagerHint>
+            Edit instructions carefully. Keep structure requirements aligned with
+            the locked contract.
+          </PromptManagerHint>
           <Textarea
             className="app-editor-textarea min-h-[260px]"
             value={template.editablePrompt}
@@ -305,7 +338,7 @@ function PromptTemplateEditor({
 
         <div className="grid gap-2">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium">Locked JSON contract</p>
+            <p className="text-sm font-medium">Locked contract</p>
             <span className="text-xs text-muted-foreground">
               Updated {formatDate(template.updatedAt)}
             </span>
@@ -315,6 +348,15 @@ function PromptTemplateEditor({
           </pre>
         </div>
       </div>
+
+      <PromptManagerHint>
+        Reset affects prompt templates only. It does not delete stories,
+        analysis results, jobs, or cache.
+      </PromptManagerHint>
     </SectionCard>
   );
+}
+
+function PromptManagerHint({ children }: { children: ReactNode }) {
+  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
 }

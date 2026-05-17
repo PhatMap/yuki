@@ -352,6 +352,30 @@ This is a presentation-only update; backup/restore guards, IndexedDB schema, AI 
 
 Home and Stories pages now clarify the local-first Yuki workflow: import story data into IndexedDB, run Gemini Proxy analysis, verify Data Health/backups, and continue into reading or planning views. This is presentation-only; story loading and storage behavior remain unchanged.
 
+## Reader UX
+
+The Reader view is polished for long local reading sessions under Yuki Night Snow. It clarifies that chapters load from IndexedDB and improves copy/readability without changing chapter loading, routing, or storage behavior.
+
+## Prompt Manager UX
+
+Prompt Manager clarifies editable prompts, locked contracts, variables, and reset behavior. This is presentation-only; prompt IDs, default prompt text, IndexedDB storage, and runtime interpolation behavior remain unchanged.
+
+## Story Workspace UX
+
+Story Workspace clarifies local IndexedDB workflow and navigation between reader, analysis, Data Health, and planning tools. This is presentation-only; routing, storage, analysis, rewrite, and planner logic remain unchanged.
+
+## Shared UI Surface Polish
+
+Shared cards, status surfaces, and progress components are aligned with the Yuki Night Snow theme for clearer dark-mode separation and readability. This is presentation-only and does not change page behavior.
+
+## App Icon and Metadata
+
+Yuki metadata uses the Yuki Story Studio name and local-first AI story analysis description. Favicon/app icon files should be generated separately and placed in public as favicon.ico, icon.png, and apple-icon.png.
+
+## Final UI Copy Audit
+
+A final UI/copy audit removed remaining obvious dark-theme or copy inconsistencies after the Yuki Night Snow polish passes. This did not change runtime, storage, AI, import, backup, or job behavior.
+
 ## Shared Story Card UX
 
 Shared StoryCard actions now expose Workspace, Reader, Analysis, and Data Health links so the local-first story workflow is reachable from the story library. This is presentation-only; routes and story loading behavior remain unchanged.

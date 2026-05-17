@@ -43,7 +43,7 @@ export default function DashboardPage() {
                 New story
               </Link>
               <Link href="/stories/import" className="app-secondary-action">
-                Import novel
+                Import Story
               </Link>
             </div>
           }

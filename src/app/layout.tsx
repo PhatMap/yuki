@@ -14,7 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Yuki Story Studio",
-  description: "AI-assisted long novel planning and rewrite workspace.",
+  description: "Local-first AI story analysis workspace for long novels.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

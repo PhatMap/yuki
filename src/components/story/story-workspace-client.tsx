@@ -7,11 +7,13 @@ import {
   BookOpen,
   Boxes,
   CalendarDays,
+  Database,
   FileText,
   GitBranch,
   HeartHandshake,
   PenLine,
   Save,
+  Sparkles,
   WandSparkles,
 } from "lucide-react";
 
@@ -489,6 +491,30 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/reader`}>
+                <BookOpen className="mr-2 h-4 w-4" />
+                Continue Reading
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/analysis`}>
+                <WandSparkles className="mr-2 h-4 w-4" />
+                Run Analysis
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/stories/${storyId}/data-health`}>
+                <Database className="mr-2 h-4 w-4" />
+                Open Data Health
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/prompt-manager">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Open Prompt Manager
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/bible`}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 Open Story Bible
@@ -536,11 +562,34 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         </div>
       </div>
 
+      <div className="app-workspace-grid">
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Local Story Workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm leading-6 text-muted-foreground">
+              Story data is loaded from IndexedDB.
+            </p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Use Analysis for Gemini batch extraction.
+            </p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Use Data Health for backups, job/cache state, and restore
+              readiness.
+            </p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Reader and planning tools use the same local story data.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {isLoading ? (
         <div className="app-workspace-grid">
           <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>Loading workspace data</CardTitle>
+              <CardTitle>Loading local story workspace...</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="app-muted-text">

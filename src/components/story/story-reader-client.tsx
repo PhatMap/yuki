@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -443,8 +443,25 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
           </section>
         ) : null}
 
+        <SectionCard title="Reader Mode">
+          <div className="space-y-2">
+            <StoryAnalysisHint>
+              Chapters are loaded from local IndexedDB.
+            </StoryAnalysisHint>
+            <StoryAnalysisHint>
+              Long reading is optimized for the dark Yuki Night Snow theme.
+            </StoryAnalysisHint>
+            <StoryAnalysisHint>
+              Analysis and Data Health remain available from story navigation.
+            </StoryAnalysisHint>
+          </div>
+        </SectionCard>
+
         {isLoading ? (
           <SectionCard title="Loading reader">
+            <p className="app-muted-text">
+              Loading local chapters from IndexedDB...
+            </p>
             <p className="app-muted-text">Đang đọc chương từ IndexedDB...</p>
           </SectionCard>
         ) : chapters.length === 0 ? (
@@ -818,4 +835,8 @@ function ContextGroup({ label, values }: { label: string; values: string[] }) {
       )}
     </div>
   );
+}
+
+function StoryAnalysisHint({ children }: { children: ReactNode }) {
+  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
 }

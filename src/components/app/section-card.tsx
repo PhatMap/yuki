@@ -27,7 +27,7 @@ export function SectionCard({
   return (
     <Card
       className={cn(
-        "app-section-card min-w-0 overflow-hidden rounded-2xl shadow-sm",
+        "app-section-card min-w-0 overflow-hidden rounded-2xl border-border bg-card/92 shadow-sm",
         className,
       )}
     >

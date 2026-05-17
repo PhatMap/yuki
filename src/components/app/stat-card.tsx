@@ -21,7 +21,12 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("overflow-hidden rounded-2xl shadow-sm", className)}>
+    <Card
+      className={cn(
+        "overflow-hidden rounded-2xl border-border bg-card/92 shadow-sm",
+        className,
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -34,7 +39,7 @@ export function StatCard({
           </div>
 
           {icon ? (
-            <div className="shrink-0 rounded-xl border bg-muted/50 p-2 text-muted-foreground">
+            <div className="shrink-0 rounded-xl border border-border/80 bg-muted/60 p-2 text-muted-foreground">
               {icon}
             </div>
           ) : null}
