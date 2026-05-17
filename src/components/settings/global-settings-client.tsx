@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Check,
@@ -34,7 +34,6 @@ import {
   createGeminiSafeBatchProfile,
   defaultAiRuntimeSettings,
   GEMINI_CORE_DEFAULT_ENDPOINT,
-  GEMINI_CORE_DEFAULT_MODEL,
   getActiveRuntimeEndpoint,
   getActiveRuntimeModel,
   getAiRuntimeProviderLabel,
@@ -630,11 +629,46 @@ export function GlobalSettingsClient() {
           />
         </section>
 
+        <SectionCard
+          title="Gemini Proxy Core"
+          description="Recommended real-AI path for Yuki. Browser calls the app proxy route; API keys remain server-only."
+        >
+          <div className="space-y-4">
+            <SettingsHint>
+              Recommended setup: Gemini Proxy + /api/ai/gemini + gemini-2.5-flash + local-worker. Use this for real analysis after GEMINI_API_KEY is configured in .env.local or deployment env.
+            </SettingsHint>
+            <div className="grid gap-3 md:grid-cols-2">
+              <PreviewRow
+                label="Provider"
+                value={getAiRuntimeProviderLabel(settings.providerId)}
+              />
+              <PreviewRow label="Endpoint" value={activeEndpoint} />
+              <PreviewRow label="Model" value={activeModel} />
+              <PreviewRow
+                label="Batch"
+                value={`${settings.geminiBatchSize} / ${settings.geminiBatchConcurrency} / ${settings.geminiRequestDelayMs}ms`}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleUseGeminiCoreProfile}
+              disabled={isLoading || isSaving}
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Use Gemini Core Profile
+            </Button>
+            <SettingsHint>
+              This applies locally only. Click Save Settings to persist.
+            </SettingsHint>
+          </div>
+        </SectionCard>
+
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="space-y-4">
             <SectionCard
-              title="Provider đang dùng"
-              description="Chọn một provider mặc định cho các tác vụ AI. Các bước sau sẽ nối runtime này vào analysis/planner/rewrite."
+              title="Core AI Runtime"
+              description="Choose the default AI provider. Mock is safe for first launch. Gemini Proxy is the recommended real-AI core. Ollama is local fallback/experiment."
             >
               <div className="grid gap-3 md:grid-cols-2">
                 {aiRuntimeProviderOptions.map((provider) => {
@@ -682,7 +716,7 @@ export function GlobalSettingsClient() {
 
             <SectionCard
               title="Job runtime"
-              description="Chọn cách chạy job phân tích cục bộ. Local Worker là lựa chọn khuyến nghị cho truyện lớn."
+              description="Choose where local analysis job orchestration runs. Local Worker is recommended for large stories."
             >
               <div className="grid gap-3 md:grid-cols-3">
                 {jobRuntimeOptions.map((runtime) => {
@@ -731,8 +765,8 @@ export function GlobalSettingsClient() {
             </SectionCard>
 
             <SectionCard
-              title="Gemini batch controls"
-              description="Controls batch size, local concurrency, and request delay for Gemini Proxy story analysis."
+              title="Gemini Batch Controls"
+              description="Tune batch size, local concurrency, and per-task delay for long Gemini Proxy story analysis."
             >
               <div className="space-y-4">
                 <div className="grid gap-2 md:grid-cols-3">
@@ -821,8 +855,8 @@ export function GlobalSettingsClient() {
             </SectionCard>
 
             <SectionCard
-              title="Gemini Proxy"
-              description="Provider dự kiến dùng cho deploy. Endpoint là route proxy của app hoặc API server sau này."
+              title="Gemini Proxy Setup"
+              description="Configure the browser-facing proxy endpoint and model discovery. Keys stay server-only."
             >
               <div className="space-y-4">
                 <SettingsTextInput
@@ -864,12 +898,25 @@ export function GlobalSettingsClient() {
                     ? "Fetching models..."
                     : "Fetch Gemini Proxy Models"}
                 </Button>
-                <p className="app-muted-text">
+                <SettingsHint>
                   Models are fetched from the server proxy route. API keys stay
                   server-only.
-                </p>
+                </SettingsHint>
+                <SettingsHint>
+                  Default endpoint: /api/ai/gemini. Server route reads GEMINI_API_KEY or proxy key pool from env.
+                </SettingsHint>
               </div>
             </SectionCard>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Advanced / Experimental
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                These providers are kept for future adapters or local experiments.
+                Gemini Proxy remains the recommended core path.
+              </p>
+            </div>
 
             <SectionCard
               title="Custom OpenAI-compatible"
@@ -1068,68 +1115,7 @@ export function GlobalSettingsClient() {
                   and provider wiring.
                 </p>
               )}
-            </SectionCard>
-
-            <SectionCard title="Actions">
-              <div className="space-y-3">
-                <Button
-                  className="w-full"
-                  type="button"
-                  onClick={handleSaveSettings}
-                  disabled={isLoading || isSaving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save to IndexedDB
-                </Button>
-
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="outline"
-                  onClick={handleUseGeminiCoreProfile}
-                  disabled={isLoading || isSaving}
-                >
-                  <Server className="mr-2 h-4 w-4" />
-                  Use Gemini Core Profile
-                </Button>
-                <p className="app-muted-text">
-                  Uses Gemini Proxy, endpoint {GEMINI_CORE_DEFAULT_ENDPOINT},
-                  model {GEMINI_CORE_DEFAULT_MODEL}, and local-worker runtime.
-                  Requires GEMINI_API_KEY in .env.local or deploy environment.
-                </p>
-
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="outline"
-                  onClick={handleUseGeminiSafeBatchProfile}
-                  disabled={isLoading || isSaving}
-                >
-                  <Server className="mr-2 h-4 w-4" />
-                  Use Safe Batch Profile
-                </Button>
-
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="outline"
-                  onClick={handleUseGeminiFastBatchProfile}
-                  disabled={isLoading || isSaving}
-                >
-                  <Server className="mr-2 h-4 w-4" />
-                  Use Fast Batch Profile
-                </Button>
-
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="outline"
-                  onClick={handleLocalTest}
-                >
-                  <TestTube className="mr-2 h-4 w-4" />
-                  Local Test Preview
-                </Button>
-
+              <div className="mt-3 space-y-2">
                 <Button
                   className="w-full"
                   type="button"
@@ -1153,7 +1139,11 @@ export function GlobalSettingsClient() {
                     ? "Exporting diagnostics..."
                     : "Export Runtime Diagnostics JSON"}
                 </Button>
+              </div>
+            </SectionCard>
 
+            <SectionCard title="Storage and Backup">
+              <div className="space-y-3">
                 <Button
                   className="w-full"
                   type="button"
@@ -1286,6 +1276,30 @@ export function GlobalSettingsClient() {
                     </p>
                   </div>
                 ) : null}
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Save and Reset">
+              <div className="space-y-3">
+                <Button
+                  className="w-full"
+                  type="button"
+                  onClick={handleSaveSettings}
+                  disabled={isLoading || isSaving}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save to IndexedDB
+                </Button>
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handleLocalTest}
+                >
+                  <TestTube className="mr-2 h-4 w-4" />
+                  Local Test Preview
+                </Button>
 
                 <Button
                   className="w-full"
@@ -1383,4 +1397,8 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
       <p className="mt-1 break-all font-mono text-xs">{value}</p>
     </div>
   );
+}
+
+function SettingsHint({ children }: { children: ReactNode }) {
+  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
 }

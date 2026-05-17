@@ -326,6 +326,12 @@ This is a visual foundation update only. Layout flows, AI/runtime/job/cache beha
 
 A follow-up visual QA pass further improved contrast and readability by removing remaining bright control surfaces, strengthening border visibility, and tuning muted text legibility for dense diagnostics and data-heavy panels.
 
+## Settings UX Structure
+
+Global Settings is organized around Gemini Proxy Core, Core AI Runtime, Gemini Proxy Setup, Gemini Batch Controls, Runtime Diagnostics, Storage and Backup, and Advanced/Experimental controls.
+
+Gemini Proxy is the recommended real-AI path. The settings restructure is presentation-only and does not change runtime behavior, IndexedDB schema, provider adapters, backup/restore logic, or job execution.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:
