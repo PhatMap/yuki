@@ -28,14 +28,34 @@ export default function StoryCard({
         {story.description}
       </p>
 
-      <div className="mt-5 flex items-center justify-between text-sm">
+      <div className="mt-5 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <span>{chapterCount} chương</span>
-        <Link
-          className="font-medium text-foreground underline-offset-4 hover:underline"
-          href={`/stories/${story.id}/workspace`}
-        >
-          Mở workspace
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
+            href={`/stories/${story.id}/workspace`}
+          >
+            Open Workspace
+          </Link>
+          <Link
+            className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
+            href={`/stories/${story.id}/reader`}
+          >
+            Reader
+          </Link>
+          <Link
+            className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
+            href={`/stories/${story.id}/analysis`}
+          >
+            Analysis
+          </Link>
+          <Link
+            className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
+            href={`/stories/${story.id}/data-health`}
+          >
+            Data Health
+          </Link>
+        </div>
       </div>
     </article>
   );

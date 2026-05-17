@@ -352,6 +352,10 @@ This is a presentation-only update; backup/restore guards, IndexedDB schema, AI 
 
 Home and Stories pages now clarify the local-first Yuki workflow: import story data into IndexedDB, run Gemini Proxy analysis, verify Data Health/backups, and continue into reading or planning views. This is presentation-only; story loading and storage behavior remain unchanged.
 
+## Shared Story Card UX
+
+Shared StoryCard actions now expose Workspace, Reader, Analysis, and Data Health links so the local-first story workflow is reachable from the story library. This is presentation-only; routes and story loading behavior remain unchanged.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:
