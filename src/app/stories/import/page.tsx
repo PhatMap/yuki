@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, BookOpenCheck, FileText, Upload } from "lucide-react";
 
@@ -211,9 +211,25 @@ export default function ImportNovelPage() {
       <PageContainer className="max-w-6xl">
         <PageHeader
           eyebrow="Import Novel"
-          title="Import Novel"
-          description="Nạp truyện có sẵn để phân tích chương, nhân vật, timeline, vật phẩm, thuật ngữ và văn phong."
+          title="Import Story"
+          description="Paste raw novel text, detect chapters locally, and save chapters/chunks into IndexedDB for analysis."
         />
+
+        <SectionCard title="Large Story Import">
+          <div className="space-y-2">
+            <ImportHint>
+              Local worker handles detection/chunking to reduce UI blocking.
+              Data is saved to IndexedDB.
+            </ImportHint>
+            <ImportHint>
+              For 3000+ chapters, use persistent storage and export backups
+              later from Data Health.
+            </ImportHint>
+            <ImportHint>
+              Import can be cancelled while processing.
+            </ImportHint>
+          </div>
+        </SectionCard>
 
         <div className="space-y-3">
           <div className="app-warning-box max-w-3xl">
@@ -261,7 +277,7 @@ export default function ImportNovelPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="novel-content">Nội dung truyện</Label>
+              <Label htmlFor="novel-content">Raw story text</Label>
               <Textarea
                 id="novel-content"
                 className="min-h-[520px] text-sm leading-6"
@@ -269,6 +285,10 @@ export default function ImportNovelPage() {
                 onChange={(event) => setNovelText(event.target.value)}
                 placeholder="Paste toàn bộ truyện hoặc nhiều chương vào đây..."
               />
+              <ImportHint>
+                Paste the full text here. Chapter detection runs locally; no AI
+                request is made during import.
+              </ImportHint>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -279,7 +299,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isDetecting || isCreating}
               >
                 <BookOpenCheck className="mr-2 h-4 w-4" />
-                {isDetecting ? "Đang detect..." : "Detect chapters"}
+                {isDetecting ? "Đang detect..." : "Detect chapters locally"}
               </Button>
               <Button
                 type="button"
@@ -287,7 +307,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isCreating || isDetecting}
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isCreating ? "Đang tạo..." : "Create story from import"}
+                {isCreating ? "Đang tạo..." : "Create story in IndexedDB"}
               </Button>
               {isDetecting || isCreating ? (
                 <Button
@@ -307,8 +327,20 @@ export default function ImportNovelPage() {
                   label={importProgress.status}
                   description={`${importProgress.message} ${importProgress.chapterCount.toLocaleString("vi-VN")} chapters · ${importProgress.chunkCount.toLocaleString("vi-VN")} chunks`}
                 />
+                <ImportHint>
+                  Import worker is processing locally. You can cancel this run
+                  without deleting already saved story data.
+                </ImportHint>
               </div>
             ) : null}
+
+            <div className="app-warning-box">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+              <p>
+                Large imports may take time. Keep this tab open until
+                processing completes.
+              </p>
+            </div>
 
             {createError ? (
               <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -320,6 +352,10 @@ export default function ImportNovelPage() {
           <SectionCard title="Preview chương">
             {detectedChapters.length > 0 ? (
               <div className="space-y-3">
+                <ImportHint>
+                  Review detected chapter count before creating the story. You
+                  can re-run detection after editing the raw text.
+                </ImportHint>
                 <div className="rounded-lg border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
                     {detectedChapters.length} chương detected
@@ -366,4 +402,8 @@ export default function ImportNovelPage() {
       </PageContainer>
     </PageShell>
   );
+}
+
+function ImportHint({ children }: { children: ReactNode }) {
+  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
 }

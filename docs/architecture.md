@@ -336,6 +336,12 @@ Gemini Proxy is the recommended real-AI path. The settings restructure is presen
 
 The Story Analysis dashboard now highlights runtime, provider, Gemini batch profile, job progress, resumable failed batches, and partial-save safety. This is a presentation-only update; analysis execution, retry/resume, cache, and save behavior remain unchanged.
 
+## Import Page UX
+
+The Import page clarifies the local-first large story import flow: raw text is processed by the local import worker, chapters/chunks are saved to IndexedDB, progress can be cancelled, and users are reminded to use persistent storage and Data Health backups for large projects.
+
+This is a presentation-only update; import parsing, worker behavior, and IndexedDB storage logic remain unchanged.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:
