@@ -332,6 +332,10 @@ Global Settings is organized around Gemini Proxy Core, Core AI Runtime, Gemini P
 
 Gemini Proxy is the recommended real-AI path. The settings restructure is presentation-only and does not change runtime behavior, IndexedDB schema, provider adapters, backup/restore logic, or job execution.
 
+## Story Analysis Dashboard UX
+
+The Story Analysis dashboard now highlights runtime, provider, Gemini batch profile, job progress, resumable failed batches, and partial-save safety. This is a presentation-only update; analysis execution, retry/resume, cache, and save behavior remain unchanged.
+
 ## Runtime Configuration
 
 `src/lib/runtime/runtime-config.ts` exposes safe public flags:

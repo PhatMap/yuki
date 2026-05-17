@@ -905,7 +905,12 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           }
         />
 
-        <SectionCard title="Runtime and Prompt Manager">
+        <SectionCard title="Runtime, Jobs, and Prompt">
+          <StoryAnalysisHint>
+            Gemini Proxy batch jobs run through the selected local runtime and
+            save only after all tasks complete or valid cache hits are
+            available.
+          </StoryAnalysisHint>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <RuntimeTile label="Provider" value={runtimeProviderLabel} />
             <RuntimeTile label="Model" value={runtimeModel} />
@@ -921,6 +926,19 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               }
             />
           </div>
+
+          {runtimeSettings?.providerId === "gemini-proxy" ? (
+            <div className="mt-3 rounded-xl border bg-card/80 p-3">
+              <p className="text-sm font-medium">Gemini batch profile</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Batch size {runtimeSettings.geminiBatchSize}, concurrency{" "}
+                {runtimeSettings.geminiBatchConcurrency}, delay{" "}
+                {runtimeSettings.geminiRequestDelayMs}ms. Completed cache hits
+                are reused; failed tasks can be resumed without saving partial
+                analysis.
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-3 grid gap-3 lg:grid-cols-3">
             <AnimatedStatusCard
@@ -963,6 +981,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                   {latestResumableJob.completedTasks} completed ·{" "}
                   {latestResumableJob.skippedTasks} skipped
                 </p>
+                {latestResumableJob.pendingTasks > 0 ||
+                latestResumableJob.runningTasks > 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {latestResumableJob.pendingTasks} pending ·{" "}
+                    {latestResumableJob.runningTasks} running
+                  </p>
+                ) : null}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Resume retries failed or incomplete tasks only. No partial
+                  result will be saved.
+                </p>
               </AnimatedStatusCard>
             ) : null}
           </div>
@@ -984,7 +1013,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           {localJobState && localJobState.failedTasks > 0 ? (
             <p className="mt-3 text-sm text-destructive">
-              Some batch tasks failed. The app will not save partial analysis.
+              Some batch tasks failed. Yuki will not save partial analysis. Use
+              Resume failed batch after checking the failed counts.
             </p>
           ) : null}
 
@@ -996,11 +1026,11 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           {localAggregatedResult?.updatedAt ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Local aggregated result ready at{" "}
+              Aggregated batch result ready at{" "}
               {new Date(localAggregatedResult.updatedAt).toLocaleString(
                 "vi-VN",
               )}
-              .
+              . It will be saved only after completion checks pass.
             </p>
           ) : null}
 
@@ -1009,14 +1039,6 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
             <p className="mt-2 text-sm text-muted-foreground">
               Gemini Proxy batch result is ready and will be saved without a
               second full-story request.
-            </p>
-          ) : null}
-
-          {runtimeSettings?.providerId === "gemini-proxy" ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Gemini batch: size {runtimeSettings.geminiBatchSize}, concurrency{" "}
-              {runtimeSettings.geminiBatchConcurrency}, delay{" "}
-              {runtimeSettings.geminiRequestDelayMs}ms.
             </p>
           ) : null}
 
@@ -1153,6 +1175,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       </PageContainer>
     </PageShell>
   );
+}
+
+function StoryAnalysisHint({ children }: { children: ReactNode }) {
+  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
 }
 
 function RuntimeTile({ label, value }: { label: string; value: string }) {
