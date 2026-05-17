@@ -30,8 +30,20 @@ export interface LocalStoryAnalysisWorkerCancelRequest {
   requestId: string;
 }
 
+export interface LocalStoryAnalysisWorkerResumeRequest {
+  type: "resume";
+  requestId: string;
+  storyId: string;
+  jobId?: string;
+  story?: Story;
+  chapters: ImportedChapter[];
+  chunks: ChapterChunk[];
+  runtimeSettings?: AiRuntimeSettings;
+}
+
 export type LocalStoryAnalysisWorkerIncomingMessage =
   | LocalStoryAnalysisWorkerRequest
+  | LocalStoryAnalysisWorkerResumeRequest
   | LocalStoryAnalysisWorkerCancelRequest;
 
 export interface LocalStoryAnalysisWorkerProgressSnapshot {

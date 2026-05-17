@@ -1,4 +1,5 @@
 import { runLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/run-local-story-analysis-job";
+import { resumeLocalStoryAnalysisJob } from "@/lib/ai/jobs/local/resume-local-story-analysis-job";
 import type {
   LocalStoryAnalysisWorkerIncomingMessage,
   LocalStoryAnalysisWorkerMessage,
@@ -44,6 +45,12 @@ function isCancelRequest(
   return "type" in message && message.type === "cancel";
 }
 
+function isResumeRequest(
+  message: LocalStoryAnalysisWorkerIncomingMessage,
+): message is { type: "resume"; requestId: string } {
+  return "type" in message && message.type === "resume";
+}
+
 globalThis.addEventListener(
   "message",
   async (event: MessageEvent<LocalStoryAnalysisWorkerIncomingMessage>) => {
@@ -67,35 +74,64 @@ globalThis.addEventListener(
     activeRequestId = request.requestId;
 
     try {
-      const result = await runLocalStoryAnalysisJob({
-        storyId: request.storyId,
-        story: request.story,
-        chapters: request.chapters,
-        chunks: request.chunks,
-        runtimeSettings: request.runtimeSettings,
-        providerTarget: request.providerTarget,
-        runtimeTarget: "local-worker",
-        batchSize: request.batchSize,
-        signal: controller.signal,
-        onProgress: (progress, tasks) => {
-          const jobId = tasks[0]?.jobId ?? "";
+      const isResume = isResumeRequest(request);
+      const result = isResume
+        ? await resumeLocalStoryAnalysisJob({
+            storyId: request.storyId,
+            jobId: request.jobId,
+            story: request.story,
+            chapters: request.chapters,
+            chunks: request.chunks,
+            runtimeSettings: request.runtimeSettings,
+            signal: controller.signal,
+            onProgress: (progress, tasks) => {
+              const jobId = tasks[0]?.jobId ?? "";
 
-          postWorkerMessage({
-            type: "progress",
-            requestId: request.requestId,
-            snapshot: createProgressSnapshot({
-              jobId,
-              status: "running",
-              totalTasks: progress.totalTasks,
-              completedTasks: progress.completedTasks,
-              skippedTasks: progress.skippedTasks,
-              failedTasks: progress.failedTasks,
-              percentComplete: progress.percentComplete,
-              message: progress.message,
-            }),
+              postWorkerMessage({
+                type: "progress",
+                requestId: request.requestId,
+                snapshot: createProgressSnapshot({
+                  jobId,
+                  status: "running",
+                  totalTasks: progress.totalTasks,
+                  completedTasks: progress.completedTasks,
+                  skippedTasks: progress.skippedTasks,
+                  failedTasks: progress.failedTasks,
+                  percentComplete: progress.percentComplete,
+                  message: progress.message,
+                }),
+              });
+            },
+          })
+        : await runLocalStoryAnalysisJob({
+            storyId: request.storyId,
+            story: request.story,
+            chapters: request.chapters,
+            chunks: request.chunks,
+            runtimeSettings: request.runtimeSettings,
+            providerTarget: "providerTarget" in request ? request.providerTarget : undefined,
+            runtimeTarget: "local-worker",
+            batchSize: "batchSize" in request ? request.batchSize : undefined,
+            signal: controller.signal,
+            onProgress: (progress, tasks) => {
+              const jobId = tasks[0]?.jobId ?? "";
+
+              postWorkerMessage({
+                type: "progress",
+                requestId: request.requestId,
+                snapshot: createProgressSnapshot({
+                  jobId,
+                  status: "running",
+                  totalTasks: progress.totalTasks,
+                  completedTasks: progress.completedTasks,
+                  skippedTasks: progress.skippedTasks,
+                  failedTasks: progress.failedTasks,
+                  percentComplete: progress.percentComplete,
+                  message: progress.message,
+                }),
+              });
+            },
           });
-        },
-      });
 
       postWorkerMessage({
         type: "complete",
