@@ -100,23 +100,23 @@ interface ContinuityIssuePreview {
 }
 
 const rewriteTypes: { value: RewriteType; label: string }[] = [
-  { value: "plot-change", label: "Plot change" },
-  { value: "character-decision-change", label: "Character decision change" },
-  { value: "timeline-change", label: "Timeline change" },
-  { value: "item-change", label: "Item change" },
-  { value: "relationship-change", label: "Relationship change" },
-  { value: "worldbuilding-change", label: "Worldbuilding change" },
-  { value: "style-change", label: "Style change" },
+  { value: "plot-change", label: "Thay đổi cốt truyện" },
+  { value: "character-decision-change", label: "Thay đổi quyết định nhân vật" },
+  { value: "timeline-change", label: "Thay đổi timeline" },
+  { value: "item-change", label: "Thay đổi vật phẩm" },
+  { value: "relationship-change", label: "Thay đổi mối quan hệ" },
+  { value: "worldbuilding-change", label: "Thay đổi worldbuilding" },
+  { value: "style-change", label: "Thay đổi phong cách" },
 ];
 const impactCategories: { value: ImpactCategory; label: string }[] = [
-  { value: "characters", label: "Characters" },
+  { value: "characters", label: "Nhân vật" },
   { value: "timeline", label: "Timeline" },
-  { value: "relationships", label: "Relationships" },
-  { value: "items", label: "Items" },
-  { value: "terms", label: "Terms" },
-  { value: "locations", label: "Locations" },
-  { value: "power-system", label: "Power-system" },
-  { value: "writing-style", label: "Writing style" },
+  { value: "relationships", label: "Mối quan hệ" },
+  { value: "items", label: "Vật phẩm" },
+  { value: "terms", label: "Thuật ngữ" },
+  { value: "locations", label: "Địa điểm" },
+  { value: "power-system", label: "Hệ thống quyền năng" },
+  { value: "writing-style", label: "Phong cách viết" },
 ];
 
 async function readIndexedDbRewritePlannerData(
@@ -683,136 +683,126 @@ export function StoryRewritePlannerClient({
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Rewrite Impact Planner"
-          title={story?.title ?? "Rewrite Impact Planner"}
-          description="Plan a canon divergence, preview affected story systems, and save it as a draft branch change."
+          title="Rewrite Planner"
+          description="Lập kế hoạch sửa truyện và kiểm tra ảnh hưởng canon."
           action={
             <>
               <Button asChild variant="outline">
-                <Link href={`/stories/${storyId}/workspace`}>
+                <Link href={`/stories/${storyId}/reader`}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Open Workspace
+                  Đọc truyện
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href={`/stories/${storyId}/bible`}>
-                  <Layers3 className="mr-2 h-4 w-4" />
-                  Story Bible
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href={`/stories/${storyId}/timeline`}>
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  Timeline
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href={`/stories/${storyId}/rewrite-draft`}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Open Rewrite Draft Workspace
+                <Link href={`/stories/${storyId}/workspace`}>
+                  <PenLine className="mr-2 h-4 w-4" />
+                  Workspace viết
                 </Link>
               </Button>
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Analysis
+                <Link href={`/stories/${storyId}/rewrite-draft`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Rewrite Draft
                 </Link>
               </Button>
             </>
           }
         />
 
-
-        <p className="app-muted-text">
-          Rewrite Planner reads from IndexedDB as the source of truth.
-        </p>
-
-        {storageError ? (
-          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-            {storageError}
-          </p>
-        ) : null}
-
         {isLoading ? (
-          <SectionCard title="Loading Rewrite Planner">
-            <p className="app-muted-text">
-              Reading rewrite planner data from IndexedDB...
-            </p>
+          <SectionCard title="Đang lập kế hoạch...">
+            <p className="app-muted-text">Đang tải dữ liệu chương và ảnh hưởng...</p>
           </SectionCard>
-        ) : !result ? (
-          <EmptyState
-            title="No rewrite planning data yet. Run mock analysis first."
-            description="Open the analysis dashboard and start mock analysis to populate chapters, events, characters, and world bible data."
-            action={
+        ) : !result || result.events.length === 0 ? (
+          <SectionCard title="Chưa có chương">
+            <p className="app-muted-text">Chưa có chương. Hãy nạp truyện trước.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  Open Analysis
-                </Link>
+                <Link href="/stories/import">Nạp truyện</Link>
               </Button>
-            }
-          />
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/analysis`}>Mở Analysis</Link>
+              </Button>
+            </div>
+          </SectionCard>
         ) : (
           <>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard
-                icon={<CalendarDays className="h-4 w-4" />}
-                title="Affected chapters"
-                value={affectedChapters.length}
-              />
-              <StatCard
-                icon={<PenLine className="h-4 w-4" />}
-                title="Existing changes"
-                value={plannerData.branchChanges.length}
-              />
-              <StatCard
-                icon={<AlertTriangle className="h-4 w-4" />}
-                title="Issue previews"
-                value={continuityIssuePreviews.length}
-              />
-              <StatCard
-                icon={<GitBranch className="h-4 w-4" />}
-                title="Saved issues"
-                value={plannerData.continuityIssues.length}
-              />
-            </section>
-
-            <PromptTemplateSummary promptRender={promptRender} />
-
-            <section className="grid gap-4 xl:grid-cols-[420px_1fr]">
+            <section className="grid gap-4 xl:grid-cols-[1fr_420px]">
               <div className="space-y-4">
-                <RewriteTargetSelector
-                  chapterOptions={chapterOptions}
-                  events={result.events}
-                  form={form}
-                  selectedEvent={selectedEvent}
-                  updateForm={updateForm}
-                />
-                <RewriteProposalForm
-                  form={form}
-                  isSaving={isSaving}
-                  saveMessage={saveMessage}
-                  toggleImpactCategory={toggleImpactCategory}
-                  updateForm={updateForm}
-                  onSave={handleSaveProposal}
-                />
+                <SectionCard title="Yêu cầu rewrite">
+                  <RewriteProposalForm
+                    form={form}
+                    isSaving={isSaving}
+                    saveMessage={saveMessage}
+                    toggleImpactCategory={toggleImpactCategory}
+                    updateForm={updateForm}
+                    onSave={handleSaveProposal}
+                  />
+                </SectionCard>
+
+                <SectionCard title="Phạm vi ảnh hưởng">
+                  <RewriteTargetSelector
+                    chapterOptions={chapterOptions}
+                    events={result.events}
+                    form={form}
+                    selectedEvent={selectedEvent}
+                    updateForm={updateForm}
+                  />
+                </SectionCard>
               </div>
 
               <div className="space-y-4">
-                <ImpactPreview
-                  affectedCharacters={affectedCharacters}
-                  affectedChapters={affectedChapters}
-                  affectedEvents={affectedEvents}
-                  affectedItems={affectedItems}
-                  affectedLocations={affectedLocations}
-                  affectedRelationships={affectedRelationships}
-                  affectedTerms={affectedTerms}
-                  powerConcepts={powerConcepts}
-                />
-                <ContinuityIssuesPreview issues={continuityIssuePreviews} />
-                <ExistingSummary
-                  changes={plannerData.branchChanges}
-                  issues={plannerData.continuityIssues}
-                />
+                <SectionCard title="Kế hoạch chỉnh sửa">
+                  <ImpactPreview
+                    affectedCharacters={affectedCharacters}
+                    affectedChapters={affectedChapters}
+                    affectedEvents={affectedEvents}
+                    affectedItems={affectedItems}
+                    affectedLocations={affectedLocations}
+                    affectedRelationships={affectedRelationships}
+                    affectedTerms={affectedTerms}
+                    powerConcepts={powerConcepts}
+                  />
+                  <ContinuityIssuesPreview issues={continuityIssuePreviews} />
+                </SectionCard>
+
+                <SectionCard title="Đi tiếp sang Rewrite Draft">
+                  {plannerData.branchChanges.length > 0 ? (
+                    <Button asChild className="w-full">
+                      <Link href={`/stories/${storyId}/rewrite-draft`}>Mở Rewrite Draft</Link>
+                    </Button>
+                  ) : (
+                    <p className="app-muted-text">
+                      Lưu một yêu cầu rewrite để mở Rewrite Draft.
+                    </p>
+                  )}
+                </SectionCard>
+
+                <details className="rounded-xl border bg-card/80">
+                  <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                    Chi tiết kỹ thuật
+                  </summary>
+                  <div className="space-y-4 border-t p-4">
+                    {storageError ? (
+                      <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                        {storageError}
+                      </p>
+                    ) : null}
+                    <PromptTemplateSummary promptRender={promptRender} />
+                    <ExistingSummary
+                      changes={plannerData.branchChanges}
+                      issues={plannerData.continuityIssues}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/stories/${storyId}/bible`}>Story Bible</Link>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/stories/${storyId}/analysis`}>Analysis</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </details>
               </div>
             </section>
           </>
@@ -836,65 +826,63 @@ function RewriteTargetSelector({
   updateForm: <K extends keyof RewriteForm>(key: K, value: RewriteForm[K]) => void;
 }) {
   return (
-    <SectionCard title="Rewrite target selector">
-      <div className="space-y-4">
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium">Select chapter</span>
-          <select
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-            value={form.selectedChapter}
-            onChange={(event) => {
-              const chapterNumber = Number(event.target.value);
+    <div className="space-y-4">
+      <label className="grid gap-2 text-sm">
+        <span className="font-medium">Chọn chương</span>
+        <select
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+          value={form.selectedChapter}
+          onChange={(event) => {
+            const chapterNumber = Number(event.target.value);
 
-              updateForm("selectedChapter", chapterNumber);
-              updateForm("rangeStart", chapterNumber);
-              updateForm("rangeEnd", Math.max(chapterNumber, form.rangeEnd));
-            }}
-          >
-            {chapterOptions.map((chapterNumber) => (
-              <option key={chapterNumber} value={chapterNumber}>
-                Chapter {chapterNumber}
-              </option>
-            ))}
-          </select>
-        </label>
+            updateForm("selectedChapter", chapterNumber);
+            updateForm("rangeStart", chapterNumber);
+            updateForm("rangeEnd", Math.max(chapterNumber, form.rangeEnd));
+          }}
+        >
+          {chapterOptions.map((chapterNumber) => (
+            <option key={chapterNumber} value={chapterNumber}>
+              Chương {chapterNumber}
+            </option>
+          ))}
+        </select>
+      </label>
 
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium">Select plot/timeline event</span>
-          <select
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-            value={form.selectedEventId}
-            onChange={(event) => updateForm("selectedEventId", event.target.value)}
-          >
-            <option value="">No specific event</option>
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>
-                Ch. {event.chapterNumber} - {event.title}
-              </option>
-            ))}
-          </select>
-        </label>
+      <label className="grid gap-2 text-sm">
+        <span className="font-medium">Chọn sự kiện / timeline</span>
+        <select
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+          value={form.selectedEventId}
+          onChange={(event) => updateForm("selectedEventId", event.target.value)}
+        >
+          <option value="">Không chọn sự kiện cụ thể</option>
+          {events.map((event) => (
+            <option key={event.id} value={event.id}>
+              Ch. {event.chapterNumber} - {event.title}
+            </option>
+          ))}
+        </select>
+      </label>
 
-        {selectedEvent ? (
-          <div className="app-list-item">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  Chapter {selectedEvent.chapterNumber}
-                </p>
-                <p className="mt-1 text-sm font-medium">{selectedEvent.title}</p>
-              </div>
-              <Badge variant="outline">{selectedEvent.importance}</Badge>
+      {selectedEvent ? (
+        <div className="app-list-item">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground">
+                Chương {selectedEvent.chapterNumber}
+              </p>
+              <p className="mt-1 text-sm font-medium">{selectedEvent.title}</p>
             </div>
-            <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-              {selectedEvent.description}
-            </p>
+            <Badge variant="outline">{selectedEvent.importance}</Badge>
           </div>
-        ) : (
-          <p className="app-muted-text">No event selected.</p>
-        )}
-      </div>
-    </SectionCard>
+          <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
+            {selectedEvent.description}
+          </p>
+        </div>
+      ) : (
+        <p className="app-muted-text">Chưa chọn sự kiện.</p>
+      )}
+    </div>
   );
 }
 
@@ -904,18 +892,18 @@ function PromptTemplateSummary({
   promptRender?: PromptRenderResult;
 }) {
   return (
-    <SectionCard title="Prompt template">
+    <SectionCard title="Chi tiết prompt">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant="secondary">
           {promptRender?.template.id ?? "rewrite-impact-planner"}
         </Badge>
         <span className="text-muted-foreground">
-          {promptRender?.template.title ?? "Loading Prompt Manager template..."}
+          {promptRender?.template.title ?? "Đang tải template Prompt Manager..."}
         </span>
       </div>
       {promptRender?.missingVariables.length ? (
         <p className="mt-3 text-sm text-destructive">
-          Missing prompt variables: {promptRender.missingVariables.join(", ")}
+          Thiếu biến prompt: {promptRender.missingVariables.join(", ")}
         </p>
       ) : null}
     </SectionCard>
@@ -938,111 +926,111 @@ function RewriteProposalForm({
   onSave: () => void;
 }) {
   return (
-    <SectionCard title="Rewrite proposal form">
-      <div className="space-y-4">
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium">Title</span>
-          <Input
-            value={form.title}
-            onChange={(event) => updateForm("title", event.target.value)}
-            placeholder="If the protagonist chooses a different path..."
-          />
-        </label>
+    <div className="space-y-4">
+      <label className="grid gap-2 text-sm">
+        <span className="font-medium">Tiêu đề</span>
+        <Input
+          value={form.title}
+          onChange={(event) => updateForm("title", event.target.value)}
+          placeholder="Ví dụ: Nhân vật chính đổi hướng hành động..."
+        />
+      </label>
 
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium">Description</span>
-          <Textarea
-            className="min-h-24"
-            value={form.description}
-            onChange={(event) => updateForm("description", event.target.value)}
-            placeholder="Describe what changes in the scene, event, relationship, item, or world rule."
-          />
-        </label>
+      <label className="grid gap-2 text-sm">
+        <span className="font-medium">Mô tả</span>
+        <Textarea
+          className="min-h-24"
+          value={form.description}
+          onChange={(event) => updateForm("description", event.target.value)}
+          placeholder="Mô tả đổi gì trong tình tiết, cảm xúc, vật phẩm, hoặc quy tắc thế giới."
+        />
+      </label>
 
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium">Reason</span>
-          <Textarea
-            className="min-h-20"
-            value={form.reason}
-            onChange={(event) => updateForm("reason", event.target.value)}
-            placeholder="Why this alternate canon branch should exist."
-          />
-        </label>
+      <label className="grid gap-2 text-sm">
+        <span className="font-medium">Lý do</span>
+        <Textarea
+          className="min-h-20"
+          value={form.reason}
+          onChange={(event) => updateForm("reason", event.target.value)}
+          placeholder="Tại sao cần nhánh canon này."
+        />
+      </label>
 
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium">Rewrite type</span>
-          <select
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-            value={form.rewriteType}
-            onChange={(event) =>
-              updateForm("rewriteType", event.target.value as RewriteType)
-            }
-          >
-            {rewriteTypes.map((rewriteType) => (
-              <option key={rewriteType.value} value={rewriteType.value}>
-                {rewriteType.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="grid gap-2 text-sm">
-            <span className="font-medium">Range start</span>
-            <Input
-              min={1}
-              type="number"
-              value={form.rangeStart}
-              onChange={(event) =>
-                updateForm("rangeStart", Number(event.target.value))
-              }
-            />
-          </label>
-          <label className="grid gap-2 text-sm">
-            <span className="font-medium">Range end</span>
-            <Input
-              min={form.rangeStart}
-              type="number"
-              value={form.rangeEnd}
-              onChange={(event) =>
-                updateForm("rangeEnd", Number(event.target.value))
-              }
-            />
-          </label>
-        </div>
-
-        <div>
-          <p className="mb-2 text-sm font-medium">Impact scopes</p>
-          <div className="grid gap-2 md:grid-cols-2">
-            {impactCategories.map((category) => (
-              <button
-                key={category.value}
-                className="app-list-button"
-                type="button"
-                onClick={() => toggleImpactCategory(category.value)}
-              >
-                <span>{category.label}</span>
-                {form.impactCategories.includes(category.value) ? (
-                  <Badge variant="secondary">On</Badge>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          className="w-full"
-          disabled={isSaving}
-          type="button"
-          onClick={onSave}
+      <label className="grid gap-2 text-sm">
+        <span className="font-medium">Loại rewrite</span>
+        <select
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+          value={form.rewriteType}
+          onChange={(event) =>
+            updateForm("rewriteType", event.target.value as RewriteType)
+          }
         >
-          <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : "Save rewrite proposal"}
-        </Button>
+          {rewriteTypes.map((rewriteType) => (
+            <option key={rewriteType.value} value={rewriteType.value}>
+              {rewriteType.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
-        {saveMessage ? <p className="app-muted-text">{saveMessage}</p> : null}
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-2 text-sm">
+          <span className="font-medium">Bắt đầu chương</span>
+          <Input
+            min={1}
+            type="number"
+            value={form.rangeStart}
+            onChange={(event) =>
+              updateForm("rangeStart", Number(event.target.value))
+            }
+          />
+        </label>
+        <label className="grid gap-2 text-sm">
+          <span className="font-medium">Kết thúc chương</span>
+          <Input
+            min={form.rangeStart}
+            type="number"
+            value={form.rangeEnd}
+            onChange={(event) =>
+              updateForm("rangeEnd", Number(event.target.value))
+            }
+          />
+        </label>
       </div>
-    </SectionCard>
+
+      <div>
+        <p className="mb-2 text-sm font-medium">Các phần ảnh hưởng</p>
+        <div className="grid gap-2 md:grid-cols-2">
+          {impactCategories.map((category) => (
+            <button
+              key={category.value}
+              className="app-list-button"
+              type="button"
+              onClick={() => toggleImpactCategory(category.value)}
+            >
+              <span>{category.label}</span>
+              {form.impactCategories.includes(category.value) ? (
+                <Badge variant="secondary">Đã bật</Badge>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        className="w-full"
+        disabled={isSaving}
+        type="button"
+        onClick={onSave}
+      >
+        <Save className="mr-2 h-4 w-4" />
+        {isSaving ? "Đang lập kế hoạch..." : "Lưu yêu cầu rewrite"}
+      </Button>
+
+      {saveMessage ? (
+        <p className="app-muted-text">{saveMessage}</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -1066,42 +1054,42 @@ function ImpactPreview({
   powerConcepts: ExtractedEntity[];
 }) {
   return (
-    <SectionCard title="Impact preview">
+    <div className="space-y-4">
+      <PreviewList
+        items={affectedChapters.map((chapter) => `Chương ${chapter}`)}
+        title="Chương bị ảnh hưởng"
+      />
       <div className="grid gap-3 md:grid-cols-2">
         <PreviewList
-          items={affectedChapters.map((chapter) => `Chapter ${chapter}`)}
-          title="Affected chapters"
-        />
-        <PreviewList
           items={affectedCharacters.map((entity) => entity.name)}
-          title="Affected characters"
+          title="Nhân vật bị ảnh hưởng"
         />
         <PreviewList
           items={affectedEvents.map((event) => event.title)}
-          title="Affected timeline events"
+          title="Sự kiện bị ảnh hưởng"
         />
         <PreviewList
           items={affectedRelationships}
-          title="Affected relationships"
+          title="Mối quan hệ bị ảnh hưởng"
         />
         <PreviewList
           items={affectedItems.map((entity) => entity.name)}
-          title="Affected items"
+          title="Vật phẩm bị ảnh hưởng"
         />
         <PreviewList
           items={affectedTerms.map((entity) => entity.name)}
-          title="Affected terms"
+          title="Thuật ngữ bị ảnh hưởng"
         />
         <PreviewList
           items={affectedLocations.map((entity) => entity.name)}
-          title="Affected locations"
+          title="Địa điểm bị ảnh hưởng"
         />
         <PreviewList
           items={powerConcepts.map((entity) => entity.name)}
-          title="Affected power concepts"
+          title="Khái niệm quyền năng bị ảnh hưởng"
         />
       </div>
-    </SectionCard>
+    </div>
   );
 }
 
@@ -1119,7 +1107,7 @@ function PreviewList({ title, items }: { title: string; items: string[] }) {
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-muted-foreground">No impact detected.</p>
+        <p className="text-xs text-muted-foreground">Không tìm thấy ảnh hưởng.</p>
       )}
     </div>
   );
@@ -1131,7 +1119,7 @@ function ContinuityIssuesPreview({
   issues: ContinuityIssuePreview[];
 }) {
   return (
-    <SectionCard title="Continuity issues preview">
+    <SectionCard title="Vấn đề canon">
       <div className="space-y-3">
         {issues.map((issue) => (
           <article key={issue.id} className="app-list-item">
@@ -1145,10 +1133,10 @@ function ContinuityIssuesPreview({
               <Badge variant="outline">{issue.severity}</Badge>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Related entity: {issue.relatedEntity}
+              Đối tượng liên quan: {issue.relatedEntity}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Suggested fix: {issue.suggestedFix}
+              Đề xuất khắc phục: {issue.suggestedFix}
             </p>
           </article>
         ))}
@@ -1165,50 +1153,51 @@ function ExistingSummary({
   issues: BranchContinuityIssue[];
 }) {
   return (
-    <SectionCard title="Existing branch/change summary">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <p className="mb-2 text-sm font-medium">Branch changes</p>
-          <div className="space-y-2">
-            {changes.length > 0 ? (
-              changes.slice(0, 8).map((change) => (
-                <article key={change.id} className="app-list-item">
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-sm font-medium">{change.title}</h2>
-                    <Badge variant="outline">{change.status}</Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {change.type} / {change.impactScope} /{" "}
-                    {change.affectedChapterNumbers.length} chapters
-                  </p>
-                </article>
-              ))
-            ) : (
-              <p className="app-muted-text">No branch changes saved yet.</p>
-            )}
+    <div className="space-y-4">
+      <SectionCard title="Nhánh và các vấn đề đã lưu">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="mb-2 text-sm font-medium">Nhánh đã lưu</p>
+            <div className="space-y-2">
+              {changes.length > 0 ? (
+                changes.slice(0, 8).map((change) => (
+                  <article key={change.id} className="app-list-item">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="text-sm font-medium">{change.title}</h2>
+                      <Badge variant="outline">{change.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {change.type} / {change.impactScope} / {change.affectedChapterNumbers.length} chương
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <p className="app-muted-text">Chưa có nhánh rewrite nào được lưu.</p>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">Vấn đề canon đã lưu</p>
+            <div className="space-y-2">
+              {issues.length > 0 ? (
+                issues.slice(0, 8).map((issue) => (
+                  <article key={issue.id} className="app-list-item">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="text-sm font-medium">{issue.title}</h2>
+                      <Badge variant="outline">{issue.severity}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {issue.status} / {issue.affectedChapterNumbers.length} chương
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <p className="app-muted-text">Chưa có vấn đề canon nào được lưu.</p>
+              )}
+            </div>
           </div>
         </div>
-        <div>
-          <p className="mb-2 text-sm font-medium">Continuity issues</p>
-          <div className="space-y-2">
-            {issues.length > 0 ? (
-              issues.slice(0, 8).map((issue) => (
-                <article key={issue.id} className="app-list-item">
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-sm font-medium">{issue.title}</h2>
-                    <Badge variant="outline">{issue.severity}</Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {issue.status} / {issue.affectedChapterNumbers.length} chapters
-                  </p>
-                </article>
-              ))
-            ) : (
-              <p className="app-muted-text">No continuity issues saved yet.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </SectionCard>
+      </SectionCard>
+    </div>
   );
 }
