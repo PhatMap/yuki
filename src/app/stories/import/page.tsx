@@ -79,7 +79,7 @@ export default function ImportNovelPage() {
         ? {
             ...current,
             status: "completed",
-            message: "Import processing was cancelled.",
+            message: "Đã hủy xử lý nhập truyện.",
           }
         : undefined,
     );
@@ -109,7 +109,7 @@ export default function ImportNovelPage() {
       setDetectedChunks(result.chunks);
       setImportProgress({
         status: "completed",
-        message: "Import preview is ready.",
+        message: "Bản xem trước đã sẵn sàng.",
         chapterCount: result.chapters.length,
         chunkCount: result.chunks.length,
         percentComplete: 100,
@@ -123,8 +123,8 @@ export default function ImportNovelPage() {
       console.error("Failed to process import preview", error);
       setCreateError(
         error instanceof Error
-          ? `Import preview failed: ${error.message}`
-          : "Import preview failed.",
+          ? `Không thể tạo bản xem trước: ${error.message}`
+          : "Không thể tạo bản xem trước.",
       );
     } finally {
       clearImportAbortController(controller);
@@ -164,14 +164,14 @@ export default function ImportNovelPage() {
 
       const analysisStatus = processedImport.analysisStatus;
       const now = new Date().toISOString();
-      const storyTitle = title.trim() || "Imported Novel";
+      const storyTitle = title.trim() || "Truyện đã nhập";
 
       const newStory: Story = {
         id: storyId,
         title: storyTitle,
         description:
           importedChapters[0]?.cleanContent.slice(0, 240) ||
-          "Imported long-form novel.",
+          "Truyện dài đã nhập.",
         author: author.trim(),
         genre: "adventure",
         tone: "dramatic",
@@ -196,7 +196,7 @@ export default function ImportNovelPage() {
       }
 
       console.error("Failed to save imported novel to IndexedDB", error);
-      setCreateError("Could not save imported story data to IndexedDB.");
+      setCreateError("Không thể lưu dữ liệu truyện đã nhập vào IndexedDB.");
       setIsCreating(false);
       return;
     } finally {
@@ -210,23 +210,23 @@ export default function ImportNovelPage() {
     <PageShell>
       <PageContainer className="max-w-6xl">
         <PageHeader
-          eyebrow="Import Story"
-          title="Import Story"
-          description="Paste raw novel text, detect chapters locally, and save chapters/chunks into IndexedDB for analysis."
+          eyebrow="Nhập truyện"
+          title="Nhập truyện"
+          description="Dán raw text của truyện, tách chương cục bộ, rồi lưu chapter/chunk vào IndexedDB để phân tích."
         />
 
-        <SectionCard title="Large Story Import">
+        <SectionCard title="Nhập truyện dài">
           <div className="space-y-2">
             <ImportHint>
-              Local worker handles detection/chunking to reduce UI blocking.
-              Data is saved to IndexedDB.
+              Local worker xử lý tách chương/chunk để giảm nghẽn UI. Dữ liệu
+              được lưu vào IndexedDB.
             </ImportHint>
             <ImportHint>
-              For 3000+ chapters, use persistent storage and export backups
-              later from Data Health.
+              Với truyện 3000+ chương, nên bật persistent storage và export
+              backup sau từ Data Health.
             </ImportHint>
             <ImportHint>
-              Import can be cancelled while processing.
+              Có thể hủy quá trình nhập khi worker đang xử lý.
             </ImportHint>
           </div>
         </SectionCard>
@@ -235,15 +235,15 @@ export default function ImportNovelPage() {
           <div className="app-warning-box max-w-3xl">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p>
-              IndexedDB is the source of truth for long story, chapter, and
-              chunk data in this local-first prototype.
+              IndexedDB là source of truth cho dữ liệu truyện dài, chương và
+              chunk trong bản local-first prototype này.
             </p>
           </div>
           <div className="flex max-w-3xl gap-3 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
             <FileText className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p>
-              Browser key-value storage is reserved for small UI preferences
-              and temporary compatibility reads, not new large imports.
+              Browser key-value storage chỉ dành cho UI preferences nhỏ và
+              temporary compatibility reads, không dùng cho import lớn mới.
             </p>
           </div>
         </div>
@@ -251,43 +251,43 @@ export default function ImportNovelPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <SectionCard
             icon={<Upload className="h-5 w-5" />}
-            title="Story source"
+            title="Nguồn truyện"
             contentClassName="space-y-5"
           >
             <div className="app-form-grid">
               <div className="grid gap-2">
-                <Label htmlFor="novel-title">Story title</Label>
+                <Label htmlFor="novel-title">Tên truyện</Label>
                 <Input
                   id="novel-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Example: Moonlit Blade Chronicles"
+                  placeholder="Ví dụ: Nguyệt Dạ Đao Ký"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="novel-author">Author</Label>
+                <Label htmlFor="novel-author">Tác giả</Label>
                 <Input
                   id="novel-author"
                   value={author}
                   onChange={(event) => setAuthor(event.target.value)}
-                  placeholder="Author name or source"
+                  placeholder="Tên tác giả hoặc nguồn truyện"
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="novel-content">Raw story text</Label>
+              <Label htmlFor="novel-content">Raw text truyện</Label>
               <Textarea
                 id="novel-content"
                 className="min-h-[520px] text-sm leading-6"
                 value={novelText}
                 onChange={(event) => setNovelText(event.target.value)}
-                placeholder="Paste the full story text or multiple chapters here..."
+                placeholder="Dán toàn bộ truyện hoặc nhiều chương vào đây..."
               />
               <ImportHint>
-                Paste the full text here. Chapter detection runs locally; no AI
-                request is made during import.
+                Dán full text vào đây. Tách chương chạy cục bộ; bước import
+                không gửi AI request.
               </ImportHint>
             </div>
 
@@ -299,7 +299,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isDetecting || isCreating}
               >
                 <BookOpenCheck className="mr-2 h-4 w-4" />
-                {isDetecting ? "Detecting..." : "Detect chapters locally"}
+                {isDetecting ? "Đang tách..." : "Tách chương cục bộ"}
               </Button>
               <Button
                 type="button"
@@ -307,7 +307,7 @@ export default function ImportNovelPage() {
                 disabled={!novelText.trim() || isCreating || isDetecting}
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isCreating ? "Creating..." : "Create story in IndexedDB"}
+                {isCreating ? "Đang tạo..." : "Tạo truyện trong IndexedDB"}
               </Button>
               {isDetecting || isCreating ? (
                 <Button
@@ -315,7 +315,7 @@ export default function ImportNovelPage() {
                   variant="outline"
                   onClick={handleCancelImportProcessing}
                 >
-                  Cancel processing
+                  Hủy xử lý
                 </Button>
               ) : null}
             </div>
@@ -324,12 +324,12 @@ export default function ImportNovelPage() {
               <div className="rounded-lg border bg-background p-4">
                 <ProgressMeter
                   value={importProgress.percentComplete}
-                  label={importProgress.status}
-                  description={`${importProgress.message} ${importProgress.chapterCount.toLocaleString("vi-VN")} chapters · ${importProgress.chunkCount.toLocaleString("vi-VN")} chunks`}
+                  label={getImportStatusLabel(importProgress.status)}
+                  description={`${importProgress.message} ${importProgress.chapterCount.toLocaleString("vi-VN")} chương · ${importProgress.chunkCount.toLocaleString("vi-VN")} chunk`}
                 />
                 <ImportHint>
-                  Import worker is processing locally. You can cancel this run
-                  without deleting already saved story data.
+                  Import worker đang xử lý cục bộ. Có thể hủy lượt chạy này
+                  mà không xóa dữ liệu truyện đã lưu trước đó.
                 </ImportHint>
               </div>
             ) : null}
@@ -337,8 +337,8 @@ export default function ImportNovelPage() {
             <div className="app-warning-box">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
               <p>
-                Large imports may take time. Keep this tab open until
-                processing completes.
+                Import lớn có thể mất thời gian. Giữ tab này mở đến khi xử lý
+                hoàn tất.
               </p>
             </div>
 
@@ -349,20 +349,20 @@ export default function ImportNovelPage() {
             ) : null}
           </SectionCard>
 
-          <SectionCard title="Chapter preview">
+          <SectionCard title="Xem trước chương">
             {detectedChapters.length > 0 ? (
               <div className="space-y-3">
                 <ImportHint>
-                  Review detected chapter count before creating the story. You
-                  can re-run detection after editing the raw text.
+                  Kiểm tra số chương đã tách trước khi tạo truyện. Có thể chạy
+                  lại sau khi chỉnh raw text.
                 </ImportHint>
                 <div className="rounded-lg border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
-                    {detectedChapters.length} chapters detected
+                    Đã tách {detectedChapters.length.toLocaleString("vi-VN")} chương
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    Approx. {totalWordCount.toLocaleString("vi-VN")} words |{" "}
-                    {detectedChunks.length.toLocaleString("vi-VN")} chunks
+                    Khoảng {totalWordCount.toLocaleString("vi-VN")} từ |{" "}
+                    {detectedChunks.length.toLocaleString("vi-VN")} chunk
                   </p>
                 </div>
 
@@ -373,19 +373,19 @@ export default function ImportNovelPage() {
                       key={chapter.id}
                     >
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Chapter {chapter.chapterNumber}
+                        Chương {chapter.chapterNumber}
                       </p>
                       <h2 className="mt-1 text-sm font-semibold">
                         {chapter.title}
                       </h2>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {chapter.wordCount.toLocaleString("vi-VN")} estimated words
+                        Khoảng {chapter.wordCount.toLocaleString("vi-VN")} từ
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {(
                           chunkCountsByChapterId[chapter.id] ?? 0
                         ).toLocaleString("vi-VN")}{" "}
-                        chunks
+                        chunk
                       </p>
                     </article>
                   ))}
@@ -393,8 +393,8 @@ export default function ImportNovelPage() {
               </div>
             ) : (
               <EmptyState
-                title="No chapters detected"
-                description="Paste story text and click Detect chapters to preview the chapter split."
+                title="Chưa tách được chương"
+                description="Dán raw text truyện rồi bấm Tách chương cục bộ để xem trước kết quả."
               />
             )}
           </SectionCard>
@@ -402,6 +402,14 @@ export default function ImportNovelPage() {
       </PageContainer>
     </PageShell>
   );
+}
+
+function getImportStatusLabel(status: LocalImportWorkerProgressSnapshot["status"]) {
+  if (status === "completed") return "Hoàn tất";
+  if (status === "processing") return "Đang xử lý";
+  if (status === "failed") return "Thất bại";
+
+  return status;
 }
 
 function ImportHint({ children }: { children: ReactNode }) {
