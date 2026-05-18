@@ -1,0 +1,23 @@
+@layer components {
+  .app-container,
+  .app-container.max-w-7xl,
+  .app-workspace-grid,
+  .app-story-shell-nav-inner {
+    max-width: min(100%, 104rem);
+  }
+
+  @media (min-width: 1536px) {
+    .app-container,
+    .app-container.max-w-7xl {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .app-container,
+    .app-container.max-w-7xl {
+      max-width: min(100%, 112rem);
+    }
+  }
+}
