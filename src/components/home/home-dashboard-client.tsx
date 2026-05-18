@@ -122,14 +122,14 @@ export function HomeDashboardClient() {
       <PageContainer>
         <PageHeader
           eyebrow="Yuki"
-          title="Local-first story workspace"
-          description="Yuki stores stories in IndexedDB on this browser. Import story text, run Gemini Proxy analysis, and manage backups through Data Health."
+          title="Không gian viết truyện local-first"
+          description="Yuki lưu truyện trong IndexedDB trên browser này. Nhập truyện, phân tích bằng Gemini Proxy, và quản lý backup qua Data Health."
           action={
             <>
               <Button asChild>
                 <Link href="/stories/import">
                   <FileUp className="mr-2 h-4 w-4" />
-                  Import Story
+                  Nhập truyện
                 </Link>
               </Button>
 
@@ -137,7 +137,7 @@ export function HomeDashboardClient() {
                 <Button asChild variant="outline">
                   <Link href={`/stories/${primaryStory.id}`}>
                     <BookOpen className="mr-2 h-4 w-4" />
-                    Open Latest
+                    Mở truyện mới nhất
                   </Link>
                 </Button>
               ) : null}
@@ -148,51 +148,51 @@ export function HomeDashboardClient() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={<Library className="h-4 w-4" />}
-            title="Local stories"
+            title="Truyện cục bộ"
             value={storedItems.length.toLocaleString("vi-VN")}
-            description="Story metadata loaded from IndexedDB."
+            description="Metadata truyện tải từ IndexedDB."
           />
           <StatCard
             icon={<Database className="h-4 w-4" />}
             title="IndexedDB storage"
             value="Local"
-            description="Stories and analysis data are browser-local."
+            description="Truyện và dữ liệu analysis nằm cục bộ trong browser."
           />
           <StatCard
             icon={<BarChart3 className="h-4 w-4" />}
             title="Gemini Core"
             value="Proxy"
-            description="Recommended real-AI path via /api/ai/gemini."
+            description="Đường real-AI khuyến nghị qua /api/ai/gemini."
           />
           <StatCard
             icon={<Sparkles className="h-4 w-4" />}
             title="Backup readiness"
             value="Data Health"
-            description="Per-story backup and restore checks are available."
+            description="Có kiểm tra backup/restore theo từng truyện."
           />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <SectionCard
             title="Yuki Workflow"
-            description="Recommended local-first flow for long novel projects."
+            description="Flow local-first khuyến nghị cho dự án truyện dài."
           >
             <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-              <li>Import Story</li>
-              <li>Analyze with Gemini Proxy</li>
-              <li>Check Data Health and Backups</li>
-              <li>Continue Reading / Planning / Rewrite</li>
+              <li>Nhập truyện</li>
+              <li>Phân tích bằng Gemini Proxy</li>
+              <li>Kiểm tra Data Health và backup</li>
+              <li>Đọc tiếp / lập kế hoạch / rewrite</li>
             </ol>
           </SectionCard>
 
           <SectionCard
-            title="Quick actions"
-            description="Use the current local-first workflow. Backend, Supabase, vector DB, and roleplay are still intentionally outside the active scope."
+            title="Thao tác nhanh"
+            description="Dùng workflow local-first hiện tại. Backend, Supabase, vector DB và roleplay vẫn đang nằm ngoài active scope."
           >
             <div className="grid gap-3 sm:grid-cols-2">
               <HomeActionCard
-                title="Import long story"
-                description="Load existing chapters into the local yuki workspace."
+                title="Nhập truyện dài"
+                description="Nạp các chương có sẵn vào Yuki workspace cục bộ."
                 href="/stories/import"
                 icon={<FileUp className="h-5 w-5" />}
               />
@@ -200,20 +200,20 @@ export function HomeDashboardClient() {
               {primaryStory ? (
                 <>
                   <HomeActionCard
-                    title="Open workspace"
-                    description="Continue from the latest local or starter story."
+                    title="Mở workspace"
+                    description="Tiếp tục từ truyện local hoặc starter mới nhất."
                     href={`/stories/${primaryStory.id}/workspace`}
                     icon={<BookOpen className="h-5 w-5" />}
                   />
                   <HomeActionCard
-                    title="Open analysis"
-                    description="Run mock analysis or test configured provider selection."
+                    title="Mở analysis"
+                    description="Chạy analysis hoặc kiểm tra provider đã chọn."
                     href={`/stories/${primaryStory.id}/analysis`}
                     icon={<BarChart3 className="h-5 w-5" />}
                   />
                   <HomeActionCard
-                    title="Open settings"
-                    description="Adjust reading width, density, font size, and local preferences."
+                    title="Mở settings"
+                    description="Chỉnh độ rộng đọc, mật độ, cỡ chữ và local preferences."
                     href={`/stories/${primaryStory.id}/settings`}
                     icon={<Settings className="h-5 w-5" />}
                   />
@@ -222,27 +222,27 @@ export function HomeDashboardClient() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Current direction">
+          <SectionCard title="Định hướng hiện tại">
             <div className="space-y-3 text-sm leading-6 text-muted-foreground">
               <p>
-                UI/UX polish is the current priority before adding more AI or
-                backend work.
+                UI/UX polish là ưu tiên hiện tại trước khi thêm AI hoặc backend
+                mới.
               </p>
               <p>
-                Story-level pages now use a shared shell, persistent navigation,
-                local display settings, and responsive polish.
+                Các trang theo truyện đã dùng shared shell, navigation cố định,
+                local display settings và responsive polish.
               </p>
               <p>
-                Next technical focus should stay on improving reading, editing,
-                and navigation comfort.
+                Trọng tâm kỹ thuật tiếp theo vẫn nên là đọc, chỉnh sửa và điều
+                hướng thoải mái hơn.
               </p>
             </div>
           </SectionCard>
         </section>
 
         <SectionCard
-          title="Stored stories"
-          description="Stories saved in IndexedDB on this browser."
+          title="Truyện đã lưu"
+          description="Truyện đã lưu trong IndexedDB trên browser này."
         >
           {storedItems.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -252,13 +252,13 @@ export function HomeDashboardClient() {
             </div>
           ) : (
             <EmptyState
-              title="No local stories yet"
-              description="Import a story to create IndexedDB chapters/chunks for analysis."
+              title="Chưa có truyện local"
+              description="Nhập truyện để tạo chapter/chunk trong IndexedDB cho bước analysis."
               action={
                 <Button asChild>
                   <Link href="/stories/import">
                     <FileUp className="mr-2 h-4 w-4" />
-                    Import Story
+                    Nhập truyện
                   </Link>
                 </Button>
               }
@@ -268,8 +268,8 @@ export function HomeDashboardClient() {
 
         {starterItems.length > 0 ? (
           <SectionCard
-            title="Starter stories"
-            description="Mock stories for testing yuki flows without importing a new file."
+            title="Truyện starter"
+            description="Mock stories để test Yuki flow khi chưa import truyện mới."
           >
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {starterItems.map((story) => (
@@ -318,7 +318,7 @@ function StoryCard({ story }: { story: HomeStory }) {
               {story.title}
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Updated {formatDate(story.updatedAt)}
+              Cập nhật {formatDate(story.updatedAt)}
             </p>
           </div>
 
@@ -350,7 +350,7 @@ function StoryCard({ story }: { story: HomeStory }) {
           <Button asChild size="sm">
             <Link href={`/stories/${story.id}/workspace`}>
               <PenLine className="mr-2 h-4 w-4" />
-              Open Workspace
+              Mở Workspace
             </Link>
           </Button>
 
