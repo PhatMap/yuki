@@ -14,7 +14,7 @@ export function AiSetupBlockingCard({
   return (
     <SectionCard
       title="Cần thiết lập AI"
-      description="Hoàn tất provider/API key/model/test trước khi nạp và phân tích truyện."
+      description="Hoàn tất provider, API key, model và test kết nối trước khi dùng workflow chính."
     >
       <div className="space-y-3">
         <p className="text-sm">
@@ -29,14 +29,9 @@ export function AiSetupBlockingCard({
           </ul>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link href={readiness?.nextSetupRoute ?? "/settings"}>Thiết lập AI</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={readiness?.nextSetupRoute ?? "/settings"}>Mở cài đặt</Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link href={readiness?.nextSetupRoute ?? "/settings"}>Thiết lập AI</Link>
+        </Button>
       </div>
     </SectionCard>
   );
