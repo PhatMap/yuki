@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Save, TestTube } from "lucide-react";
+import { Save, TestTube } from "lucide-react";
 
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
@@ -113,14 +113,6 @@ function formatDateTime(value?: string) {
   return parsed.toLocaleString("vi-VN");
 }
 
-function getModelFieldLabel(providerId: AiRuntimeProviderId) {
-  if (providerId === "gemini-proxy") return "Model Gemini Proxy";
-  if (providerId === "gemini-direct") return "Model Gemini Direct";
-  if (providerId === "custom-openai") return "Model Custom OpenAI-compatible";
-  if (providerId === "ollama") return "Model Ollama";
-  return "Model";
-}
-
 function getActiveModel(settings: AiRuntimeSettings) {
   if (settings.providerId === "gemini-proxy") return settings.defaultModel;
   if (settings.providerId === "gemini-direct") return settings.geminiDirectModel;
@@ -162,7 +154,7 @@ export function GlobalSettingsClient() {
 
     async function loadInitialData() {
       try {
-        const [runtimeSettings] = await Promise.all([getAiRuntimeSettings()]);
+        const runtimeSettings = await getAiRuntimeSettings();
         if (!active) return;
         setSettings(runtimeSettings);
         await Promise.all([refreshProviderKeys(), refreshReadiness()]);
@@ -186,13 +178,6 @@ export function GlobalSettingsClient() {
   }, []);
 
   const activeModel = useMemo(() => getActiveModel(settings), [settings]);
-  const activeKeyProviderId = useMemo(() => {
-    if (settings.providerId === "gemini-proxy") return "gemini-proxy" as const;
-    if (settings.providerId === "gemini-direct") return "gemini-direct" as const;
-    if (settings.providerId === "custom-openai") return "custom-openai" as const;
-    return null;
-  }, [settings.providerId]);
-
   function updateSetting<K extends keyof AiRuntimeSettings>(
     key: K,
     value: AiRuntimeSettings[K],
@@ -224,10 +209,10 @@ export function GlobalSettingsClient() {
       const saved = await saveAiRuntimeSettings(settings);
       setSettings(saved);
       await refreshReadiness();
-      setMessage("Đã lưu settings AI.");
+      setMessage("Đã lưu cấu hình provider.");
     } catch (error) {
       console.error("Failed to save AI settings", error);
-      setMessage("Không thể lưu settings AI.");
+      setMessage("Không thể lưu cấu hình provider.");
     } finally {
       setIsSaving(false);
     }
@@ -292,9 +277,12 @@ export function GlobalSettingsClient() {
     setMessage("");
 
     try {
+      const saved = await saveAiRuntimeSettings(settings);
+      setSettings(saved);
+
       const result = await runAiProviderConnectionTest();
       await saveProviderTestStatus({
-        providerId: settings.providerId,
+        providerId: saved.providerId,
         ok: result.ok,
         message: result.message,
         testedAt: new Date().toISOString(),
@@ -314,7 +302,7 @@ export function GlobalSettingsClient() {
       <PageContainer className="max-w-[1120px]">
         <PageHeader
           title="Thiết lập AI"
-          description="Chọn provider, nhập API key, chọn model, rồi test kết nối trước khi dùng Yuki."
+          description="Chọn provider, cấu hình đúng provider đó, rồi test kết nối trước khi dùng Yuki."
         />
 
         {message ? (
@@ -329,13 +317,6 @@ export function GlobalSettingsClient() {
               Provider: <strong>{readiness?.providerLabel ?? "Đang tải..."}</strong> · Model:{" "}
               <strong>{activeModel || "chưa cấu hình"}</strong>
             </p>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              {["1. Provider", "2. API key", "3. Model", "4. Test"].map((step) => (
-                <span key={step} className="rounded-md border bg-background px-2 py-1 font-medium">
-                  {step}
-                </span>
-              ))}
-            </div>
             {!readiness?.isReady ? (
               <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                 {(readiness?.missingReasons ?? []).map((reason) => (
@@ -383,91 +364,152 @@ export function GlobalSettingsClient() {
             </div>
           </SectionCard>
 
-          <SectionCard title="2) Nhập API key">
-            {activeKeyProviderId ? (
-              <ProviderKeySection
-                providerId={activeKeyProviderId}
-                title={
-                  activeKeyProviderId === "gemini-proxy"
-                    ? "Gemini Proxy"
-                    : activeKeyProviderId === "gemini-direct"
-                      ? "Gemini Direct"
-                      : "Custom OpenAI-compatible"
-                }
-                keys={providerKeys[activeKeyProviderId]}
-                draft={keyDrafts[activeKeyProviderId]}
-                isMutating={isMutatingKeys}
-                onDraftChange={(patch) => updateKeyDraft(activeKeyProviderId, patch)}
-                onAddSingle={() => void handleAddSingleKey(activeKeyProviderId)}
-                onAddBulk={() => void handleAddBulkKeys(activeKeyProviderId)}
-                onDelete={(id) => void handleDeleteKey(id)}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Provider hiện tại không cần API key (ví dụ: Ollama).
-              </p>
-            )}
-          </SectionCard>
+          <SectionCard title="2) Cấu hình provider hiện tại">
+            {settings.providerId === "gemini-proxy" ? (
+              <div className="space-y-4">
+                <SettingInput
+                  id="gemini-proxy-endpoint"
+                  label="Gemini Proxy endpoint"
+                  value={settings.geminiProxyEndpoint}
+                  onChange={(value) => updateSetting("geminiProxyEndpoint", value)}
+                  placeholder="/api/ai/gemini"
+                />
+                <div className="grid gap-2">
+                  <Label>Model Gemini Proxy</Label>
+                  <select
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    value={settings.defaultModel}
+                    onChange={(event) => updateSetting("defaultModel", event.target.value)}
+                  >
+                    {geminiProxyModelOptions.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <ProviderKeySection
+                  providerId="gemini-proxy"
+                  title="API key Gemini Proxy"
+                  keys={providerKeys["gemini-proxy"]}
+                  draft={keyDrafts["gemini-proxy"]}
+                  isMutating={isMutatingKeys}
+                  onDraftChange={(patch) => updateKeyDraft("gemini-proxy", patch)}
+                  onAddSingle={() => void handleAddSingleKey("gemini-proxy")}
+                  onAddBulk={() => void handleAddBulkKeys("gemini-proxy")}
+                  onDelete={(id) => void handleDeleteKey(id)}
+                />
+              </div>
+            ) : null}
 
-          <SectionCard title="3) Chọn model">
-            <p className="text-sm text-muted-foreground">{getModelFieldLabel(settings.providerId)}</p>
-            <div className="mt-3 space-y-3">
-              {settings.providerId === "gemini-proxy" ? (
-                <select
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  value={settings.defaultModel}
-                  onChange={(event) => updateSetting("defaultModel", event.target.value)}
-                >
-                  {geminiProxyModelOptions.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
+            {settings.providerId === "gemini-direct" ? (
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">Gemini Direct hiện chưa mở workflow phân tích.</p>
+                <SettingInput
+                  id="gemini-direct-url"
+                  label="Gemini Direct base URL"
+                  value={settings.geminiDirectBaseUrl}
+                  onChange={(value) => updateSetting("geminiDirectBaseUrl", value)}
+                  placeholder="https://generativelanguage.googleapis.com"
+                />
+                <div className="grid gap-2">
+                  <Label>Model Gemini Direct</Label>
+                  <select
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    value={settings.geminiDirectModel}
+                    onChange={(event) => updateSetting("geminiDirectModel", event.target.value)}
+                  >
+                    {geminiDirectModelOptions.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <ProviderKeySection
+                  providerId="gemini-direct"
+                  title="API key Gemini Direct"
+                  keys={providerKeys["gemini-direct"]}
+                  draft={keyDrafts["gemini-direct"]}
+                  isMutating={isMutatingKeys}
+                  onDraftChange={(patch) => updateKeyDraft("gemini-direct", patch)}
+                  onAddSingle={() => void handleAddSingleKey("gemini-direct")}
+                  onAddBulk={() => void handleAddBulkKeys("gemini-direct")}
+                  onDelete={(id) => void handleDeleteKey(id)}
+                />
+              </div>
+            ) : null}
 
-              {settings.providerId === "gemini-direct" ? (
-                <select
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  value={settings.geminiDirectModel}
-                  onChange={(event) => updateSetting("geminiDirectModel", event.target.value)}
-                >
-                  {geminiDirectModelOptions.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
-
-              {settings.providerId === "custom-openai" ? (
-                <Input
+            {settings.providerId === "custom-openai" ? (
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Custom OpenAI-compatible hiện chưa mở workflow phân tích.
+                </p>
+                <SettingInput
+                  id="custom-openai-url"
+                  label="Custom OpenAI base URL"
+                  value={settings.customOpenAiBaseUrl}
+                  onChange={(value) => updateSetting("customOpenAiBaseUrl", value)}
+                  placeholder="https://your-endpoint.example.com/v1"
+                />
+                <SettingInput
+                  id="custom-openai-model"
+                  label="Model Custom OpenAI-compatible"
                   value={settings.customOpenAiModel}
-                  onChange={(event) => updateSetting("customOpenAiModel", event.target.value)}
+                  onChange={(value) => updateSetting("customOpenAiModel", value)}
                   placeholder="gpt-4o-mini / custom-model"
                 />
-              ) : null}
+                <ProviderKeySection
+                  providerId="custom-openai"
+                  title="API key Custom OpenAI-compatible"
+                  keys={providerKeys["custom-openai"]}
+                  draft={keyDrafts["custom-openai"]}
+                  isMutating={isMutatingKeys}
+                  onDraftChange={(patch) => updateKeyDraft("custom-openai", patch)}
+                  onAddSingle={() => void handleAddSingleKey("custom-openai")}
+                  onAddBulk={() => void handleAddBulkKeys("custom-openai")}
+                  onDelete={(id) => void handleDeleteKey(id)}
+                />
+              </div>
+            ) : null}
 
-              {settings.providerId === "ollama" ? (
-                <Input
+            {settings.providerId === "ollama" ? (
+              <div className="space-y-4">
+                <SettingInput
+                  id="ollama-url"
+                  label="Ollama base URL"
+                  value={settings.ollamaBaseUrl}
+                  onChange={(value) => updateSetting("ollamaBaseUrl", value)}
+                  placeholder="http://localhost:11434"
+                />
+                <SettingInput
+                  id="ollama-model"
+                  label="Model Ollama"
                   value={settings.ollamaModel}
-                  onChange={(event) => updateSetting("ollamaModel", event.target.value)}
+                  onChange={(value) => updateSetting("ollamaModel", value)}
                   placeholder="llama3.1 / qwen2.5"
                 />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </SectionCard>
 
-          <SectionCard title="4) Test kết nối">
-            <Button
-              type="button"
-              className="h-11 px-6"
-              onClick={handleTestProvider}
-              disabled={isLoading || isTestingProvider}
-            >
-              <TestTube className="mr-2 h-4 w-4" />
-              {isTestingProvider ? "Đang test..." : "Test kết nối"}
-            </Button>
+          <SectionCard title="3) Test kết nối">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={handleSaveSettings} disabled={isLoading || isSaving}>
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? "Đang lưu..." : "Lưu cấu hình"}
+              </Button>
+              <Button
+                type="button"
+                className="h-11 px-6"
+                onClick={handleTestProvider}
+                disabled={isLoading || isTestingProvider}
+              >
+                <TestTube className="mr-2 h-4 w-4" />
+                {isTestingProvider ? "Đang test..." : "Test kết nối"}
+              </Button>
+            </div>
+
             {testMessage ? <p className="mt-3 text-sm text-muted-foreground">{testMessage}</p> : null}
 
             {readiness?.isReady ? (
@@ -481,141 +523,20 @@ export function GlobalSettingsClient() {
 
           <details className="rounded-xl border bg-card/70">
             <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Nâng cao</summary>
-            <div className="space-y-4 border-t p-4">
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Endpoint / Base URL</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Chỉ chỉnh khi bạn cần route hoặc host khác.
-                </p>
-                <div className="mt-2">
-                  {settings.providerId === "gemini-proxy" ? (
-                    <SettingInput
-                      id="gemini-proxy-endpoint"
-                      label="Gemini Proxy endpoint"
-                      value={settings.geminiProxyEndpoint}
-                      onChange={(value) => updateSetting("geminiProxyEndpoint", value)}
-                      placeholder="/api/ai/gemini"
-                    />
-                  ) : null}
-                  {settings.providerId === "gemini-direct" ? (
-                    <SettingInput
-                      id="gemini-direct-url"
-                      label="Gemini Direct base URL"
-                      value={settings.geminiDirectBaseUrl}
-                      onChange={(value) => updateSetting("geminiDirectBaseUrl", value)}
-                      placeholder="https://generativelanguage.googleapis.com"
-                    />
-                  ) : null}
-                  {settings.providerId === "custom-openai" ? (
-                    <SettingInput
-                      id="custom-openai-url"
-                      label="Custom OpenAI base URL"
-                      value={settings.customOpenAiBaseUrl}
-                      onChange={(value) => updateSetting("customOpenAiBaseUrl", value)}
-                      placeholder="https://your-endpoint.example.com/v1"
-                    />
-                  ) : null}
-                  {settings.providerId === "ollama" ? (
-                    <SettingInput
-                      id="ollama-url"
-                      label="Ollama base URL"
-                      value={settings.ollamaBaseUrl}
-                      onChange={(value) => updateSetting("ollamaBaseUrl", value)}
-                      placeholder="http://localhost:11434"
-                    />
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Runtime settings</p>
-                <div className="mt-3 space-y-3">
-                  <NumericInput
-                    id="gemini-batch-size"
-                    label="Batch size"
-                    value={settings.geminiBatchSize}
-                    min={1}
-                    onChange={(value) => updateSetting("geminiBatchSize", value)}
-                  />
-                  <NumericInput
-                    id="gemini-batch-concurrency"
-                    label="Concurrency"
-                    value={settings.geminiBatchConcurrency}
-                    min={1}
-                    onChange={(value) => updateSetting("geminiBatchConcurrency", value)}
-                  />
-                  <NumericInput
-                    id="gemini-request-delay"
-                    label="Request delay (ms)"
-                    value={settings.geminiRequestDelayMs}
-                    min={0}
-                    onChange={(value) => updateSetting("geminiRequestDelayMs", value)}
-                  />
-                  <NumericInput
-                    id="max-output-tokens"
-                    label="Max output tokens"
-                    value={settings.maxOutputTokens}
-                    min={512}
-                    onChange={(value) => updateSetting("maxOutputTokens", value)}
-                  />
-                  <FloatInput
-                    id="temperature"
-                    label="Temperature"
-                    value={settings.temperature}
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    onChange={(value) => updateSetting("temperature", value)}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Mock Local (test only)</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Không khuyến nghị cho workflow thật.
-                </p>
-                <Button
-                  type="button"
-                  className="mt-3"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateSetting("providerId", "mock")}
-                >
-                  Chuyển sang Mock Local
-                </Button>
-              </div>
-
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Công cụ kỹ thuật</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href="/prompt-manager">Prompt Manager</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href="/stories">Mở Data Health theo từng truyện</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Google AI Studio
-                    </a>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Lưu Runtime settings</p>
-                <Button
-                  type="button"
-                  className="mt-3"
-                  onClick={handleSaveSettings}
-                  disabled={isLoading || isSaving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "Đang lưu..." : "Lưu settings"}
-                </Button>
-              </div>
+            <div className="border-t p-4">
+              <p className="text-sm font-medium">Mock Local (test only)</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Không khuyến nghị cho workflow thật.
+              </p>
+              <Button
+                type="button"
+                className="mt-3"
+                variant="outline"
+                size="sm"
+                onClick={() => updateSetting("providerId", "mock")}
+              >
+                Chuyển sang Mock Local
+              </Button>
             </div>
           </details>
         </section>
@@ -645,66 +566,6 @@ function SettingInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-      />
-    </div>
-  );
-}
-
-function NumericInput({
-  id,
-  label,
-  value,
-  min,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  min: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="number"
-        min={min}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </div>
-  );
-}
-
-function FloatInput({
-  id,
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
       />
     </div>
   );
