@@ -341,7 +341,7 @@ export function GlobalSettingsClient() {
           </section>
         ) : null}
 
-        <SectionCard title="Tien trinh setup AI">
+        <SectionCard title="Tiến trình setup AI">
           <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {["Provider", "API key", "Model", "Test"].map((step, index) => (
@@ -368,10 +368,10 @@ export function GlobalSettingsClient() {
           ) : null}
         </SectionCard>
 
-        <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_440px]">
           <div className="space-y-4">
             <SectionCard title="1) Chọn provider">
-              <div className="grid gap-2">
+              <div className="grid gap-2 2xl:grid-cols-2">
                 {providerChoices
                   .sort((a, b) => Number(b.practical) - Number(a.practical))
                   .map((provider) => {
@@ -406,7 +406,7 @@ export function GlobalSettingsClient() {
               <p className="mb-3 text-xs text-muted-foreground">
                 API key được lưu local trong trình duyệt (IndexedDB).
               </p>
-              <div className="space-y-4">
+              <div className="grid gap-4 2xl:grid-cols-3">
                 {(["gemini-proxy", "gemini-direct", "custom-openai"] as const).map(
                   (providerId) => (
                     <ProviderKeySection
@@ -513,7 +513,7 @@ export function GlobalSettingsClient() {
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-            <SectionCard title="Tom tat nhanh">
+            <SectionCard title="Tóm tắt nhanh">
               <div className="space-y-2 text-sm">
                 <p>
                   Provider: <strong>{readiness?.providerLabel || "Đang tải..."}</strong>
@@ -531,13 +531,13 @@ export function GlobalSettingsClient() {
 
             <details className="rounded-xl border bg-card/70">
               <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
-                Nang cao
+                Nâng cao
               </summary>
               <div className="space-y-4 border-t p-4">
                 <div className="rounded-xl border bg-background p-3">
                   <p className="text-sm font-medium">Endpoint / Base URL</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Chi chinh khi ban can route hoac host khac.
+                    Chỉ chỉnh khi bạn cần route hoặc host khác.
                   </p>
                   <div className="mt-2">
                     {settings.providerId === "gemini-proxy" ? (
@@ -850,7 +850,7 @@ function ProviderKeySection({
                 onClick={() => onDelete(key.id)}
                 disabled={isMutating}
               >
-                Xoa
+                Xóa
               </Button>
             </div>
           ))
