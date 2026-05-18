@@ -41,10 +41,10 @@ interface StoryNavigationGroup {
 const storyNavigationGroups: StoryNavigationGroup[] = [
   {
     label: "Core",
-    description: "Read, inspect, analyze",
+    description: "Đọc, kiểm tra, phân tích",
     items: [
       {
-        label: "Reader",
+        label: "Đọc truyện",
         href: "reader",
         icon: BookOpen,
       },
@@ -62,7 +62,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
   },
   {
     label: "Canon",
-    description: "World, timeline, relation",
+    description: "Thế giới, timeline, quan hệ",
     items: [
       {
         label: "Story Bible",
@@ -75,7 +75,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         icon: CalendarDays,
       },
       {
-        label: "Relationships",
+        label: "Quan hệ",
         href: "relationships",
         icon: HeartHandshake,
       },
@@ -88,7 +88,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
   },
   {
     label: "Rewrite",
-    description: "Plan and draft changes",
+    description: "Lập kế hoạch và viết bản sửa",
     items: [
       {
         label: "Rewrite Planner",
@@ -104,7 +104,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
   },
   {
     label: "Runtime",
-    description: "Global AI and prompts",
+    description: "AI toàn cục và prompts",
     items: [
       {
         label: "Runtime",
@@ -113,7 +113,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         scope: "global",
       },
       {
-        label: "Prompts",
+        label: "Prompt Manager",
         href: "/prompt-manager",
         icon: Sparkles,
         scope: "global",
@@ -127,7 +127,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
   },
   {
     label: "Diagnostics",
-    description: "Data, proxy, scale tools",
+    description: "Dữ liệu, proxy, scale tools",
     items: [
       {
         label: "Data Health",
@@ -166,7 +166,7 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Story navigation" className="app-story-nav">
+    <nav aria-label="Điều hướng truyện" className="app-story-nav">
       <div className="app-story-nav-scroll">
         <div className="app-story-nav-groups">
           {storyNavigationGroups.map((group) => {
