@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -20,7 +21,6 @@ import { SectionCard } from "@/components/app/section-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { saveImportedStoryData } from "@/lib/db/indexed-db";
 import { runLocalImportWorker } from "@/lib/import/run-local-import-worker";
 import type { LocalImportWorkerProgressSnapshot } from "@/lib/import/local-import-worker-types";
@@ -62,7 +62,6 @@ export default function ImportNovelPage() {
   const chunkCountsByChapterId = useMemo(() => {
     return detectedChunks.reduce<Record<string, number>>((counts, chunk) => {
       counts[chunk.chapterId] = (counts[chunk.chapterId] ?? 0) + 1;
-
       return counts;
     }, {});
   }, [detectedChunks]);
@@ -92,7 +91,6 @@ export default function ImportNovelPage() {
     const selected =
       detectedChapters.find((chapter) => chapter.id === selectedChapterId) ??
       detectedChapters[0];
-
     return selected;
   }, [detectedChapters, selectedChapterId]);
 
@@ -100,7 +98,9 @@ export default function ImportNovelPage() {
     ? detectedChapters.findIndex((chapter) => chapter.id === selectedChapter.id)
     : -1;
   const previousChapter =
-    selectedChapterIndex > 0 ? detectedChapters[selectedChapterIndex - 1] : undefined;
+    selectedChapterIndex > 0
+      ? detectedChapters[selectedChapterIndex - 1]
+      : undefined;
   const nextChapter =
     selectedChapterIndex >= 0 && selectedChapterIndex < detectedChapters.length - 1
       ? detectedChapters[selectedChapterIndex + 1]
@@ -124,7 +124,6 @@ export default function ImportNovelPage() {
   const genericTitleCount = useMemo(() => {
     return detectedChapters.filter((chapter) => {
       const normalizedTitle = chapter.title.trim().toLowerCase();
-
       return (
         normalizedTitle.length === 0 ||
         normalizedTitle === "chapter" ||
@@ -139,10 +138,8 @@ export default function ImportNovelPage() {
 
   function createImportAbortController() {
     importAbortControllerRef.current?.abort();
-
     const controller = new AbortController();
     importAbortControllerRef.current = controller;
-
     return controller;
   }
 
@@ -154,7 +151,6 @@ export default function ImportNovelPage() {
 
   async function handleImportTextFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
     if (!file.name.toLowerCase().endsWith(".txt")) {
@@ -165,10 +161,12 @@ export default function ImportNovelPage() {
 
     try {
       const text = await file.text();
+      const inferredTitle = inferTitleFromFileName(file.name);
 
       setNovelText(text);
       setImportFileName(file.name);
       setImportFileSize(file.size);
+      setTitle((current) => (current.trim().length > 0 ? current : inferredTitle));
       setDetectedChapters([]);
       setDetectedChunks([]);
       setSelectedChapterId(undefined);
@@ -208,14 +206,8 @@ export default function ImportNovelPage() {
 
     try {
       const result = await runLocalImportWorker(
-        {
-          storyId: tempStoryId,
-          text: novelText,
-        },
-        {
-          signal: controller.signal,
-          onProgress: setImportProgress,
-        },
+        { storyId: tempStoryId, text: novelText },
+        { signal: controller.signal, onProgress: setImportProgress },
       );
 
       setDetectedChapters(result.chapters);
@@ -252,24 +244,16 @@ export default function ImportNovelPage() {
     setIsCreating(true);
     setCreateError("");
     const controller = createImportAbortController();
-
     const storyId = `story-${Date.now()}`;
 
     try {
       const processedImport = await runLocalImportWorker(
-        {
-          storyId,
-          text: novelText,
-        },
-        {
-          signal: controller.signal,
-          onProgress: setImportProgress,
-        },
+        { storyId, text: novelText },
+        { signal: controller.signal, onProgress: setImportProgress },
       );
 
       const importedChapters = processedImport.chapters;
       const chunks = processedImport.chunks;
-
       if (importedChapters.length === 0) {
         setIsCreating(false);
         setCreateError("Không thể tạo chương từ nội dung đã nhập.");
@@ -284,8 +268,7 @@ export default function ImportNovelPage() {
         id: storyId,
         title: storyTitle,
         description:
-          importedChapters[0]?.cleanContent.slice(0, 240) ||
-          "Truyện dài đã nhập.",
+          importedChapters[0]?.cleanContent.slice(0, 240) || "Truyện dài đã nhập.",
         author: author.trim(),
         genre: "adventure",
         tone: "dramatic",
@@ -327,7 +310,6 @@ export default function ImportNovelPage() {
     const target = detectedChapters.find(
       (chapter) => chapter.chapterNumber === chapterNumber,
     );
-
     if (target) {
       setSelectedChapterId(target.id);
     }
@@ -339,7 +321,17 @@ export default function ImportNovelPage() {
         <PageHeader
           eyebrow="Nhập truyện"
           title="Nạp truyện vào Yuki"
-          description="Upload file TXT hoặc dán toàn bộ truyện. Yuki sẽ tự tách chương, cho bạn kiểm tra lại, rồi mới lưu để phân tích."
+          description="Upload file TXT. Yuki sẽ tự tách chương, cho bạn kiểm tra lại, rồi mới lưu để phân tích."
+          action={
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/">Về Dashboard</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/stories">Thư viện truyện</Link>
+              </Button>
+            </>
+          }
         />
 
         <SectionCard title="Workflow">
@@ -371,13 +363,10 @@ export default function ImportNovelPage() {
               <div>
                 <p className="text-sm font-medium">Upload file truyện</p>
                 <p className="text-sm text-muted-foreground">
-                  Chọn file TXT hoặc dán toàn bộ truyện một lần.
+                  Chọn file TXT chứa toàn bộ truyện trong một lần nạp.
                 </p>
               </div>
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-              >
+              <Button type="button" onClick={() => fileInputRef.current?.click()}>
                 Mở upload
               </Button>
             </div>
@@ -386,7 +375,8 @@ export default function ImportNovelPage() {
               <div>
                 <p className="text-sm font-medium">Tách chương</p>
                 <p className="text-sm text-muted-foreground">
-                  Yuki sẽ nhận diện tiêu đề chương và tạo danh sách chương để bạn kiểm tra.
+                  Yuki sẽ nhận diện tiêu đề chương và tạo danh sách chương để bạn
+                  kiểm tra.
                 </p>
               </div>
               <Button
@@ -437,6 +427,10 @@ export default function ImportNovelPage() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Hỗ trợ định dạng .txt
               </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                File nên chứa toàn bộ truyện trong một lần nạp. Yuki tự nhận diện
+                chương từ tiêu đề.
+              </p>
               <Input
                 ref={fileInputRef}
                 className="mt-3"
@@ -449,58 +443,11 @@ export default function ImportNovelPage() {
                 <div className="mt-3 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <p className="font-medium text-foreground">{importFileName}</p>
                   {importFileSize !== null ? (
-                    <p className="mt-1">
-                      {(importFileSize / 1024).toFixed(1)} KB
-                    </p>
+                    <p className="mt-1">{(importFileSize / 1024).toFixed(1)} KB</p>
                   ) : null}
                 </div>
               ) : null}
             </div>
-
-            <details className="rounded-xl border bg-background p-4">
-              <summary className="cursor-pointer text-sm font-medium">
-                Dán text thủ công
-              </summary>
-              <div className="mt-3 grid gap-4">
-                <div className="app-form-grid">
-                  <div className="grid gap-2">
-                    <Label htmlFor="novel-title">Tên truyện</Label>
-                    <Input
-                      id="novel-title"
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      placeholder="Ví dụ: Nguyệt Dạ Đao Ký"
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="novel-author">Tác giả</Label>
-                    <Input
-                      id="novel-author"
-                      value={author}
-                      onChange={(event) => setAuthor(event.target.value)}
-                      placeholder="Tên tác giả hoặc nguồn truyện"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="novel-content">Nội dung truyện</Label>
-                  <Textarea
-                    id="novel-content"
-                    className="min-h-[380px] text-sm leading-6"
-                    value={novelText}
-                    onChange={(event) => {
-                      setNovelText(event.target.value);
-                      setDetectedChapters([]);
-                      setDetectedChunks([]);
-                      setSelectedChapterId(undefined);
-                    }}
-                    placeholder="Dán toàn bộ truyện vào đây..."
-                  />
-                </div>
-              </div>
-            </details>
 
             <div className="flex flex-wrap gap-3">
               <Button
@@ -549,6 +496,33 @@ export default function ImportNovelPage() {
           </SectionCard>
 
           <div className="space-y-6">
+            <SectionCard
+              title="Thông tin truyện"
+              description="Yuki tự lấy tên từ file nếu bạn để trống. Chỉ sửa tay khi tên truyện hoặc tác giả chưa đúng."
+            >
+              <div className="app-form-grid">
+                <div className="grid gap-2">
+                  <Label htmlFor="novel-title">Tên truyện</Label>
+                  <Input
+                    id="novel-title"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="Ví dụ: Nguyệt Dạ Đao Ký"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="novel-author">Tác giả</Label>
+                  <Input
+                    id="novel-author"
+                    value={author}
+                    onChange={(event) => setAuthor(event.target.value)}
+                    placeholder="Tên tác giả hoặc nguồn truyện"
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
             <SectionCard title="Kiểm tra sau khi tách">
               {hasDetectedChapters ? (
                 <div className="space-y-3">
@@ -592,14 +566,15 @@ export default function ImportNovelPage() {
               ) : (
                 <EmptyState
                   title="Chưa có dữ liệu tách chương"
-                  description="Nạp nội dung và bấm Tách chương để kiểm tra."
+                  description="Upload TXT, sau đó bấm Tách chương."
                 />
               )}
             </SectionCard>
 
             <SectionCard title="Quét nhanh / Bản đồ arc">
               <p className="text-sm text-muted-foreground">
-                Bước tiếp theo sau khi kiểm tra chương là Quét nhanh để lập map chương đáng chú ý và chọn phần cần phân tích sâu.
+                Bước tiếp theo sau khi kiểm tra chương là Quét nhanh để lập map
+                chương đáng chú ý và chọn phần cần phân tích sâu.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button type="button" size="sm" disabled>
@@ -725,7 +700,7 @@ export default function ImportNovelPage() {
           ) : (
             <EmptyState
               title="Chưa tách được chương"
-              description="Upload TXT hoặc dán toàn bộ truyện, sau đó bấm Tách chương."
+              description="Upload TXT, sau đó bấm Tách chương."
             />
           )}
         </SectionCard>
@@ -740,8 +715,13 @@ function getImportStatusLabel(
   if (status === "completed") return "Hoàn tất";
   if (status === "detecting") return "Đang nhận diện chương";
   if (status === "chunking") return "Đang tách chương";
-
   return status;
+}
+
+function inferTitleFromFileName(fileName: string) {
+  const withoutExtension = fileName.replace(/\.[^./\\]+$/, "");
+  const normalized = withoutExtension.replace(/[_-]+/g, " ").trim();
+  return normalized.length > 0 ? normalized : "Truyện đã nhập";
 }
 
 function PreflightRow({ label, value }: { label: string; value: string }) {
