@@ -137,6 +137,7 @@ export function GlobalSettingsClient() {
   const [message, setMessage] = useState("");
   const [testMessage, setTestMessage] = useState("");
   const [isTestingProvider, setIsTestingProvider] = useState(false);
+  const [lastProxyTestOk, setLastProxyTestOk] = useState<boolean | null>(null);
   const [isMutatingKeys, setIsMutatingKeys] = useState(false);
   const [isLoadingGeminiModels, setIsLoadingGeminiModels] = useState(false);
   const [geminiProxyModels, setGeminiProxyModels] = useState<GeminiProxyRemoteModel[]>([]);
@@ -376,6 +377,9 @@ export function GlobalSettingsClient() {
         message: result.message,
         testedAt: new Date().toISOString(),
       });
+      if (saved.providerId === "gemini-proxy") {
+        setLastProxyTestOk(result.ok);
+      }
       await refreshReadiness();
       setTestMessage(result.message);
     } catch (error) {
@@ -476,30 +480,50 @@ export function GlobalSettingsClient() {
                 <div className="rounded-xl border bg-background p-3">
                   <p className="text-sm font-medium">Gemini Proxy mặc định</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Endpoint/profile: <span className="font-mono">/api/proxy</span>
+                    ag.beijixingxing - OpenAI-compatible qua /api/proxy để tránh CORS trên Vercel.
                   </p>
                   <div className="mt-3 grid gap-2">
-                    <Label htmlFor="gemini-proxy-endpoint">Endpoint đang dùng</Label>
+                    <Label htmlFor="gemini-proxy-endpoint">Proxy URL</Label>
                     <Input
                       id="gemini-proxy-endpoint"
-                      value={settings.geminiProxyEndpoint}
-                      onChange={(event) =>
-                        updateSetting("geminiProxyEndpoint", event.target.value)
-                      }
+                      value={GEMINI_PROXY_PRESET_ENDPOINT}
+                      readOnly
                       placeholder="/api/proxy"
                     />
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="mt-3"
-                    onClick={() =>
-                      updateSetting("geminiProxyEndpoint", GEMINI_PROXY_PRESET_ENDPOINT)
-                    }
-                  >
-                    Dùng preset
-                  </Button>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        updateSetting("geminiProxyEndpoint", GEMINI_PROXY_PRESET_ENDPOINT)
+                      }
+                    >
+                      Dùng preset
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      aria-label="Test Gemini Proxy"
+                      onClick={handleTestProvider}
+                      disabled={isLoading || isTestingProvider}
+                    >
+                      <TestTube className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Mặc định: /api/proxy (Vercel rewrite -&gt; ag.beijixingxing.com). Không cần đổi trừ khi dùng proxy khác.
+                  </p>
+                  {settings.providerId === "gemini-proxy" && lastProxyTestOk === true ? (
+                    <p className="mt-2 text-xs text-emerald-600">Kết nối OK</p>
+                  ) : null}
+                  {settings.providerId === "gemini-proxy" &&
+                  lastProxyTestOk === false &&
+                  testMessage ? (
+                    <p className="mt-2 text-xs text-destructive">{testMessage}</p>
+                  ) : null}
                 </div>
 
                 <ProviderKeySection
