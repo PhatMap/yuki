@@ -12,17 +12,43 @@ Read this file before continuing the Yuki project in a new chat.
 
 ## Preferred work style
 
-The preferred loop is:
+The preferred loop is now:
 
 1. ChatGPT reads the repo/current state.
-2. ChatGPT gives the next useful step.
-3. ChatGPT provides exact files, exact changes, validation commands, commit message, and push instruction.
-4. Codex/Copilot applies the task.
-5. Codex/Copilot runs lint/build, commits, pushes, and reports the result.
-6. User pastes the result back.
-7. ChatGPT verifies the commit and gives the next step.
+2. ChatGPT directly edits and commits safe work from chat when possible.
+3. ChatGPT pushes small UI/copy/CSS/docs commits directly to GitHub when the task is low risk.
+4. Codex is used mainly for validation, bugfixing, and risky or large files.
+5. After a few ChatGPT commits, Codex pulls latest, runs lint/build, fixes exact errors, commits, and pushes.
+6. User pastes the Codex result back.
+7. ChatGPT verifies the commit and continues the next useful step.
 
 The user prefers larger safe batches instead of many tiny UI/copy steps. Split tasks only when risk is high.
+
+## When ChatGPT should work directly
+
+ChatGPT should work directly for:
+
+- small UI copy cleanup;
+- Vietnamese-first localization;
+- simple CSS/layout density changes;
+- docs updates;
+- safe route/navigation label changes;
+- small component simplification where behavior stays the same.
+
+When working directly, preserve runtime behavior and avoid touching unrelated files.
+
+## When Codex should be used
+
+Use Codex for:
+
+- `npm.cmd run lint` and `npm.cmd run build` validation;
+- fixing lint/build/type/import errors after ChatGPT commits;
+- large files that are unsafe or too long for chat tooling;
+- risky logic;
+- AI pipeline, Gemini Proxy, worker, IndexedDB, backup/restore, retry/resume, schema, and data safety;
+- final audit after a sequence of ChatGPT commits.
+
+Codex should not be used just to apply small copy/docs/CSS edits when ChatGPT can safely do them directly.
 
 ## Agent effort policy
 
@@ -32,11 +58,11 @@ Use agent effort by risk:
 - Medium: multi-file UI restructure or presentation-only cleanup.
 - High: AI pipeline, Gemini Proxy, worker, IndexedDB, backup/restore, retry/resume, schema, and data safety.
 
-For UI/copy tasks, ChatGPT should provide exact replacements so the agent only applies them.
+For UI/copy tasks, ChatGPT should make exact replacements directly when possible.
 
 ## Prompt format for Codex/Copilot
 
-Use this shape:
+Use this shape when Codex is actually needed:
 
 ```txt
 Task:
@@ -55,7 +81,7 @@ npm.cmd run build
 
 Commit and push:
 git add ...
-git commit -m "..."
+git commit -m "Concise commit message"
 git push
 
 Final response:
@@ -69,6 +95,15 @@ Final response:
 Model: GPT-5.3-Codex
 Reasoning effort: Low
 ```
+
+For audit/check prompts after ChatGPT commits, ask Codex to:
+
+- pull latest master;
+- run lint/build;
+- fix only exact errors;
+- preserve runtime behavior;
+- commit only if a fix is needed;
+- report results.
 
 ## Local LM Studio agent usage
 
@@ -111,6 +146,8 @@ Final agent responses should include:
 - lint result;
 - build result;
 - known limitations.
+
+If ChatGPT commits directly from GitHub tool and cannot run lint/build, say that clearly and leave the commit for the next Codex validation batch.
 
 ## UI language policy
 
