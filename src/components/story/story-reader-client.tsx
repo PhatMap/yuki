@@ -167,6 +167,15 @@ function findBestRewriteDraftForChapter({
     })[0];
 }
 
+function getImportedChapterStatusLabel(status: ImportedChapter["status"]) {
+  if (status === "imported") return "Đã nhập";
+  if (status === "parsed") return "Đã tách";
+  if (status === "analyzed") return "Đã phân tích";
+  if (status === "failed") return "Lỗi";
+
+  return status;
+}
+
 export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -402,15 +411,15 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
     <PageShell>
       <PageContainer className="max-w-[96rem]">
         <PageHeader
-          eyebrow="Reader"
-          title={story?.title ?? "Story Reader"}
-          description="Read imported chapters from IndexedDB. If this chapter has a rewrite draft, you can preview it directly here."
+          eyebrow="Đọc truyện"
+          title={story?.title ?? "Đọc truyện"}
+          description="Đọc các chương đã lưu trong IndexedDB. Nếu chương có rewrite draft, có thể xem trực tiếp tại đây."
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/analysis`}>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Analysis
+                  Phân tích
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -443,35 +452,35 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
           </section>
         ) : null}
 
-        <SectionCard title="Reader Mode">
+        <SectionCard title="Chế độ đọc">
           <div className="space-y-2">
             <StoryAnalysisHint>
-              Chapters are loaded from local IndexedDB.
+              Chương được tải từ IndexedDB cục bộ.
             </StoryAnalysisHint>
             <StoryAnalysisHint>
-              Long reading is optimized for the dark Yuki Night Snow theme.
+              Trải nghiệm đọc dài được tối ưu cho theme Yuki Night Snow.
             </StoryAnalysisHint>
             <StoryAnalysisHint>
-              Analysis and Data Health remain available from story navigation.
+              Analysis và Data Health vẫn có thể mở từ điều hướng truyện.
             </StoryAnalysisHint>
           </div>
         </SectionCard>
 
         {isLoading ? (
-          <SectionCard title="Loading reader">
+          <SectionCard title="Đang tải Reader">
             <p className="app-muted-text">
-              Loading local chapters from IndexedDB...
+              Đang tải chương từ IndexedDB...
             </p>
           </SectionCard>
         ) : chapters.length === 0 ? (
           <EmptyState
-            title="No readable chapters found for this story."
-            description="Import a story first so Reader can display saved chapters."
+            title="Chưa có chương để đọc"
+            description="Nhập truyện trước để Reader hiển thị các chương đã lưu."
             action={
               <Button asChild>
                 <Link href="/stories/import">
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Import Story
+                  Nhập truyện
                 </Link>
               </Button>
             }
@@ -481,37 +490,37 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 icon={<BookOpen className="h-4 w-4" />}
-                title="Chapters"
+                title="Chương"
                 value={formatNumber(chapters.length)}
-                description="Imported chapters"
+                description="Chương đã nhập"
               />
               <StatCard
                 icon={<ListTree className="h-4 w-4" />}
-                title="Words"
+                title="Số từ"
                 value={formatNumber(totalWordCount)}
-                description="Estimated imported word count"
+                description="Ước tính từ dữ liệu đã nhập"
               />
               <StatCard
                 icon={<Sparkles className="h-4 w-4" />}
                 title="Analysis"
-                value={analysisResult ? "Ready" : "Missing"}
+                value={analysisResult ? "Sẵn sàng" : "Thiếu"}
                 description={
                   analysisResult
-                    ? "Canon context available"
-                    : "Run analysis to enrich context"
+                    ? "Có context canon"
+                    : "Chạy Analysis để bổ sung context"
                 }
               />
               <StatCard
                 icon={<GitBranch className="h-4 w-4" />}
                 title="Rewrite drafts"
                 value={formatNumber(rewriteDrafts.length)}
-                description="Saved rewrite versions"
+                description="Phiên bản rewrite đã lưu"
               />
             </section>
 
             <section className="grid min-w-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
               <SectionCard
-                title="Chapter list"
+                title="Danh sách chương"
                 description="Tất cả chương đã import nằm sẵn ở đây."
                 className="xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)]"
                 contentClassName="space-y-3"
@@ -522,7 +531,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                     className="pl-9"
                     value={chapterSearch}
                     onChange={(event) => setChapterSearch(event.target.value)}
-                    placeholder="Search chapter..."
+                    placeholder="Tìm chương..."
                   />
                 </div>
 
@@ -556,7 +565,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                           {chapter.title}
                         </p>
                         <p className="mt-2 text-xs text-muted-foreground">
-                          {formatNumber(chapter.wordCount)} words
+                          {formatNumber(chapter.wordCount)} từ
                         </p>
                       </button>
                     );
@@ -574,10 +583,12 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                             Chương {currentChapter.chapterNumber}
                             <span>·</span>
                             <span>
-                              {formatNumber(currentChapter.wordCount)} words
+                              {formatNumber(currentChapter.wordCount)} từ
                             </span>
                             <span>·</span>
-                            <span>{currentChapter.status}</span>
+                            <span>
+                              {getImportedChapterStatusLabel(currentChapter.status)}
+                            </span>
                           </p>
 
                           <div className="flex flex-wrap gap-2">
@@ -590,7 +601,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                               }
                               onClick={() => setPreviewMode("original")}
                             >
-                              Original
+                              Bản gốc
                             </button>
                             <button
                               type="button"
@@ -602,7 +613,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                               disabled={!selectedRewriteDraft}
                               onClick={() => setPreviewMode("rewrite")}
                             >
-                              Rewrite preview
+                              Xem rewrite
                             </button>
                           </div>
                         </div>
@@ -614,11 +625,11 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                         {selectedRewriteDraft ? (
                           <div className="mt-4 rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
                             <p className="font-medium text-foreground">
-                              Rewrite draft available:{" "}
-                              {selectedRewriteDraft.title}
+                              Có rewrite draft: {selectedRewriteDraft.title}
                             </p>
                             <p className="mt-1">
-                              Status: {selectedRewriteDraft.status} · Updated:{" "}
+                              Trạng thái: {selectedRewriteDraft.status} · Cập
+                              nhật:{" "}
                               {new Date(
                                 selectedRewriteDraft.updatedAt,
                               ).toLocaleString("vi-VN")}
@@ -657,45 +668,45 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                   </>
                 ) : (
                   <EmptyState
-                    title="No chapter selected"
-                    description="Select a chapter from the list."
+                    title="Chưa chọn chương"
+                    description="Chọn một chương từ danh sách."
                   />
                 )}
               </main>
 
               <aside className="space-y-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto">
                 <SectionCard
-                  title="Canon context"
+                  title="Context canon"
                   description="Dữ liệu lấy từ analysis nếu đã chạy."
                 >
                   {analysisResult && currentChapter ? (
                     <div className="space-y-4">
                       <ContextGroup
-                        label="Events"
+                        label="Sự kiện"
                         values={currentChapterEntities.events.map(
                           (event) => event.title,
                         )}
                       />
                       <ContextGroup
-                        label="Characters"
+                        label="Nhân vật"
                         values={currentChapterEntities.characters.map(
                           (entity) => entity.name,
                         )}
                       />
                       <ContextGroup
-                        label="Items"
+                        label="Vật phẩm"
                         values={currentChapterEntities.items.map(
                           (entity) => entity.name,
                         )}
                       />
                       <ContextGroup
-                        label="Terms"
+                        label="Thuật ngữ"
                         values={currentChapterEntities.terms.map(
                           (entity) => entity.name,
                         )}
                       />
                       <ContextGroup
-                        label="Locations"
+                        label="Địa điểm"
                         values={currentChapterEntities.locations.map(
                           (entity) => entity.name,
                         )}
@@ -710,7 +721,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                 </SectionCard>
 
                 <SectionCard
-                  title="Change this chapter"
+                  title="Đổi tình tiết chương này"
                   description="Tạo yêu cầu đổi tình tiết từ chương đang đọc. Đây là đầu vào cho Rewrite Planner."
                 >
                   <div className="space-y-4">
@@ -804,7 +815,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                       onClick={handleCreateChangeRequest}
                     >
                       <Save className="mr-2 h-4 w-4" />
-                      {isSavingChange ? "Đang lưu..." : "Create change request"}
+                      {isSavingChange ? "Đang lưu..." : "Tạo yêu cầu thay đổi"}
                     </Button>
                   </div>
                 </SectionCard>
@@ -830,7 +841,7 @@ function ContextGroup({ label, values }: { label: string; values: string[] }) {
           ))}
         </div>
       ) : (
-        <p className="mt-1 text-sm text-muted-foreground">None detected</p>
+        <p className="mt-1 text-sm text-muted-foreground">Chưa phát hiện</p>
       )}
     </div>
   );
