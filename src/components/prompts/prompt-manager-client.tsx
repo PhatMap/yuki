@@ -176,7 +176,7 @@ export function PromptManagerClient() {
         <PageHeader
           eyebrow="Nâng cao"
           title="Prompt nâng cao"
-          description="Chỉnh sửa prompt templates toàn cục cho analysis và rewrite. Dành cho người dùng muốn tinh chỉnh sâu."
+          description="Quản lý prompt template toàn cục cho analysis và Rewrite."
           action={
             <>
               <Button
@@ -207,17 +207,17 @@ export function PromptManagerClient() {
           </section>
         ) : null}
 
-        <SectionCard title="Chi tiết Prompt">
+        <SectionCard title="Cách dùng nhanh">
           <div className="space-y-2">
             <PromptManagerHint>
-              Văn bản prompt có thể chỉnh sửa kiểm soát hành vi mô hình.
+              `Editable prompt` là phần bạn có thể chỉnh để thay đổi hành vi.
             </PromptManagerHint>
             <PromptManagerHint>
-              Locked contract mô tả hình dạng output bắt buộc và không nên bị bỏ qua.
+              `Locked contract` là ràng buộc output bắt buộc, không nên sửa.
             </PromptManagerHint>
-            <PromptManagerHint>Variable được chèn tại Runtime.</PromptManagerHint>
+            <PromptManagerHint>`Variables` sẽ được Runtime điền khi chạy.</PromptManagerHint>
             <PromptManagerHint>
-              Reset khôi phục mẫu được chọn hoặc tất cả mẫu về mặc định.
+              Bạn có thể reset từng template hoặc reset toàn bộ về mặc định.
             </PromptManagerHint>
           </div>
         </SectionCard>
@@ -244,7 +244,7 @@ export function PromptManagerClient() {
         </SectionCard>
 
         {isLoading ? (
-          <SectionCard title="Đang tải prompt registry">
+            <SectionCard title="Đang tải Prompt Manager">
             <p className="app-muted-text">
               Đang đọc mẫu prompt toàn cục từ IndexedDB...
             </p>
@@ -279,7 +279,7 @@ function PromptTemplateEditor({
   onReset: (templateId: string) => void;
 }) {
   return (
-    <SectionCard
+            <SectionCard
       title={template.title}
       description={template.description}
       contentClassName="space-y-5"
@@ -291,7 +291,7 @@ function PromptTemplateEditor({
           </p>
           <div className="app-chip-row">
           <span className="app-chip-primary">Template: {template.title}</span>
-          <span className="app-chip">Category: {template.category}</span>
+          <span className="app-chip">Nhóm: {template.category}</span>
           {template.variables.map((variable) => (
             <span className="app-chip" key={variable}>
               {"{{" + variable + "}}"}
@@ -312,16 +312,14 @@ function PromptTemplateEditor({
       </div>
 
       <PromptManagerHint>
-        Variable được điền bởi runtime. Missing variable sẽ được báo cáo
-        trước khi output provider được tin tưởng.
+        Runtime sẽ tự điền biến. Nếu thiếu biến, hệ thống sẽ báo trước khi chạy.
       </PromptManagerHint>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <label className="grid gap-2">
           <span className="text-sm font-medium">Editable prompt</span>
           <PromptManagerHint>
-            Chỉnh sửa instruction cẩn thận. Giữ yêu cầu cấu trúc phù hợp với
-            locked contract.
+            Chỉnh ngắn gọn, rõ mục tiêu và giữ cấu trúc tương thích với locked contract.
           </PromptManagerHint>
           <Textarea
             className="app-editor-textarea min-h-[260px]"
@@ -347,8 +345,7 @@ function PromptTemplateEditor({
       </div>
 
       <PromptManagerHint>
-        Reset chỉ ảnh hưởng đến prompt template. Nó không xóa tiểu thuyết,
-        analysis result, job hay cache.
+        Reset chỉ tác động prompt template, không xóa dữ liệu truyện hay analysis/job/cache.
       </PromptManagerHint>
     </SectionCard>
   );

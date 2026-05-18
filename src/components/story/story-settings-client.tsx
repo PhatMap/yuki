@@ -147,7 +147,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
 
     saveStoryLocalSettings(nextSettings);
     setSettings(nextSettings);
-    setSaveMessage("Settings saved locally.");
+    setSaveMessage("Đã lưu cài đặt hiển thị.");
   }
 
   function handleResetSettings() {
@@ -155,7 +155,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
 
     saveStoryLocalSettings(defaultSettings);
     setSettings(defaultSettings);
-    setSaveMessage("Settings reset to defaults.");
+    setSaveMessage("Đã đưa cài đặt về mặc định.");
   }
 
   async function handleSaveSetup() {
@@ -177,10 +177,10 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
     try {
       await saveStorySetup(nextSetup);
       setSetup(nextSetup);
-      setSetupSaveMessage("Story setup saved to IndexedDB.");
+      setSetupSaveMessage("Đã lưu thiết lập truyện vào IndexedDB.");
     } catch (error) {
       console.error("Failed to save story setup", error);
-      setSetupSaveMessage("Failed to save story setup.");
+      setSetupSaveMessage("Không thể lưu thiết lập truyện.");
     } finally {
       setIsSavingSetup(false);
     }
@@ -190,14 +190,14 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Story Settings"
-          title={story?.title ?? "Story Settings"}
-          description="Local reading preferences and IndexedDB-backed story setup data."
+          eyebrow="Cài đặt truyện"
+          title={story?.title ?? "Cài đặt truyện"}
+          description="Tùy chỉnh trải nghiệm đọc/viết và ghi chú setup cho truyện hiện tại."
           action={
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/workspace`}>
                 <BookOpen className="mr-2 h-4 w-4" />
-                Open Workspace
+                Mở Workspace
               </Link>
             </Button>
           }
@@ -207,11 +207,11 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
           <div className="space-y-4">
             <SectionCard
               icon={<BookOpen className="h-5 w-5" />}
-              title="Reading preferences"
+              title="Cài đặt đọc truyện"
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <SettingsSelect
-                  label="Font size"
+                  label="Cỡ chữ"
                   value={settings.fontSize}
                   onValueChange={(value) =>
                     updateSettings(
@@ -220,14 +220,14 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     )
                   }
                   options={[
-                    ["small", "Small"],
-                    ["medium", "Medium"],
-                    ["large", "Large"],
+                    ["small", "Nhỏ"],
+                    ["medium", "Vừa"],
+                    ["large", "Lớn"],
                   ]}
                 />
 
                 <SettingsSelect
-                  label="Reading width"
+                  label="Độ rộng khung đọc"
                   value={settings.readingWidth}
                   onValueChange={(value) =>
                     updateSettings(
@@ -236,9 +236,9 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     )
                   }
                   options={[
-                    ["compact", "Compact"],
-                    ["comfortable", "Comfortable"],
-                    ["wide", "Wide"],
+                    ["compact", "Gọn"],
+                    ["comfortable", "Thoải mái"],
+                    ["wide", "Rộng"],
                   ]}
                 />
               </div>
@@ -246,11 +246,11 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
 
             <SectionCard
               icon={<Settings className="h-5 w-5" />}
-              title="Workspace preferences"
+              title="Cài đặt Workspace"
             >
               <div className="space-y-5">
                 <SettingsSelect
-                  label="Workspace density"
+                  label="Mật độ hiển thị"
                   value={settings.density}
                   onValueChange={(value) =>
                     updateSettings(
@@ -259,15 +259,15 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     )
                   }
                   options={[
-                    ["compact", "Compact"],
-                    ["comfortable", "Comfortable"],
+                    ["compact", "Gọn"],
+                    ["comfortable", "Thoải mái"],
                   ]}
                 />
 
                 <SettingsSwitch
                   checked={settings.showMetadata}
-                  description="Show chapter counts, statuses, and other supporting labels where available."
-                  label="Show metadata"
+                  description="Hiển thị số chương, trạng thái và thông tin phụ trong các màn hình truyện."
+                  label="Hiển thị metadata"
                   onCheckedChange={(value) =>
                     updateSettings("showMetadata", value)
                   }
@@ -275,8 +275,8 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
 
                 <SettingsSwitch
                   checked={settings.autoSaveDrafts}
-                  description="Keep this preference ready for draft workflows that support auto-save."
-                  label="Auto-save drafts"
+                  description="Tự lưu bản nháp khi workflow rewrite có hỗ trợ."
+                  label="Tự lưu draft"
                   onCheckedChange={(value) =>
                     updateSettings("autoSaveDrafts", value)
                   }
@@ -284,9 +284,9 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
               </div>
             </SectionCard>
 
-            <SectionCard title="Mock AI behavior">
+            <SectionCard title="Mock AI (test)">
               <SettingsSelect
-                label="Mock AI mode"
+                label="Chế độ Mock AI"
                 value={settings.mockAiMode}
                 onValueChange={(value) =>
                   updateSettings(
@@ -303,38 +303,38 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
             </SectionCard>
 
             <SectionCard
-              title="Story setup"
-              description="Fanwork/source setup is stored in IndexedDB, not browser key-value storage."
+              title="Thiết lập truyện"
+              description="Lưu thông tin nguồn truyện và các ghi chú mustKeep/mustChange."
             >
               <div className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="originalTitle">Original title</Label>
+                    <Label htmlFor="originalTitle">Tên gốc</Label>
                     <Input
                       id="originalTitle"
                       value={setup.originalTitle}
                       onChange={(event) =>
                         updateSetup("originalTitle", event.target.value)
                       }
-                      placeholder="Original work title"
+                      placeholder="Tên tác phẩm gốc"
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="originalAuthor">Original author</Label>
+                    <Label htmlFor="originalAuthor">Tác giả gốc</Label>
                     <Input
                       id="originalAuthor"
                       value={setup.originalAuthor}
                       onChange={(event) =>
                         updateSetup("originalAuthor", event.target.value)
                       }
-                      placeholder="Original author"
+                      placeholder="Tác giả gốc"
                     />
                   </div>
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="mustKeep">Must keep</Label>
+                  <Label htmlFor="mustKeep">mustKeep</Label>
                   <Textarea
                     id="mustKeep"
                     className="min-h-24"
@@ -342,12 +342,12 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     onChange={(event) =>
                       updateSetup("mustKeep", event.target.value)
                     }
-                    placeholder="Characters, relationships, events, tone, or world rules that should be preserved."
+                    placeholder="Những yếu tố cần giữ khi rewrite (nhân vật, quan hệ, sự kiện, tone, luật thế giới...)."
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="mustChange">Must change</Label>
+                  <Label htmlFor="mustChange">mustChange</Label>
                   <Textarea
                     id="mustChange"
                     className="min-h-24"
@@ -355,7 +355,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     onChange={(event) =>
                       updateSetup("mustChange", event.target.value)
                     }
-                    placeholder="Plot points, canon branches, events, or relationships that should be changed."
+                    placeholder="Những điểm cần đổi khi rewrite (plot, canon branch, sự kiện, quan hệ...)."
                   />
                 </div>
 
@@ -366,7 +366,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     disabled={isSavingSetup}
                   >
                     <Save className="mr-2 h-4 w-4" />
-                    {isSavingSetup ? "Saving..." : "Save Story Setup"}
+                    {isSavingSetup ? "Đang lưu..." : "Lưu thiết lập truyện"}
                   </Button>
 
                   {setupSaveMessage ? (
@@ -378,55 +378,27 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
           </div>
 
           <aside className="space-y-4">
-            <SectionCard title="Preview">
+            <SectionCard title="Xem trước">
               <div className={previewClassName}>
-                <p className="font-medium">Reading preview</p>
+                <p className="font-medium">Xem trước hiển thị</p>
                 <p className="text-muted-foreground">
-                  This preview reflects the selected font size, reading width,
-                  and density for this story. The saved settings also apply to
-                  the shared story workspace shell.
+                  Khung này phản ánh cỡ chữ, độ rộng và mật độ hiển thị bạn đã chọn cho truyện này.
                 </p>
 
                 {settings.showMetadata ? (
                   <p className="text-sm text-muted-foreground">
-                    Metadata visible / Mock AI: {settings.mockAiMode}
+                    Metadata: bật / Mock AI: {settings.mockAiMode}
                   </p>
                 ) : null}
               </div>
             </SectionCard>
 
-            <SectionCard title="Storage">
+            <SectionCard title="Lưu cài đặt">
               <div className="space-y-3">
-                <p className="app-muted-text">
-                  UI settings:{" "}
-                  <span className="font-mono">
-                    {getStorySettingsStorageKey(storyId)}
-                  </span>
-                </p>
-
-                <p className="app-muted-text">
-                  Story setup:{" "}
-                  <span className="font-mono">IndexedDB storySetups</span>
-                </p>
-
-                <p className="app-muted-text">
-                  Settings updated:{" "}
-                  {settings.updatedAt
-                    ? new Date(settings.updatedAt).toLocaleString()
-                    : "Not saved yet"}
-                </p>
-
-                <p className="app-muted-text">
-                  Setup updated:{" "}
-                  {setup.updatedAt
-                    ? new Date(setup.updatedAt).toLocaleString()
-                    : "Not saved yet"}
-                </p>
-
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" onClick={handleSaveSettings}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Settings
+                    Lưu settings
                   </Button>
 
                   <Button
@@ -435,7 +407,7 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                     onClick={handleResetSettings}
                   >
                     <RotateCcw className="mr-2 h-4 w-4" />
-                    Reset to Defaults
+                    Reset mặc định
                   </Button>
                 </div>
 
@@ -444,6 +416,39 @@ export function StorySettingsClient({ storyId }: StorySettingsClientProps) {
                 ) : null}
               </div>
             </SectionCard>
+
+            <details className="rounded-xl border bg-card p-4">
+              <summary className="cursor-pointer text-sm font-medium">
+                Chi tiết kỹ thuật
+              </summary>
+              <div className="mt-3 space-y-3">
+                <p className="app-muted-text">
+                  UI settings key:{" "}
+                  <span className="font-mono">
+                    {getStorySettingsStorageKey(storyId)}
+                  </span>
+                </p>
+
+                <p className="app-muted-text">
+                  Story setup store:{" "}
+                  <span className="font-mono">IndexedDB storySetups</span>
+                </p>
+
+                <p className="app-muted-text">
+                  Settings updated:{" "}
+                  {settings.updatedAt
+                    ? new Date(settings.updatedAt).toLocaleString()
+                    : "Chưa lưu"}
+                </p>
+
+                <p className="app-muted-text">
+                  Setup updated:{" "}
+                  {setup.updatedAt
+                    ? new Date(setup.updatedAt).toLocaleString()
+                    : "Chưa lưu"}
+                </p>
+              </div>
+            </details>
           </aside>
         </section>
       </PageContainer>

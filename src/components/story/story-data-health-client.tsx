@@ -735,7 +735,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                 onClick={handleCopyDiagnosticSummary}
               >
                 <Clipboard className="mr-2 h-4 w-4" />
-                Copy JSON
+                Sao chép JSON
               </Button>
             </>
           }
@@ -754,12 +754,12 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
 
         {!inspection ? (
           <EmptyState
-            title="Chưa load inspection."
-            description="Refresh inspection để đọc dữ liệu IndexedDB và legacy fallback cho tiểu thuyết này."
+            title="Chưa có dữ liệu kiểm tra."
+            description="Bấm Làm mới để đọc trạng thái IndexedDB và legacy fallback của truyện này."
             action={
               <Button type="button" onClick={handleRefreshInspection}>
                 <Database className="mr-2 h-4 w-4" />
-                Kiểm tra dữ liệu tiểu thuyết
+                Kiểm tra dữ liệu truyện
               </Button>
             }
           />
@@ -768,7 +768,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
               <StatCard
                 icon={<Database className="h-4 w-4" />}
-                title="Tổng thể health"
+                title="Tổng thể"
                 value={overallHealth}
               />
               <StatCard
@@ -804,7 +804,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
 
             <section className="grid gap-4 xl:grid-cols-[1fr_420px]">
               <div className="space-y-4">
-                <SectionCard title="Storage overview">
+                <SectionCard title="Tổng quan lưu trữ">
                   <div className="grid gap-3 md:grid-cols-2">
                     <HealthRow
                       label="IndexedDB"
@@ -819,12 +819,12 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       value="Có thể đọc cho trình duyệt này"
                     />
                     <HealthRow
-                      label="Inspected at"
+                      label="Thời điểm kiểm tra"
                       state="healthy"
                       value={new Date(inspection.inspectedAt).toLocaleString("vi-VN")}
                     />
                     <HealthRow
-                      label="Story id"
+                      label="Story ID"
                       state="healthy"
                       value={storyId}
                     />
@@ -877,7 +877,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Counts">
+                <SectionCard title="Số lượng dữ liệu">
                   <div className="grid gap-3 md:grid-cols-2">
                     <HealthRow
                       label="Chapters count"
@@ -933,6 +933,11 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
+                <details className="rounded-xl border bg-card p-4">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Chi tiết kỹ thuật
+                  </summary>
+                  <div className="mt-4 space-y-4">
                 <SectionCard title="AI job và cache state">
                   <div className="mb-3 space-y-1">
                     <DataHealthHint>
@@ -980,7 +985,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Recent AI job">
+                <SectionCard title="AI job gần đây">
                   {inspection.indexedDb.aiJobs.length > 0 ? (
                     <div className="space-y-2">
                       {inspection.indexedDb.aiJobs.slice(0, 5).map((job) => (
@@ -1011,13 +1016,15 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   )}
                 </SectionCard>
 
-                <SectionCard title="Legacy fallback key">
+                <SectionCard title="Legacy fallback keys">
                   <div className="space-y-2">
                     {Object.values(inspection.legacyFallback).map((item) => (
                       <StorageKeyRow key={item.key} item={item} />
                     ))}
                   </div>
                 </SectionCard>
+                  </div>
+                </details>
               </div>
 
               <aside className="space-y-4">
@@ -1047,7 +1054,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   )}
                 </SectionCard>
 
-                <SectionCard title="Safe action">
+                <SectionCard title="Backup & khôi phục">
                   <div className="space-y-3">
                     <Button
                       className="w-full"
@@ -1073,10 +1080,10 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       onClick={handleClearSettings}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Clear chỉ story setting
+                      Xóa key story settings cũ
                     </Button>
                     <p className="app-muted-text">
-                      This only removes{" "}
+                      Chỉ xóa key{" "}
                       <span className="font-mono">
                         {legacyFallbackKeys.settings(storyId)}
                       </span>
@@ -1222,7 +1229,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Mở story">
+                <SectionCard title="Đi tới Workspace">
                   <Button asChild className="w-full" variant="outline">
                     <Link href={`/stories/${storyId}/workspace`}>
                       <BookOpen className="mr-2 h-4 w-4" />

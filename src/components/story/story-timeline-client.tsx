@@ -98,14 +98,14 @@ function minAffectedChapter(numbers: number[]) {
 }
 
 function formatAffectedChapters(numbers: number[]) {
-  if (numbers.length === 0) return "No chapter";
+  if (numbers.length === 0) return "Không có chương";
 
   const min = Math.min(...numbers);
   const max = Math.max(...numbers);
 
-  if (min === max) return `Chapter ${min}`;
+  if (min === max) return `Chương ${min}`;
 
-  return `Chapters ${min}-${max} (${numbers.length} affected)`;
+  return `Chương ${min}-${max} (${numbers.length} chương bị ảnh hưởng)`;
 }
 
 function changeTouchesBlock(
@@ -259,14 +259,14 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
       <PageContainer>
         <PageHeader
           eyebrow="Timeline"
-          title={story?.title ?? "Story Timeline"}
-          description="Canon events, branch changes, and continuity issues by chapter."
+          title={story?.title ?? "Timeline truyện"}
+          description="Theo dõi Canon events, nhánh rewrite và continuity issues theo chương."
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/workspace`}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Open Workspace
+                  Mở Workspace
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -278,17 +278,12 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
               <Button asChild>
                 <Link href={`/stories/${storyId}/analysis`}>
                   <AlertTriangle className="mr-2 h-4 w-4" />
-                  Analysis
+                  Phân tích truyện
                 </Link>
               </Button>
             </>
           }
         />
-
-
-        <p className="app-muted-text">
-          Timeline reads from IndexedDB as the source of truth.
-        </p>
 
         {storageError ? (
           <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
@@ -297,19 +292,19 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
         ) : null}
 
         {isLoading ? (
-          <SectionCard title="Loading timeline">
+          <SectionCard title="Đang tải Timeline">
             <p className="app-muted-text">
-              Reading timeline data from IndexedDB...
+              Đang đọc dữ liệu Timeline...
             </p>
           </SectionCard>
         ) : !result ? (
           <EmptyState
-            title="No timeline yet. Run mock analysis first."
-            description="Open the analysis dashboard and start mock analysis to populate canon events for this story."
+            title="Chưa có dữ liệu Timeline."
+            description="Hãy chạy phân tích truyện để tạo Canon events và trạng thái continuity."
             action={
               <Button asChild>
                 <Link href={`/stories/${storyId}/analysis`}>
-                  Open Analysis
+                  Mở trang phân tích
                 </Link>
               </Button>
             }
@@ -324,7 +319,7 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
               />
               <StatCard
                 icon={<GitBranch className="h-4 w-4" />}
-                title="Branches"
+                title="Nhánh rewrite"
                 value={timelineData.branches.length}
               />
               <StatCard
@@ -344,10 +339,10 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
               />
             </section>
 
-            <SectionCard title="Filters">
+            <SectionCard title="Bộ lọc">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2 text-sm">
-                  <span className="font-medium">Canon event importance</span>
+                  <span className="font-medium">Mức độ quan trọng của Canon event</span>
                   <select
                     className="rounded-md border bg-background px-3 py-2 text-sm"
                     value={importanceFilter}
@@ -355,14 +350,14 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
                       setImportanceFilter(event.target.value as ImportanceFilter)
                     }
                   >
-                    <option value="all">All</option>
+                    <option value="all">Tất cả</option>
                     <option value="medium+">Medium+</option>
                     <option value="high+">High+</option>
                     <option value="critical">Critical</option>
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm">
-                  <span className="font-medium">Continuity issue severity</span>
+                  <span className="font-medium">Mức độ continuity issue</span>
                   <select
                     className="rounded-md border bg-background px-3 py-2 text-sm"
                     value={severityFilter}
@@ -370,7 +365,7 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
                       setSeverityFilter(event.target.value as SeverityFilter)
                     }
                   >
-                    <option value="all">All</option>
+                    <option value="all">Tất cả</option>
                     <option value="medium+">Medium+</option>
                     <option value="high+">High+</option>
                     <option value="critical">Critical</option>
@@ -378,6 +373,15 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
                 </label>
               </div>
             </SectionCard>
+
+            <details className="rounded-xl border bg-card p-4">
+              <summary className="cursor-pointer text-sm font-medium">
+                Chi tiết kỹ thuật
+              </summary>
+              <p className="mt-3 app-muted-text">
+                Dữ liệu Timeline được đọc từ IndexedDB. Thông báo lỗi chỉ hiển thị khi quá trình đọc thất bại.
+              </p>
+            </details>
 
             <section className="grid gap-4 xl:grid-cols-2">
               <CanonTimelineSection events={filteredCanonEvents} />
@@ -396,7 +400,7 @@ export function StoryTimelineClient({ storyId }: StoryTimelineClientProps) {
 
 function CanonTimelineSection({ events }: { events: StoryEvent[] }) {
   return (
-    <SectionCard title="Canon Timeline">
+    <SectionCard title="Timeline Canon">
       {events.length > 0 ? (
         <div className="space-y-3">
           {events.map((event) => (
@@ -404,7 +408,7 @@ function CanonTimelineSection({ events }: { events: StoryEvent[] }) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    Chapter {event.chapterNumber}
+                    Chương {event.chapterNumber}
                   </p>
                   <h2 className="mt-1 text-sm font-medium">{event.title}</h2>
                 </div>
@@ -415,19 +419,19 @@ function CanonTimelineSection({ events }: { events: StoryEvent[] }) {
               </p>
               {event.charactersInvolved.length > 0 ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Characters: {event.charactersInvolved.join(", ")}
+                  Nhân vật: {event.charactersInvolved.join(", ")}
                 </p>
               ) : null}
               {event.locationsInvolved.length > 0 ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Locations: {event.locationsInvolved.join(", ")}
+                  Địa điểm: {event.locationsInvolved.join(", ")}
                 </p>
               ) : null}
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">No canon events match this filter.</p>
+        <p className="app-muted-text">Không có Canon events phù hợp bộ lọc.</p>
       )}
     </SectionCard>
   );
@@ -439,7 +443,7 @@ function BranchChangesTimelineSection({
   changes: BranchChange[];
 }) {
   return (
-    <SectionCard title="Branch Changes Timeline">
+    <SectionCard title="Timeline nhánh rewrite">
       {changes.length > 0 ? (
         <div className="space-y-3">
           {changes.map((change) => (
@@ -448,8 +452,8 @@ function BranchChangesTimelineSection({
                 <div>
                   <p className="text-xs text-muted-foreground">
                     {typeof change.chapterNumber === "number"
-                      ? `Chapter ${change.chapterNumber}`
-                      : "No chapter"}
+                      ? `Chương ${change.chapterNumber}`
+                      : "Không có chương"}
                   </p>
                   <h2 className="mt-1 text-sm font-medium">{change.title}</h2>
                 </div>
@@ -459,13 +463,13 @@ function BranchChangesTimelineSection({
                 {change.type} · {change.impactScope}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {change.affectedChapterNumbers.length} affected chapters
+                {change.affectedChapterNumbers.length} chương bị ảnh hưởng
               </p>
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">No branch changes yet.</p>
+        <p className="app-muted-text">Chưa có branch changes.</p>
       )}
     </SectionCard>
   );
@@ -477,7 +481,7 @@ function ContinuityIssuesTimelineSection({
   issues: BranchContinuityIssue[];
 }) {
   return (
-    <SectionCard title="Continuity Issues Timeline">
+    <SectionCard title="Timeline continuity issues">
       {issues.length > 0 ? (
         <div className="space-y-3">
           {issues.map((issue) => (
@@ -492,11 +496,11 @@ function ContinuityIssuesTimelineSection({
                 <Badge variant="outline">{issue.severity}</Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Status: {issue.status}
+                Trạng thái: {issue.status}
               </p>
               {issue.suggestedFix ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Suggested fix: {issue.suggestedFix}
+                  Gợi ý xử lý: {issue.suggestedFix}
                 </p>
               ) : null}
             </article>
@@ -504,7 +508,7 @@ function ContinuityIssuesTimelineSection({
         </div>
       ) : (
         <p className="app-muted-text">
-          No continuity issues match this filter.
+          Không có continuity issues phù hợp bộ lọc.
         </p>
       )}
     </SectionCard>
@@ -523,7 +527,7 @@ function ChapterRangeSummarySection({
   }[];
 }) {
   return (
-    <SectionCard title="Chapter Range Summary">
+    <SectionCard title="Tổng quan theo dải chương">
       <div className="space-y-2">
         {ranges.map((range) => (
           <article
