@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "../styles/app-ui.css";
 @import "../styles/story-sidebar.css";
+@import "../styles/layout-width.css";
 
 @custom-variant dark (&:is(.dark *));
 
