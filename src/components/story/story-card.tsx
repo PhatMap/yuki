@@ -20,12 +20,12 @@ export default function StoryCard({
           </h2>
         </div>
         <span className="rounded-md bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
-          {story.isFanwork ? "Fanwork" : "Original"}
+          {story.isFanwork ? "Fanwork" : "Truyện gốc"}
         </span>
       </div>
 
       <p className="mt-4 text-sm leading-6 text-muted-foreground">
-        {story.description}
+        {story.description || "Chưa có mô tả."}
       </p>
 
       <div className="mt-5 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -35,7 +35,7 @@ export default function StoryCard({
             className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
             href={`/stories/${story.id}/workspace`}
           >
-            Mở Workspace
+            Workspace viết
           </Link>
           <Link
             className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
@@ -47,7 +47,7 @@ export default function StoryCard({
             className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
             href={`/stories/${story.id}/analysis`}
           >
-            Analysis
+            Phân tích
           </Link>
           <Link
             className="rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/70"
