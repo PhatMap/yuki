@@ -82,10 +82,10 @@ export function StoryImportScaleTestClient({
 
   const storyLinks = useMemo(
     () => [
-      { label: "Workspace", href: `/stories/${storyId}/workspace` },
-      { label: "Import", href: "/stories/import" },
+      { label: "Workspace viết", href: `/stories/${storyId}/workspace` },
+      { label: "Nạp truyện", href: "/stories/import" },
       { label: "Data Health", href: `/stories/${storyId}/data-health` },
-      { label: "Settings", href: `/stories/${storyId}/settings` },
+      { label: "Cài đặt truyện", href: `/stories/${storyId}/settings` },
     ],
     [storyId],
   );
@@ -114,13 +114,13 @@ export function StoryImportScaleTestClient({
 
       if (chapters.length !== preset) {
         warnings.push(
-          `Expected ${preset} chapters, parsed ${chapters.length}.`,
+          `Kỳ vọng ${preset} chương, nhưng parser trả ${chapters.length} chương.`,
         );
       }
 
       if (approxSizeMb > 20) {
         warnings.push(
-          "Generated payload is large. IndexedDB should remain the primary storage target.",
+          "Payload giả lập lớn. IndexedDB vẫn phải là storage chính.",
         );
       }
 
@@ -146,9 +146,8 @@ export function StoryImportScaleTestClient({
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Step 28"
           title="Import Scale Test"
-          description="Test browser-side handling for 1500–3000 mock chapters without touching real story import data."
+          description="Test xử lý 1500–3000 chương giả lập trong browser mà không đụng dữ liệu truyện thật."
           action={
             <nav className="app-chip-row" aria-label="Story utility links">
               {storyLinks.map((link) => (
@@ -162,8 +161,8 @@ export function StoryImportScaleTestClient({
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <SectionCard
-            title="Scale preset"
-            description="Generate mock chapter content and parse it without writing large diagnostic payloads to browser key-value storage."
+            title="Preset kiểm thử"
+            description="Tạo nội dung chương giả lập và parse trong browser, không ghi payload lớn vào browser key-value storage."
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
@@ -173,7 +172,7 @@ export function StoryImportScaleTestClient({
                   checked={preset === 1500}
                   onChange={() => setPreset(1500)}
                 />
-                1500 chapters
+                1500 chương
               </label>
 
               <label className="flex items-center gap-2 rounded-xl border p-3 text-sm">
@@ -183,7 +182,7 @@ export function StoryImportScaleTestClient({
                   checked={preset === 3000}
                   onChange={() => setPreset(3000)}
                 />
-                3000 chapters
+                3000 chương
               </label>
             </div>
 
@@ -194,7 +193,7 @@ export function StoryImportScaleTestClient({
                 disabled={isRunning}
                 className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isRunning ? "Running test..." : "Run scale test"}
+                {isRunning ? "Đang chạy test..." : "Chạy scale test"}
               </button>
 
               <button
@@ -203,7 +202,7 @@ export function StoryImportScaleTestClient({
                 disabled={isRunning}
                 className="rounded-xl border px-4 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Clear scale test data
+                Xóa kết quả test
               </button>
             </div>
           </SectionCard>
@@ -211,8 +210,7 @@ export function StoryImportScaleTestClient({
           <SectionCard title="Storage policy" className="app-sticky-panel">
             <p className="app-code-block">IndexedDB primary</p>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              This page does not overwrite real import, chapters, chunks,
-              analysis, branch, or rewrite draft data.
+              Trang này không ghi đè dữ liệu import, chương, chunk, analysis, nhánh hoặc Rewrite Draft thật.
             </p>
           </SectionCard>
         </section>
@@ -220,35 +218,34 @@ export function StoryImportScaleTestClient({
         {result ? (
           <section className="app-data-grid">
             <Stat
-              label="Parsed chapters"
+              label="Chương đã parse"
               value={result.chapters.toLocaleString()}
             />
             <Stat
-              label="Characters"
+              label="Ký tự"
               value={result.characters.toLocaleString()}
             />
-            <Stat label="Approx payload" value={`${result.approxSizeMb} MB`} />
-            <Stat label="Parse time" value={`${result.parseMs} ms`} />
-            <Stat label="Generate time" value={`${result.generateMs} ms`} />
+            <Stat label="Payload ước tính" value={`${result.approxSizeMb} MB`} />
+            <Stat label="Thời gian parse" value={`${result.parseMs} ms`} />
+            <Stat label="Thời gian tạo dữ liệu" value={`${result.generateMs} ms`} />
             <Stat
-              label="Created at"
+              label="Tạo lúc"
               value={new Date(result.createdAt).toLocaleString()}
             />
           </section>
         ) : (
           <section className="app-empty-state text-center">
             <h2 className="text-lg font-semibold text-foreground">
-              No scale test result yet
+              Chưa có kết quả scale test
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Select a preset and run the test to inspect browser-side import
-              scale behavior.
+              Chọn preset rồi chạy test để kiểm tra khả năng xử lý import lớn trong browser.
             </p>
           </section>
         )}
 
         {result?.warnings.length ? (
-          <SectionCard title="Warnings">
+          <SectionCard title="Cảnh báo">
             <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
               {result.warnings.map((warning) => (
                 <li key={warning}>{warning}</li>
