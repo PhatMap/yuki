@@ -44,7 +44,7 @@ const appNavItems: AppNavItem[] = [
     requiresAi: true,
   },
   {
-    label: "Thư viện",
+    label: "Thư viện truyện",
     href: "/stories",
     icon: BookOpen,
     requiresAi: true,
@@ -60,12 +60,17 @@ const appNavItems: AppNavItem[] = [
 function isStoryWorkspaceRoute(pathname: string) {
   if (!pathname.startsWith("/stories/")) return false;
 
-  return pathname !== "/stories/import";
+  const [, root, storySegment] = pathname.split("/");
+  if (root !== "stories") return false;
+  if (!storySegment) return false;
+  if (storySegment === "import" || storySegment === "new") return false;
+
+  return true;
 }
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  if (href === "/stories") return pathname === "/stories";
+  if (href === "/stories") return pathname === "/stories" || pathname === "/stories/new";
 
   return pathname === href || pathname.startsWith(`${href}/`);
 }
