@@ -238,7 +238,7 @@ export function StoryRelationshipsClient({
       setRelationshipsData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Relationship data may be unavailable."
+          ? "Không thể đọc dữ liệu quan hệ từ IndexedDB."
           : "",
       );
       setIsLoading(false);
@@ -312,15 +312,14 @@ export function StoryRelationshipsClient({
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Relationship Tracker"
-          title={story?.title ?? "Relationship Tracker"}
-          description="Character connections, co-appearances, relationship-impacting changes, and continuity risks."
+          title="Quan hệ nhân vật"
+          description="Theo dõi cặp nhân vật, lần xuất hiện chung, nhánh rewrite và risk continuity."
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/workspace`}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Open Workspace
+                  Workspace viết
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -336,41 +335,23 @@ export function StoryRelationshipsClient({
                 </Link>
               </Button>
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Analysis
-                </Link>
+                <Link href={`/stories/${storyId}/analysis`}>Phân tích truyện</Link>
               </Button>
             </>
           }
         />
 
-
-        <p className="app-muted-text">
-          Relationship Tracker reads from IndexedDB as the source of truth.
-        </p>
-
-        {storageError ? (
-          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-            {storageError}
-          </p>
-        ) : null}
-
         {isLoading ? (
-          <SectionCard title="Loading relationships">
-            <p className="app-muted-text">
-              Reading relationship data from IndexedDB...
-            </p>
+          <SectionCard title="Đang tải quan hệ">
+            <p className="app-muted-text">Đang tải nhân vật, sự kiện và risk continuity.</p>
           </SectionCard>
         ) : !result ? (
           <EmptyState
-            title="No relationship data yet. Run mock analysis first."
-            description="Open the analysis dashboard and start mock analysis to populate character and event data."
+            title="Chưa có dữ liệu quan hệ"
+            description="Hãy chạy phân tích truyện để tạo dữ liệu nhân vật và sự kiện."
             action={
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  Open Analysis
-                </Link>
+                <Link href={`/stories/${storyId}/analysis`}>Mở phân tích truyện</Link>
               </Button>
             }
           />
@@ -379,42 +360,42 @@ export function StoryRelationshipsClient({
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 icon={<Users className="h-4 w-4" />}
-                title="Characters"
+                title="Nhân vật"
                 value={result.characters.length}
               />
               <StatCard
                 icon={<HeartHandshake className="h-4 w-4" />}
-                title="Relationship pairs"
+                title="Cặp quan hệ"
                 value={derivedRelationships.length}
               />
               <StatCard
                 icon={<HeartHandshake className="h-4 w-4" />}
-                title="Relationship changes"
+                title="Thay đổi quan hệ"
                 value={relationshipChanges.length}
               />
               <StatCard
                 icon={<AlertTriangle className="h-4 w-4" />}
-                title="High/Critical risks"
+                title="Risk cao"
                 value={highCriticalRisks.length}
               />
             </section>
 
-            <SectionCard title="Filters">
+            <SectionCard title="Bộ lọc">
               <div className="grid gap-4 md:grid-cols-[1fr_220px]">
                 <label className="grid gap-2 text-sm">
-                  <span className="font-medium">Search character</span>
+                  <span className="font-medium">Tìm nhân vật</span>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="pl-9"
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Character name..."
+                      placeholder="Tên nhân vật..."
                     />
                   </div>
                 </label>
                 <label className="grid gap-2 text-sm">
-                  <span className="font-medium">View</span>
+                  <span className="font-medium">Hiển thị</span>
                   <select
                     className="rounded-md border bg-background px-3 py-2 text-sm"
                     value={relationshipFilter}
@@ -424,18 +405,18 @@ export function StoryRelationshipsClient({
                       )
                     }
                   >
-                    <option value="all">All</option>
-                    <option value="impacted">Impacted only</option>
-                    <option value="high-risk">High risk only</option>
+                    <option value="all">Tất cả</option>
+                    <option value="impacted">Chỉ bị ảnh hưởng</option>
+                    <option value="high-risk">Chỉ risk cao</option>
                   </select>
                 </label>
               </div>
             </SectionCard>
 
             <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
-              <SectionCard title="Derived Relationships">
+              <SectionCard title="Quan hệ suy ra từ truyện">
                 {derivedRelationships.length === 0 ? (
-                  <EmptyState title="No character co-appearance data found in current analysis result." />
+                  <EmptyState title="Chưa tìm thấy cặp nhân vật xuất hiện chung." />
                 ) : filteredRelationships.length > 0 ? (
                   <div className="space-y-3">
                     {filteredRelationships.map((relationship) => (
@@ -447,7 +428,7 @@ export function StoryRelationshipsClient({
                   </div>
                 ) : (
                   <p className="app-muted-text">
-                    No relationships match the current filters.
+                    Không có quan hệ nào khớp bộ lọc.
                   </p>
                 )}
               </SectionCard>
@@ -457,6 +438,19 @@ export function StoryRelationshipsClient({
                   changes={unmatchedRelationshipChanges}
                 />
                 <RelationshipRisksSection risks={relationshipRisks} />
+                <details className="rounded-xl border bg-card/80">
+                  <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                    Chi tiết kỹ thuật
+                  </summary>
+                  <div className="space-y-3 border-t p-4 text-sm text-muted-foreground">
+                    {storageError ? (
+                      <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                        {storageError}
+                      </p>
+                    ) : null}
+                    <p>Relationship Tracker đọc dữ liệu từ IndexedDB.</p>
+                  </div>
+                </details>
               </div>
             </section>
           </>
@@ -479,33 +473,33 @@ function RelationshipCard({
             {relationship.characterA} / {relationship.characterB}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Latest chapter: {relationship.latestChapterNumber}
+            Chương gần nhất: {relationship.latestChapterNumber}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">
-            {relationship.coAppearanceCount} co-appearances
+            {relationship.coAppearanceCount} lần xuất hiện chung
           </Badge>
           {relationship.impactedChanges.length > 0 ? (
-            <Badge variant="outline">Impacted</Badge>
+            <Badge variant="outline">Bị ảnh hưởng</Badge>
           ) : null}
           {relationship.highRiskIssues.length > 0 ? (
-            <Badge variant="destructive">High risk</Badge>
+            <Badge variant="destructive">Risk cao</Badge>
           ) : null}
         </div>
       </div>
 
       <p className="mt-3 text-sm text-muted-foreground">
-        Chapters count: {relationship.chapterNumbers.length}
+        Số chương có mặt chung: {relationship.chapterNumbers.length}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        Chapters: {relationship.chapterNumbers.slice(0, 12).join(", ")}
+        Chương: {relationship.chapterNumbers.slice(0, 12).join(", ")}
         {relationship.chapterNumbers.length > 12 ? "..." : ""}
       </p>
 
       {relationship.relatedEvents.length > 0 ? (
         <div className="mt-3">
-          <p className="text-xs font-medium">Related events</p>
+          <p className="text-xs font-medium">Sự kiện liên quan</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
             {relationship.relatedEvents.map((eventTitle) => (
               <li key={eventTitle}>{eventTitle}</li>
@@ -519,7 +513,7 @@ function RelationshipCard({
 
 function RelationshipChangesSection({ changes }: { changes: BranchChange[] }) {
   return (
-    <SectionCard title="Relationship-related branch changes">
+    <SectionCard title="Thay đổi quan hệ chưa khớp cặp">
       {changes.length > 0 ? (
         <div className="space-y-2">
           {changes.map((change) => (
@@ -529,15 +523,13 @@ function RelationshipChangesSection({ changes }: { changes: BranchChange[] }) {
                 <Badge variant="outline">{change.status}</Badge>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {change.targetName ?? "No target"} / {change.impactScope}
+                {change.targetName ?? "Không có target"} / {change.impactScope}
               </p>
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">
-          No unmatched relationship branch changes.
-        </p>
+        <p className="app-muted-text">Không có thay đổi quan hệ chưa khớp.</p>
       )}
     </SectionCard>
   );
@@ -549,7 +541,7 @@ function RelationshipRisksSection({
   risks: BranchContinuityIssue[];
 }) {
   return (
-    <SectionCard title="Relationship Continuity Risks">
+    <SectionCard title="Risk continuity quan hệ">
       {risks.length > 0 ? (
         <div className="space-y-2">
           {risks.map((risk) => (
@@ -562,14 +554,13 @@ function RelationshipRisksSection({
                 {risk.description}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                {risk.affectedChapterNumbers.length} affected chapters /{" "}
-                {risk.status}
+                {risk.affectedChapterNumbers.length} chương bị ảnh hưởng / {risk.status}
               </p>
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">No relationship continuity risks.</p>
+        <p className="app-muted-text">Không có risk continuity quan hệ.</p>
       )}
     </SectionCard>
   );
