@@ -189,12 +189,6 @@ async function saveDraftToStorage({
   };
 }
 
-function getDraftStatusLabel(status: RewriteDraft["status"]) {
-  if (status === "reviewed") return "Đã duyệt";
-  if (status === "accepted") return "Đã chấp nhận";
-  return "Draft";
-}
-
 function getChapterSourceLabel(source: DraftChapter["source"]) {
   return source === "imported" ? "Truyện đã nhập" : "Mock";
 }

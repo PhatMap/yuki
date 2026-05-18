@@ -20,7 +20,6 @@ import {
   getContinuityIssues,
   getStoryById,
 } from "@/lib/db/indexed-db";
-import { stories } from "@/lib/mock-data";
 import type {
   BranchChange,
   BranchContinuityIssue,

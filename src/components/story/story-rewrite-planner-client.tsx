@@ -3,12 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   BookOpen,
-  CalendarDays,
   FileText,
-  GitBranch,
-  Layers3,
   PenLine,
   Save,
 } from "lucide-react";
@@ -34,12 +30,10 @@ import type {
   StoryAnalysisResult,
   StoryEvent,
 } from "@/lib/types";
-import { EmptyState } from "@/components/app/empty-state";
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
-import { StatCard } from "@/components/app/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

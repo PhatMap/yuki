@@ -17,7 +17,6 @@ import {
   getContinuityIssues,
   getStoryById,
 } from "@/lib/db/indexed-db";
-import { stories } from "@/lib/mock-data";
 import type {
   BranchChange,
   BranchContinuityIssue,
@@ -251,8 +250,6 @@ export function StoryRelationshipsClient({
     };
   }, [storyId]);
 
-  const story =
-    relationshipsData.story ?? stories.find((item) => item.id === storyId);
   const result = relationshipsData.analysisResult;
   const relationshipChanges = useMemo(() => {
     return relationshipsData.branchChanges.filter(

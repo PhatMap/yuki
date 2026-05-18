@@ -8,7 +8,6 @@ import {
   Boxes,
   CalendarDays,
   GitBranch,
-  HeartHandshake,
   MapPin,
   PenLine,
   ScrollText,
@@ -22,7 +21,6 @@ import {
   getContinuityIssues,
   getStoryById,
 } from "@/lib/db/indexed-db";
-import { stories } from "@/lib/mock-data";
 import type {
   BranchChange,
   BranchContinuityIssue,
@@ -122,7 +120,6 @@ export function StoryBibleClient({ storyId }: StoryBibleClientProps) {
     };
   }, [storyId]);
 
-  const story = bibleData.story ?? stories.find((item) => item.id === storyId);
   const result = bibleData.analysisResult;
   const sortedEvents = useMemo(() => {
     return [...(result?.events ?? [])].sort(
