@@ -47,7 +47,7 @@ export const GEMINI_CORE_DEFAULT_ENDPOINT = "/api/ai/gemini";
 
 export const defaultAiRuntimeSettings: AiRuntimeSettings = {
   id: "global",
-  providerId: "mock",
+  providerId: "gemini-proxy",
   jobRuntime: "local-worker",
   defaultModel: GEMINI_CORE_DEFAULT_MODEL,
   geminiProxyEndpoint: GEMINI_CORE_DEFAULT_ENDPOINT,
@@ -74,8 +74,8 @@ export const aiRuntimeProviderOptions: {
   {
     id: "mock",
     title: "Mock Local",
-    description: "No real API call. Safe mode for local UI/testing flows.",
-    status: "ready",
+    description: "Test-only provider for UI flows. Not for real story workflow.",
+    status: "local",
   },
   {
     id: "gemini-proxy",

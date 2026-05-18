@@ -69,6 +69,8 @@ import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AiSetupBlockingCard } from "@/components/settings/ai-setup-blocking-card";
+import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 
 interface StoryAnalysisClientProps {
   storyId: string;
@@ -191,8 +193,34 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const [deepFromChapter, setDeepFromChapter] = useState("");
   const [deepToChapter, setDeepToChapter] = useState("");
   const [deepCharacter, setDeepCharacter] = useState("");
+  const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const analysisAbortControllerRef = useRef<AbortController | null>(null);
   const runtimeConfig = useMemo(() => getPublicRuntimeConfig(), []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReadiness() {
+      try {
+        const readiness = await getAiSetupReadiness();
+        if (!active) return;
+        setSetupReadiness(readiness);
+      } catch (error) {
+        console.error("Failed to load AI setup readiness", error);
+      } finally {
+        if (active) {
+          setIsCheckingSetup(false);
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function refreshLatestResumableJob() {
     setIsLoadingResumableJob(true);
@@ -993,6 +1021,28 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       clearAnalysisAbortController(controller);
       setIsResumingBatch(false);
     }
+  }
+
+  if (isCheckingSetup) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <SectionCard title="Đang kiểm tra AI setup">
+            <p className="app-muted-text">Đang tải trạng thái provider và test kết nối...</p>
+          </SectionCard>
+        </PageContainer>
+      </PageShell>
+    );
+  }
+
+  if (!setupReadiness?.canUseStoryWorkflow) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <AiSetupBlockingCard readiness={setupReadiness} />
+        </PageContainer>
+      </PageShell>
+    );
   }
 
   return (

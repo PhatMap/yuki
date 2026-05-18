@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpenCheck, FileText, Search, Upload } from "lucide-react";
 
@@ -14,8 +14,10 @@ import { SectionCard } from "@/components/app/section-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AiSetupBlockingCard } from "@/components/settings/ai-setup-blocking-card";
 import { saveImportedStoryData } from "@/lib/db/indexed-db";
 import { runLocalImportWorker } from "@/lib/import/run-local-import-worker";
+import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 import type { LocalImportWorkerProgressSnapshot } from "@/lib/import/local-import-worker-types";
 import type { ChapterChunk, ImportedChapter, Story } from "@/lib/types";
 
@@ -38,12 +40,38 @@ export default function ImportNovelPage() {
   const [chapterSearch, setChapterSearch] = useState("");
   const [jumpChapterValue, setJumpChapterValue] = useState("");
   const [selectedChapterId, setSelectedChapterId] = useState<string>();
+  const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadSectionRef = useRef<HTMLDivElement | null>(null);
   const preflightSectionRef = useRef<HTMLDivElement | null>(null);
   const chapterListSectionRef = useRef<HTMLDivElement | null>(null);
   const importAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReadiness() {
+      try {
+        const readiness = await getAiSetupReadiness();
+        if (!active) return;
+        setSetupReadiness(readiness);
+      } catch (error) {
+        console.error("Failed to read AI setup readiness", error);
+      } finally {
+        if (active) {
+          setIsCheckingSetup(false);
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const totalWordCount = useMemo(() => detectedChapters.reduce((total, chapter) => total + chapter.wordCount, 0), [detectedChapters]);
   const chunkCountsByChapterId = useMemo(() => detectedChunks.reduce<Record<string, number>>((counts, chunk) => {
@@ -223,6 +251,43 @@ export default function ImportNovelPage() {
       return;
     }
     void handleCreateStoryFromImport();
+  }
+
+  if (isCheckingSetup) {
+    return (
+      <PageShell>
+        <PageContainer className="max-w-7xl">
+          <SectionCard title="Đang kiểm tra AI setup">
+            <p className="app-muted-text">Đang tải trạng thái provider và test kết nối...</p>
+          </SectionCard>
+        </PageContainer>
+      </PageShell>
+    );
+  }
+
+  if (!setupReadiness?.canUseStoryWorkflow) {
+    return (
+      <PageShell>
+        <PageContainer className="max-w-7xl">
+          <PageHeader
+            eyebrow="Nhập truyện"
+            title="Cần thiết lập AI trước khi nạp truyện"
+            description="Hoàn tất provider/API key/model/test trước khi nạp và phân tích truyện."
+            action={
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/">Về Dashboard</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/settings">Thiết lập AI</Link>
+                </Button>
+              </>
+            }
+          />
+          <AiSetupBlockingCard readiness={setupReadiness} />
+        </PageContainer>
+      </PageShell>
+    );
   }
 
   return (

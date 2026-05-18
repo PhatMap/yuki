@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllStories } from "@/lib/db/indexed-db";
 import { stories as mockStories } from "@/lib/mock-data";
+import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 import type { Story } from "@/lib/types";
 
 type HomeStorySource = "indexeddb" | "mock";
@@ -70,6 +71,8 @@ function mergeHomeStories(storedStories: Story[]) {
 
 export function HomeDashboardClient() {
   const [storedStories, setStoredStories] = useState<Story[]>([]);
+  const [aiSetupReadiness, setAiSetupReadiness] = useState<AiSetupReadiness>();
+  const [isCheckingAiSetup, setIsCheckingAiSetup] = useState(true);
 
   useEffect(() => {
     let isActive = true;
@@ -100,12 +103,92 @@ export function HomeDashboardClient() {
     };
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadReadiness() {
+      try {
+        const readiness = await getAiSetupReadiness();
+        if (!isActive) return;
+        setAiSetupReadiness(readiness);
+      } catch (error) {
+        console.error("Failed to load AI setup readiness", error);
+      } finally {
+        if (isActive) {
+          setIsCheckingAiSetup(false);
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const { storedItems, starterItems, allItems } = useMemo(
     () => mergeHomeStories(storedStories),
     [storedStories],
   );
 
   const primaryStory = allItems[0];
+  const isAiReady = aiSetupReadiness?.canUseStoryWorkflow ?? false;
+
+  if (isCheckingAiSetup) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <SectionCard title="Đang kiểm tra AI setup">
+            <p className="app-muted-text">Đang tải trạng thái provider và kết nối AI...</p>
+          </SectionCard>
+        </PageContainer>
+      </PageShell>
+    );
+  }
+
+  if (!isAiReady) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <PageHeader
+            eyebrow="Yuki"
+            title="Thiết lập AI trước khi dùng Yuki"
+            description="Yuki cần AI để phân tích truyện, tạo canon và hỗ trợ rewrite. Hãy chọn provider, nhập API key và test kết nối trước."
+            action={
+              <>
+                <Button asChild>
+                  <Link href="/settings">Thiết lập AI</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/settings">Mở cài đặt</Link>
+                </Button>
+              </>
+            }
+          />
+
+          <SectionCard title="Trạng thái AI setup">
+            <div className="space-y-3">
+              <p className="text-sm">
+                Provider hiện tại:{" "}
+                <strong>{aiSetupReadiness?.providerLabel ?? "Chưa xác định"}</strong>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {aiSetupReadiness?.providerStatusSummary ?? "Chưa có trạng thái"}
+              </p>
+              {aiSetupReadiness?.missingReasons?.length ? (
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  {aiSetupReadiness.missingReasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </SectionCard>
+        </PageContainer>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>

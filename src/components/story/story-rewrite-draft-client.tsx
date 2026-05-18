@@ -41,6 +41,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { AiSetupBlockingCard } from "@/components/settings/ai-setup-blocking-card";
+import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 
 interface StoryRewriteDraftClientProps {
   storyId: string;
@@ -216,6 +218,32 @@ export function StoryRewriteDraftClient({
   const [storageError, setStorageError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [promptRender, setPromptRender] = useState<PromptRenderResult>();
+  const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReadiness() {
+      try {
+        const readiness = await getAiSetupReadiness();
+        if (!active) return;
+        setSetupReadiness(readiness);
+      } catch (error) {
+        console.error("Failed to load AI setup readiness", error);
+      } finally {
+        if (active) {
+          setIsCheckingSetup(false);
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -423,6 +451,28 @@ export function StoryRewriteDraftClient({
     }
 
     setIsSaving(false);
+  }
+
+  if (isCheckingSetup) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <SectionCard title="Đang kiểm tra AI setup">
+            <p className="app-muted-text">Đang tải trạng thái provider và test kết nối...</p>
+          </SectionCard>
+        </PageContainer>
+      </PageShell>
+    );
+  }
+
+  if (!setupReadiness?.canUseStoryWorkflow) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <AiSetupBlockingCard readiness={setupReadiness} />
+        </PageContainer>
+      </PageShell>
+    );
   }
 
   return (

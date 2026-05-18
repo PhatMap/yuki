@@ -25,6 +25,7 @@ import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 import {
   getAnalysisResult,
   getBranchChanges,
@@ -197,6 +198,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
   );
   const [isSavingChange, setIsSavingChange] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
 
   useEffect(() => {
     let isActive = true;
@@ -244,8 +247,34 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
     };
   }, [storyId]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadReadiness() {
+      try {
+        const readiness = await getAiSetupReadiness();
+        if (!isActive) return;
+        setSetupReadiness(readiness);
+      } catch (error) {
+        console.error("Failed to read AI setup readiness", error);
+      } finally {
+        if (isActive) {
+          setIsCheckingSetup(false);
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const { story, chapters, analysisResult, branchChanges, rewriteDrafts } =
     readerData;
+  const canUseAiWorkflow =
+    !isCheckingSetup && (setupReadiness?.canUseStoryWorkflow ?? false);
 
   const currentChapter = useMemo(() => {
     return getChapterFromQuery(chapters, searchParams.get("chapter"));
@@ -414,7 +443,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
           eyebrow="Đọc truyện"
           title={story?.title ?? "Đọc truyện"}
           description="Đọc theo chương, chuyển chương trước/sau và xem nhanh bản rewrite nếu đã có draft."
-          action={
+          action={canUseAiWorkflow ? (
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/analysis`}>
@@ -435,7 +464,11 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                 </Link>
               </Button>
             </>
-          }
+          ) : (
+            <Button asChild variant="outline">
+              <Link href="/settings">Thiáº¿t láº­p AI</Link>
+            </Button>
+          )}
         />
 
         {storageError ? (
@@ -797,12 +830,17 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                     <Button
                       className="w-full"
                       type="button"
-                      disabled={!currentChapter || isSavingChange}
+                      disabled={!currentChapter || isSavingChange || !canUseAiWorkflow}
                       onClick={handleCreateChangeRequest}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       {isSavingChange ? "Đang lưu..." : "Tạo yêu cầu thay đổi"}
                     </Button>
+                    {!canUseAiWorkflow ? (
+                      <p className="text-xs text-muted-foreground">
+                        Cáº§n thiáº¿t láº­p AI trÆ°á»›c khi táº¡o change request.
+                      </p>
+                    ) : null}
                   </div>
                 </SectionCard>
               </aside>

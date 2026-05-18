@@ -53,12 +53,16 @@ import type {
   StoryEvent,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/app/page-container";
 import { PageShell } from "@/components/app/page-shell";
+import { SectionCard } from "@/components/app/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { AiSetupBlockingCard } from "@/components/settings/ai-setup-blocking-card";
+import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 
 interface StoryWorkspaceClientProps {
   storyId: string;
@@ -179,6 +183,32 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   const [editorContent, setEditorContent] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResult, setAiResult] = useState("");
+  const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReadiness() {
+      try {
+        const readiness = await getAiSetupReadiness();
+        if (!active) return;
+        setSetupReadiness(readiness);
+      } catch (error) {
+        console.error("Failed to load AI setup readiness", error);
+      } finally {
+        if (active) {
+          setIsCheckingSetup(false);
+        }
+      }
+    }
+
+    void loadReadiness();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -465,6 +495,28 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
   function handleFakeGenerate() {
     setAiResult(
       `Bản nháp AI cho "${story.title}":\n\nDựa trên tone ${story.tone}, AI sẽ viết tiếp một cảnh mới có nhịp truyện phù hợp. Đây hiện là output giả để test UI trước khi tích hợp API thật.`,
+    );
+  }
+
+  if (isCheckingSetup) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <SectionCard title="Đang kiểm tra AI setup">
+            <p className="app-muted-text">Đang tải trạng thái provider và test kết nối...</p>
+          </SectionCard>
+        </PageContainer>
+      </PageShell>
+    );
+  }
+
+  if (!setupReadiness?.canUseStoryWorkflow) {
+    return (
+      <PageShell>
+        <PageContainer>
+          <AiSetupBlockingCard readiness={setupReadiness} />
+        </PageContainer>
+      </PageShell>
     );
   }
 
