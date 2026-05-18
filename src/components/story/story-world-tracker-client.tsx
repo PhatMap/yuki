@@ -212,7 +212,7 @@ export function StoryWorldTrackerClient({
       setWorldTrackerData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. World tracker data may be unavailable."
+          ? "Không thể đọc dữ liệu World Tracker từ IndexedDB."
           : "",
       );
       setIsLoading(false);
@@ -225,8 +225,6 @@ export function StoryWorldTrackerClient({
     };
   }, [storyId]);
 
-  const story =
-    worldTrackerData.story ?? stories.find((item) => item.id === storyId);
   const result = worldTrackerData.analysisResult;
   const worldBranchChanges = useMemo(() => {
     return worldTrackerData.branchChanges.filter(isWorldBranchChange);
@@ -282,15 +280,14 @@ export function StoryWorldTrackerClient({
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="World Tracker"
-          title={story?.title ?? "World Tracker"}
-          description="Items, terms, locations, power-system concepts, and branch impacts."
+          title="World Tracker"
+          description="Theo dõi vật phẩm, thuật ngữ, địa điểm, power-system và ảnh hưởng từ nhánh rewrite."
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/workspace`}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Open Workspace
+                  Workspace viết
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -308,45 +305,27 @@ export function StoryWorldTrackerClient({
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/relationships`}>
                   <HeartHandshake className="mr-2 h-4 w-4" />
-                  Relationships
+                  Quan hệ
                 </Link>
               </Button>
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Analysis
-                </Link>
+                <Link href={`/stories/${storyId}/analysis`}>Phân tích truyện</Link>
               </Button>
             </>
           }
         />
 
-
-        <p className="app-muted-text">
-          World Tracker reads from IndexedDB as the source of truth.
-        </p>
-
-        {storageError ? (
-          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-            {storageError}
-          </p>
-        ) : null}
-
         {isLoading ? (
-          <SectionCard title="Loading World Tracker">
-            <p className="app-muted-text">
-              Reading world tracker data from IndexedDB...
-            </p>
+          <SectionCard title="Đang tải World Tracker">
+            <p className="app-muted-text">Đang tải vật phẩm, thuật ngữ, địa điểm và văn phong.</p>
           </SectionCard>
         ) : !result ? (
           <EmptyState
-            title="No world tracker data yet. Run mock analysis first."
-            description="Open the analysis dashboard and start mock analysis to populate items, terms, locations, and writing style."
+            title="Chưa có dữ liệu World Tracker"
+            description="Hãy chạy phân tích truyện để tạo dữ liệu vật phẩm, thuật ngữ, địa điểm và văn phong."
             action={
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  Open Analysis
-                </Link>
+                <Link href={`/stories/${storyId}/analysis`}>Mở phân tích truyện</Link>
               </Button>
             }
           />
@@ -355,17 +334,17 @@ export function StoryWorldTrackerClient({
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
               <StatCard
                 icon={<Boxes className="h-4 w-4" />}
-                title="Items"
+                title="Vật phẩm"
                 value={result.items.length}
               />
               <StatCard
                 icon={<ScrollText className="h-4 w-4" />}
-                title="Terms"
+                title="Thuật ngữ"
                 value={result.terms.length}
               />
               <StatCard
                 icon={<MapPin className="h-4 w-4" />}
-                title="Locations"
+                title="Địa điểm"
                 value={result.locations.length}
               />
               <StatCard
@@ -375,32 +354,32 @@ export function StoryWorldTrackerClient({
               />
               <StatCard
                 icon={<BookOpen className="h-4 w-4" />}
-                title="World changes"
+                title="Thay đổi world"
                 value={worldBranchChanges.length}
               />
               <StatCard
                 icon={<AlertTriangle className="h-4 w-4" />}
-                title="High/Critical risks"
+                title="Risk cao"
                 value={highCriticalRisks.length}
               />
             </section>
 
-            <SectionCard title="Filters">
+            <SectionCard title="Bộ lọc">
               <div className="grid gap-4 md:grid-cols-[1fr_220px]">
                 <label className="grid gap-2 text-sm">
-                  <span className="font-medium">Search world data</span>
+                  <span className="font-medium">Tìm dữ liệu world</span>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="pl-9"
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Name or description..."
+                      placeholder="Tên hoặc mô tả..."
                     />
                   </div>
                 </label>
                 <label className="grid gap-2 text-sm">
-                  <span className="font-medium">Category</span>
+                  <span className="font-medium">Nhóm dữ liệu</span>
                   <select
                     className="rounded-md border bg-background px-3 py-2 text-sm"
                     value={category}
@@ -408,12 +387,12 @@ export function StoryWorldTrackerClient({
                       setCategory(event.target.value as WorldTrackerCategory)
                     }
                   >
-                    <option value="all">All</option>
-                    <option value="items">Items</option>
-                    <option value="terms">Terms</option>
-                    <option value="locations">Locations</option>
+                    <option value="all">Tất cả</option>
+                    <option value="items">Vật phẩm</option>
+                    <option value="terms">Thuật ngữ</option>
+                    <option value="locations">Địa điểm</option>
                     <option value="power-system">Power-system</option>
-                    <option value="impacted">Impacted only</option>
+                    <option value="impacted">Chỉ bị ảnh hưởng</option>
                   </select>
                 </label>
               </div>
@@ -422,25 +401,25 @@ export function StoryWorldTrackerClient({
             <section className="grid gap-4 xl:grid-cols-2">
               <WorldEntitySection
                 branchChanges={worldBranchChanges}
-                emptyText="No items match the current filters."
+                emptyText="Không có vật phẩm khớp bộ lọc."
                 entities={filteredItems}
-                title="Items"
+                title="Vật phẩm"
               />
               <WorldEntitySection
                 branchChanges={worldBranchChanges}
-                emptyText="No terms match the current filters."
+                emptyText="Không có thuật ngữ khớp bộ lọc."
                 entities={filteredTerms}
-                title="Terms"
+                title="Thuật ngữ"
               />
               <WorldEntitySection
                 branchChanges={worldBranchChanges}
-                emptyText="No locations match the current filters."
+                emptyText="Không có địa điểm khớp bộ lọc."
                 entities={filteredLocations}
-                title="Locations"
+                title="Địa điểm"
               />
               <WorldEntitySection
                 branchChanges={worldBranchChanges}
-                emptyText="No power-system concepts detected."
+                emptyText="Chưa phát hiện khái niệm power-system."
                 entities={
                   category === "all" || category === "power-system"
                     ? powerSystemTerms.filter((entity) =>
@@ -448,11 +427,24 @@ export function StoryWorldTrackerClient({
                       )
                     : []
                 }
-                title="Power System Concepts"
+                title="Khái niệm power-system"
               />
               <BranchImpactsSection changes={worldBranchChanges} />
               <WorldContinuityRisksSection risks={worldContinuityRisks} />
               <WritingStyleSummary profile={styleProfile} />
+              <details className="rounded-xl border bg-card/80">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                  Chi tiết kỹ thuật
+                </summary>
+                <div className="space-y-3 border-t p-4 text-sm text-muted-foreground">
+                  {storageError ? (
+                    <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                      {storageError}
+                    </p>
+                  ) : null}
+                  <p>World Tracker đọc dữ liệu từ IndexedDB.</p>
+                </div>
+              </details>
             </section>
           </>
         )}
@@ -491,7 +483,7 @@ function WorldEntitySection({
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-end gap-2">
-                    {impacted ? <Badge variant="outline">Impacted</Badge> : null}
+                    {impacted ? <Badge variant="outline">Bị ảnh hưởng</Badge> : null}
                     {typeof entity.confidence === "number" ? (
                       <Badge variant="secondary">
                         {Math.round(entity.confidence * 100)}%
@@ -501,9 +493,9 @@ function WorldEntitySection({
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {entity.firstSeenChapter
-                    ? `First seen: chapter ${entity.firstSeenChapter}. `
+                    ? `Xuất hiện đầu: chương ${entity.firstSeenChapter}. `
                     : ""}
-                  Related chapters: {entity.relatedChapterNumbers.length}
+                  Chương liên quan: {entity.relatedChapterNumbers.length}
                 </p>
               </article>
             );
@@ -518,7 +510,7 @@ function WorldEntitySection({
 
 function BranchImpactsSection({ changes }: { changes: BranchChange[] }) {
   return (
-    <SectionCard title="Branch Impacts">
+    <SectionCard title="Ảnh hưởng từ nhánh rewrite">
       {changes.length > 0 ? (
         <div className="space-y-2">
           {changes.map((change) => (
@@ -528,17 +520,16 @@ function BranchImpactsSection({ changes }: { changes: BranchChange[] }) {
                 <Badge variant="outline">{change.status}</Badge>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {change.type} / {change.targetName ?? "No target"} /{" "}
-                {change.impactScope}
+                {change.type} / {change.targetName ?? "Không có target"} / {change.impactScope}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {change.affectedChapterNumbers.length} affected chapters
+                {change.affectedChapterNumbers.length} chương bị ảnh hưởng
               </p>
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">No item, term, location, or timeline changes yet.</p>
+        <p className="app-muted-text">Chưa có thay đổi vật phẩm, thuật ngữ, địa điểm hoặc timeline.</p>
       )}
     </SectionCard>
   );
@@ -550,7 +541,7 @@ function WorldContinuityRisksSection({
   risks: BranchContinuityIssue[];
 }) {
   return (
-    <SectionCard title="World Continuity Risks">
+    <SectionCard title="Risk continuity world">
       {risks.length > 0 ? (
         <div className="space-y-2">
           {risks.map((risk) => (
@@ -560,19 +551,18 @@ function WorldContinuityRisksSection({
                 <Badge variant="outline">{risk.severity}</Badge>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {risk.status} / {risk.affectedChapterNumbers.length} affected
-                chapters
+                {risk.status} / {risk.affectedChapterNumbers.length} chương bị ảnh hưởng
               </p>
               {risk.suggestedFix ? (
                 <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-                  Suggested fix: {risk.suggestedFix}
+                  Đề xuất sửa: {risk.suggestedFix}
                 </p>
               ) : null}
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">No world continuity risks detected.</p>
+        <p className="app-muted-text">Không có risk continuity world.</p>
       )}
     </SectionCard>
   );
@@ -584,19 +574,19 @@ function WritingStyleSummary({
   profile?: WritingStyleProfile;
 }) {
   return (
-    <SectionCard title="Writing Style Summary">
+    <SectionCard title="Tóm tắt văn phong">
       {profile ? (
         <div className="space-y-4 text-sm">
-          <StyleRow label="Narration" value={profile.narrationStyle} />
-          <StyleRow label="Sentence" value={profile.sentenceStyle} />
-          <StyleRow label="Dialogue" value={profile.dialogueStyle} />
-          <StyleRow label="Pacing" value={profile.pacing} />
+          <StyleRow label="Ngôi kể" value={profile.narrationStyle} />
+          <StyleRow label="Câu văn" value={profile.sentenceStyle} />
+          <StyleRow label="Đối thoại" value={profile.dialogueStyle} />
+          <StyleRow label="Nhịp truyện" value={profile.pacing} />
           <StyleRow label="Tone" value={profile.tone} />
-          <PatternList title="Common patterns" items={profile.commonPatterns} />
-          <PatternList title="Taboo patterns" items={profile.tabooPatterns} />
+          <PatternList title="Pattern thường dùng" items={profile.commonPatterns} />
+          <PatternList title="Pattern cần tránh" items={profile.tabooPatterns} />
         </div>
       ) : (
-        <p className="app-muted-text">No writing style profile detected.</p>
+        <p className="app-muted-text">Chưa có hồ sơ văn phong.</p>
       )}
     </SectionCard>
   );
@@ -622,7 +612,7 @@ function PatternList({ title, items }: { title: string; items: string[] }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-1 text-muted-foreground">No patterns detected.</p>
+        <p className="mt-1 text-muted-foreground">Chưa phát hiện pattern.</p>
       )}
     </div>
   );
