@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { TestTube } from "lucide-react";
+import { Eye, EyeOff, TestTube, Trash2 } from "lucide-react";
 
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
@@ -268,6 +268,7 @@ export function GlobalSettingsClient() {
         if (!item || typeof item !== "object") continue;
         const model = item as Record<string, unknown>;
         if (typeof model.id !== "string") continue;
+
         const id = model.id.trim();
         if (!id) continue;
 
@@ -369,7 +370,8 @@ export function GlobalSettingsClient() {
   function handleExportProviderKeys(providerId: ApiKeyProviderId) {
     const keys = providerKeys[providerId];
     if (keys.length === 0) return;
-    downloadTextFile(`${providerId}-keys.txt`, keys.map((key) => key.rawKey).join("\n"));
+    const text = keys.map((key) => key.rawKey).join("\n");
+    downloadTextFile(`${providerId}-keys.txt`, text);
     setMessage(`Đã export ${keys.length} key.`);
   }
 
@@ -389,9 +391,7 @@ export function GlobalSettingsClient() {
         message: result.message,
         testedAt: new Date().toISOString(),
       });
-
       if (saved.providerId === "gemini-proxy") setLastProxyTestOk(result.ok);
-
       await refreshReadiness();
       setTestMessage(result.message);
     } catch (error) {
@@ -431,14 +431,10 @@ export function GlobalSettingsClient() {
     () => geminiProxyModels.filter((model) => model.isGemini),
     [geminiProxyModels],
   );
-  const nonGeminiModels = useMemo(
-    () => geminiProxyModels.filter((model) => !model.isGemini),
-    [geminiProxyModels],
+  const selectedGeminiModelOption = useMemo(
+    () => geminiProxySelectOptions.find((model) => model.id === selectedGeminiProxyModel),
+    [geminiProxySelectOptions, selectedGeminiProxyModel],
   );
-  const selectedGeminiModelOption = useMemo(() => {
-    const all = [...geminiModelsOnly, ...nonGeminiModels];
-    return all.find((model) => model.id === selectedGeminiProxyModel);
-  }, [geminiModelsOnly, nonGeminiModels, selectedGeminiProxyModel]);
 
   return (
     <PageShell>
@@ -507,19 +503,16 @@ export function GlobalSettingsClient() {
             </div>
           </SectionCard>
 
-          <SectionCard title="2) Cấu hình provider hiện tại">
-            {settings.providerId === "gemini-proxy" ? (
-              <div className="space-y-4">
-                <div className="rounded-xl border bg-background p-3">
+          {settings.providerId === "gemini-proxy" ? (
+            <>
+              <SectionCard title="Model Gemini Proxy">
+                <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium">Model Gemini Proxy</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Model mặc định đang dùng:{" "}
-                        {selectedGeminiModelOption?.displayName ?? selectedGeminiProxyModel}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm text-muted-foreground">
+                      Model mặc định đang dùng:{" "}
+                      <strong>{selectedGeminiModelOption?.displayName ?? selectedGeminiProxyModel}</strong>
+                    </p>
+                    <div className="flex items-center gap-2">
                       <Button
                         type="button"
                         size="sm"
@@ -540,12 +533,10 @@ export function GlobalSettingsClient() {
                       </Button>
                     </div>
                   </div>
-
                   {modelLoadMessage ? (
-                    <p className="mt-2 text-xs text-muted-foreground">{modelLoadMessage}</p>
+                    <p className="text-xs text-muted-foreground">{modelLoadMessage}</p>
                   ) : null}
-
-                  <div className="mt-3 grid gap-2">
+                  <div className="grid gap-2">
                     <Label htmlFor="gemini-proxy-model">Chọn model</Label>
                     <select
                       id="gemini-proxy-model"
@@ -560,12 +551,11 @@ export function GlobalSettingsClient() {
                       ))}
                     </select>
                   </div>
-
-                  <p className="mt-2 text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Danh sách model Gemini Proxy: {geminiProxyModels.length} model
                   </p>
                   {geminiModelsOnly.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {geminiModelsOnly.slice(0, 12).map((model) => (
                         <Button
                           key={model.id}
@@ -580,7 +570,9 @@ export function GlobalSettingsClient() {
                     </div>
                   ) : null}
                 </div>
+              </SectionCard>
 
+              <SectionCard title="API Keys">
                 <ProviderKeySection
                   title="Gemini Proxy mặc định (ag)"
                   keys={providerKeys["gemini-proxy"]}
@@ -595,13 +587,14 @@ export function GlobalSettingsClient() {
                   onToggleReveal={toggleRevealKey}
                   onDelete={(id) => void handleDeleteKey(id)}
                 />
+              </SectionCard>
 
-                <div className="rounded-xl border bg-background p-3">
-                  <p className="text-sm font-medium">Gemini Proxy mặc định</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+              <SectionCard title="Gemini Proxy mặc định">
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
                     ag.beijixingxing - OpenAI-compatible qua /api/proxy để tránh CORS trên Vercel.
                   </p>
-                  <div className="mt-3 grid gap-2">
+                  <div className="grid gap-2">
                     <Label htmlFor="gemini-proxy-endpoint">Proxy URL</Label>
                     <Input
                       id="gemini-proxy-endpoint"
@@ -610,7 +603,7 @@ export function GlobalSettingsClient() {
                       placeholder="/api/proxy"
                     />
                   </div>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
                       size="sm"
@@ -632,21 +625,23 @@ export function GlobalSettingsClient() {
                       <TestTube className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Mặc định: /api/proxy (Vercel rewrite -&gt; ag.beijixingxing.com). Không cần đổi
-                    trừ khi dùng proxy khác.
+                  <p className="text-xs text-muted-foreground">
+                    Mặc định: /api/proxy (Vercel rewrite -&gt; ag.beijixingxing.com). Không cần đổi trừ
+                    khi dùng proxy khác.
                   </p>
                   {lastProxyTestOk === true ? (
-                    <p className="mt-2 text-xs text-emerald-600">Kết nối OK</p>
+                    <p className="text-xs text-emerald-600">Kết nối OK</p>
                   ) : null}
                   {lastProxyTestOk === false && testMessage ? (
-                    <p className="mt-2 text-xs text-destructive">{testMessage}</p>
+                    <p className="text-xs text-destructive">{testMessage}</p>
                   ) : null}
                 </div>
-              </div>
-            ) : null}
+              </SectionCard>
+            </>
+          ) : null}
 
-            {settings.providerId === "gemini-direct" ? (
+          {settings.providerId === "gemini-direct" ? (
+            <SectionCard title="Gemini Direct">
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">Gemini Direct hiện chưa mở workflow phân tích.</p>
                 <SettingInput
@@ -685,9 +680,11 @@ export function GlobalSettingsClient() {
                   onDelete={(id) => void handleDeleteKey(id)}
                 />
               </div>
-            ) : null}
+            </SectionCard>
+          ) : null}
 
-            {settings.providerId === "custom-openai" ? (
+          {settings.providerId === "custom-openai" ? (
+            <SectionCard title="Custom OpenAI-compatible">
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">
                   Custom OpenAI-compatible hiện chưa mở workflow phân tích.
@@ -721,9 +718,11 @@ export function GlobalSettingsClient() {
                   onDelete={(id) => void handleDeleteKey(id)}
                 />
               </div>
-            ) : null}
+            </SectionCard>
+          ) : null}
 
-            {settings.providerId === "ollama" ? (
+          {settings.providerId === "ollama" ? (
+            <SectionCard title="Ollama">
               <div className="space-y-4">
                 <SettingInput
                   id="ollama-url"
@@ -740,8 +739,8 @@ export function GlobalSettingsClient() {
                   placeholder="llama3.1 / qwen2.5"
                 />
               </div>
-            ) : null}
-          </SectionCard>
+            </SectionCard>
+          ) : null}
         </section>
       </PageContainer>
     </PageShell>
@@ -802,12 +801,13 @@ function ProviderKeySection({
         <p className="text-sm font-medium">{title}</p>
         <span className="text-xs text-muted-foreground">{keys.length} key</span>
       </div>
+
       <div className="mt-2 flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={onCopy} disabled={keys.length === 0}>
           Copy
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onExport} disabled={keys.length === 0}>
-          Export
+          Xuất
         </Button>
       </div>
 
@@ -852,18 +852,29 @@ function ProviderKeySection({
                 </code>
                 <p className="text-[11px] text-muted-foreground">{formatDateTime(key.updatedAt)}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button type="button" size="sm" variant="ghost" onClick={() => onToggleReveal(key.id)}>
-                  {revealedKeyIds[key.id] ? "Ẩn" : "Hiện"}
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={revealedKeyIds[key.id] ? "Ẩn key" : "Hiện key"}
+                  onClick={() => onToggleReveal(key.id)}
+                >
+                  {revealedKeyIds[key.id] ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   type="button"
-                  size="sm"
+                  size="icon"
                   variant="ghost"
+                  aria-label="Xóa key"
                   onClick={() => onDelete(key.id)}
                   disabled={isMutating}
                 >
-                  Xóa
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
