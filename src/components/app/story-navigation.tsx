@@ -4,16 +4,16 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
-  AlertTriangle,
   BookOpen,
   CalendarDays,
   Database,
   FileJson,
   FileText,
-  GitBranch,
   Gauge,
   HeartHandshake,
+  Home,
   Layers3,
+  Map,
   PenLine,
   Settings,
   Sparkles,
@@ -40,8 +40,24 @@ interface StoryNavigationGroup {
 
 const storyNavigationGroups: StoryNavigationGroup[] = [
   {
-    label: "Core",
-    description: "Đọc, kiểm tra, phân tích",
+    label: "Bắt đầu",
+    description: "Vào truyện và chạy phân tích",
+    items: [
+      {
+        label: "Tổng quan",
+        href: "",
+        icon: Home,
+      },
+      {
+        label: "Nhập & phân tích",
+        href: "analysis",
+        icon: Layers3,
+      },
+    ],
+  },
+  {
+    label: "Làm việc với truyện",
+    description: "Đọc, viết và rewrite",
     items: [
       {
         label: "Đọc truyện",
@@ -49,20 +65,25 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         icon: BookOpen,
       },
       {
-        label: "Workspace",
+        label: "Viết / Rewrite",
         href: "workspace",
-        icon: Layers3,
+        icon: PenLine,
       },
       {
-        label: "Analysis",
-        href: "analysis",
-        icon: AlertTriangle,
+        label: "Rewrite Planner",
+        href: "rewrite-planner",
+        icon: PenLine,
+      },
+      {
+        label: "Rewrite Draft",
+        href: "rewrite-draft",
+        icon: FileText,
       },
     ],
   },
   {
     label: "Canon",
-    description: "Thế giới, timeline, quan hệ",
+    description: "Bối cảnh và continuity",
     items: [
       {
         label: "Story Bible",
@@ -82,30 +103,24 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
       {
         label: "World Tracker",
         href: "world-tracker",
-        icon: GitBranch,
+        icon: Map,
       },
     ],
   },
   {
-    label: "Rewrite",
-    description: "Lập kế hoạch và viết bản sửa",
+    label: "Nâng cao",
+    description: "Cài đặt kỹ thuật và công cụ",
     items: [
       {
-        label: "Rewrite Planner",
-        href: "rewrite-planner",
-        icon: PenLine,
+        label: "Data Health",
+        href: "data-health",
+        icon: Database,
       },
       {
-        label: "Rewrite Draft",
-        href: "rewrite-draft",
-        icon: FileText,
+        label: "Story Settings",
+        href: "settings",
+        icon: Settings,
       },
-    ],
-  },
-  {
-    label: "Runtime",
-    description: "AI toàn cục và prompts",
-    items: [
       {
         label: "Runtime",
         href: "/settings",
@@ -119,25 +134,9 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         scope: "global",
       },
       {
-        label: "Story Settings",
-        href: "settings",
-        icon: Settings,
-      },
-    ],
-  },
-  {
-    label: "Diagnostics",
-    description: "Dữ liệu, proxy, scale tools",
-    items: [
-      {
-        label: "Data Health",
-        href: "data-health",
-        icon: Database,
-      },
-      {
-        label: "Scale",
-        href: "import-scale-test",
-        icon: Gauge,
+        label: "AI Test",
+        href: "ai-proxy-test",
+        icon: Activity,
       },
       {
         label: "Contract",
@@ -145,9 +144,9 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         icon: FileJson,
       },
       {
-        label: "AI Test",
-        href: "ai-proxy-test",
-        icon: Activity,
+        label: "Scale",
+        href: "import-scale-test",
+        icon: Gauge,
       },
     ],
   },
@@ -158,6 +157,7 @@ function resolveStoryNavigationHref(
   item: StoryNavigationItem,
 ) {
   if (item.scope === "global") return item.href;
+  if (!item.href) return `/stories/${storyId}`;
 
   return `/stories/${storyId}/${item.href}`;
 }
@@ -203,7 +203,7 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
 
                     return (
                       <Link
-                        key={`${group.label}-${item.href}`}
+                        key={`${group.label}-${item.href}-${item.scope ?? "story"}`}
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
                           "app-story-nav-link",

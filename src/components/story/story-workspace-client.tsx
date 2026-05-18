@@ -12,7 +12,6 @@ import {
   GitBranch,
   HeartHandshake,
   PenLine,
-  Save,
   Sparkles,
   WandSparkles,
 } from "lucide-react";
@@ -475,17 +474,17 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold">{story.title}</h1>
+              <h1 className="text-xl font-semibold">Viết và rewrite</h1>
               {hasImportedChapters ? (
                 <Badge variant="outline">Tiểu thuyết nhập khẩu</Badge>
               ) : null}
             </div>
             <p className="text-sm text-muted-foreground">
+              {story.title}
+            </p>
+            <p className="text-sm text-muted-foreground">
               {story.genre} · {story.tone} ·{" "}
               {story.isFanwork ? "Fanwork" : "Original"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Workspace đọc dữ liệu từ IndexedDB làm source of truth.
             </p>
           </div>
 
@@ -493,71 +492,69 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/reader`}>
                 <BookOpen className="mr-2 h-4 w-4" />
-                Tiếp tục đọc
+                Đọc truyện
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/analysis`}>
                 <WandSparkles className="mr-2 h-4 w-4" />
-                Chạy analysis
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/data-health`}>
-                <Database className="mr-2 h-4 w-4" />
-                Mở Data Health
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/prompt-manager">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Mở Prompt Manager
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/bible`}>
-                <BookOpen className="mr-2 h-4 w-4" />
-                Mở Story Bible
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/timeline`}>
-                <CalendarDays className="mr-2 h-4 w-4" />
-                Mở Timeline
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/relationships`}>
-                <HeartHandshake className="mr-2 h-4 w-4" />
-                Mở Relationships
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/world-tracker`}>
-                <Boxes className="mr-2 h-4 w-4" />
-                Mở World Tracker
+                Phân tích truyện
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/rewrite-planner`}>
                 <PenLine className="mr-2 h-4 w-4" />
-                Mở Rewrite Planner
+                Rewrite Planner
               </Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link href={`/stories/${storyId}/rewrite-draft`}>
-                <FileText className="mr-2 h-4 w-4" />
-                Mở Rewrite Draft
-              </Link>
-            </Button>
-            <Button variant="outline">
-              <Save className="mr-2 h-4 w-4" />
-              Lưu
-            </Button>
-            <Button onClick={handleFakeGenerate}>
-              <WandSparkles className="mr-2 h-4 w-4" />
-              Tạo nội dung
-            </Button>
+
+            <details className="rounded-lg border bg-background/80 px-3 py-2 text-sm">
+              <summary className="cursor-pointer font-medium">Công cụ khác</summary>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/stories/${storyId}/rewrite-draft`}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Rewrite Draft
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/stories/${storyId}/bible`}>
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Story Bible
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/stories/${storyId}/timeline`}>
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    Timeline
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/stories/${storyId}/relationships`}>
+                    <HeartHandshake className="mr-2 h-4 w-4" />
+                    Quan hệ
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/stories/${storyId}/world-tracker`}>
+                    <Boxes className="mr-2 h-4 w-4" />
+                    World Tracker
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/stories/${storyId}/data-health`}>
+                    <Database className="mr-2 h-4 w-4" />
+                    Data Health
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/prompt-manager">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Prompt Manager
+                  </Link>
+                </Button>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -565,21 +562,11 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
       <div className="app-workspace-grid">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Local Story Workspace</CardTitle>
+            <CardTitle>Bàn viết chính</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm leading-6 text-muted-foreground">
-              Dữ liệu truyện được tải từ IndexedDB.
-            </p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Dùng Analysis để chạy Gemini batch extraction.
-            </p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Dùng Data Health cho backup, trạng thái job/cache và kiểm tra
-              khả năng restore.
-            </p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Reader và các công cụ planning dùng chung dữ liệu truyện local.
+              Viết, sửa và theo dõi thay đổi chương ngay tại đây. Dùng Reader để đọc lại và dùng Rewrite Planner để xem ảnh hưởng chương sau.
             </p>
           </CardContent>
         </Card>

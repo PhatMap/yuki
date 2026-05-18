@@ -174,9 +174,9 @@ export function PromptManagerClient() {
     <PageShell>
       <PageContainer className="max-w-7xl">
         <PageHeader
-          eyebrow="Runtime"
-          title="Prompt Manager"
-          description="Chỉnh sửa mẫu prompt toàn cục được lưu trong IndexedDB. Prompt contract bảo vệ output shape bắt buộc cho analysis và rewrite flow."
+          eyebrow="Nâng cao"
+          title="Prompt nâng cao"
+          description="Chỉnh sửa prompt templates toàn cục cho analysis và rewrite. Dành cho người dùng muốn tinh chỉnh sâu."
           action={
             <>
               <Button
@@ -207,7 +207,7 @@ export function PromptManagerClient() {
           </section>
         ) : null}
 
-        <SectionCard title="Prompt Safety">
+        <SectionCard title="Chi tiết Prompt">
           <div className="space-y-2">
             <PromptManagerHint>
               Văn bản prompt có thể chỉnh sửa kiểm soát hành vi mô hình.

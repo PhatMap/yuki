@@ -19,7 +19,6 @@ import {
   PenLine,
   Play,
   ScrollText,
-  Settings,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -846,22 +845,15 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Phân tích tiểu thuyết"
-          title={story?.title ?? "Tiểu thuyết nhập khẩu"}
-          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Phân tích sử dụng cài đặt runtime toàn cục và mẫu Prompt Manager.`}
+          eyebrow="Phân tích truyện"
+          title="Phân tích truyện"
+          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Yuki đọc các chương đã nhập để tạo context nhân vật, timeline, vật phẩm, địa điểm và canon.`}
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/reader`}>
                   <BookOpen className="mr-2 h-4 w-4" />
                   Đọc truyện
-                </Link>
-              </Button>
-
-              <Button asChild variant="outline">
-                <Link href="/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Runtime Settings
                 </Link>
               </Button>
 
@@ -873,7 +865,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 }
               >
                 <Play className="mr-2 h-4 w-4" />
-                {isSavingAnalysis ? "Đang chạy..." : "Chạy analysis"}
+                {isSavingAnalysis ? "Đang chạy..." : "Chạy phân tích"}
               </Button>
 
               {isLocalJobRunning ? (
@@ -905,7 +897,25 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           }
         />
 
-        <SectionCard title="Runtime, Jobs và Prompt">
+        <SectionCard title="Tiến trình phân tích">
+          <StoryAnalysisHint>
+            Yuki đang đọc các chương đã nhập để tạo context canon cho đọc và rewrite.
+          </StoryAnalysisHint>
+          <div className="mt-3">
+            <ProgressMeter
+              value={analysisProgress}
+              label="Tiến trình phân tích"
+              description={`Đã phân tích ${analyzedChapters.toLocaleString("vi-VN")} / ${totalChapters.toLocaleString("vi-VN")} chương`}
+            />
+          </div>
+        </SectionCard>
+
+        <details className="rounded-xl border bg-card/70">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+            Chi tiết kỹ thuật
+          </summary>
+          <div className="border-t p-4">
+            <SectionCard title="Runtime, Jobs và Prompt">
           <StoryAnalysisHint>
             Gemini Proxy batch job chạy qua runtime cục bộ được chọn và
             chỉ lưu sau khi tất cả task hoàn tất hoặc cache hit hợp lệ có sẵn.
@@ -1045,7 +1055,9 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               {lastPipelineResult.promptContext.missingVariables.join(", ")}
             </p>
           ) : null}
-        </SectionCard>
+            </SectionCard>
+          </div>
+        </details>
 
         {storageError ? (
           <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">

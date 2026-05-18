@@ -11,5 +11,5 @@ export default async function StoryLandingPage({
 }: StoryLandingPageProps) {
   const { storyId } = await params;
 
-  redirect(`/stories/${storyId}/reader`);
+  redirect(`/stories/${storyId}/workspace`);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -413,7 +413,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
         <PageHeader
           eyebrow="Đọc truyện"
           title={story?.title ?? "Đọc truyện"}
-          description="Đọc các chương đã lưu trong IndexedDB. Nếu chương có rewrite draft, có thể xem trực tiếp tại đây."
+          description="Đọc theo chương, chuyển chương trước/sau và xem nhanh bản rewrite nếu đã có draft."
           action={
             <>
               <Button asChild variant="outline">
@@ -451,20 +451,6 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
             <p>{actionMessage}</p>
           </section>
         ) : null}
-
-        <SectionCard title="Chế độ đọc">
-          <div className="space-y-2">
-            <StoryAnalysisHint>
-              Chương được tải từ IndexedDB cục bộ.
-            </StoryAnalysisHint>
-            <StoryAnalysisHint>
-              Trải nghiệm đọc dài được tối ưu cho theme Yuki Night Snow.
-            </StoryAnalysisHint>
-            <StoryAnalysisHint>
-              Analysis và Data Health vẫn có thể mở từ điều hướng truyện.
-            </StoryAnalysisHint>
-          </div>
-        </SectionCard>
 
         {isLoading ? (
           <SectionCard title="Đang tải Reader">
@@ -677,7 +663,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
               <aside className="space-y-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto">
                 <SectionCard
                   title="Context canon"
-                  description="Dữ liệu lấy từ analysis nếu đã chạy."
+                  description="Thông tin hỗ trợ khi đọc chương hiện tại."
                 >
                   {analysisResult && currentChapter ? (
                     <div className="space-y-4">
@@ -721,8 +707,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                 </SectionCard>
 
                 <SectionCard
-                  title="Đổi tình tiết chương này"
-                  description="Tạo yêu cầu đổi tình tiết từ chương đang đọc. Đây là đầu vào cho Rewrite Planner."
+                  title="Muốn đổi gì ở chương này?"
+                  description="Tạo change request để chuyển sang Rewrite Planner."
                 >
                   <div className="space-y-4">
                     <div className="grid gap-2">
@@ -847,6 +833,3 @@ function ContextGroup({ label, values }: { label: string; values: string[] }) {
   );
 }
 
-function StoryAnalysisHint({ children }: { children: ReactNode }) {
-  return <p className="text-sm leading-6 text-muted-foreground">{children}</p>;
-}

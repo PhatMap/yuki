@@ -563,9 +563,9 @@ export function GlobalSettingsClient() {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Cài đặt toàn cục"
-          title="Trung tâm kiểm soát AI Runtime"
-          description="Quản lý provider, model, endpoint và runtime mặc định cho toàn bộ Yuki. Prompt templates nằm ở Prompt Manager."
+          eyebrow="Nâng cao"
+          title="Cài đặt kỹ thuật"
+          description="Quản lý Runtime và model cho toàn bộ app. Dùng khi bạn cần tinh chỉnh nâng cao."
           action={
             <>
               <Button asChild variant="outline">
@@ -1067,7 +1067,7 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Runtime Diagnostics">
+            <SectionCard title="Chi tiết kỹ thuật">
               {runtimeDiagnostics ? (
                 <div className="space-y-2">
                   <div className="rounded-xl border bg-background p-3">
@@ -1142,7 +1142,7 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Storage and Backup">
+            <SectionCard title="Backup & khôi phục">
               <div className="space-y-3">
                 <Button
                   className="w-full"

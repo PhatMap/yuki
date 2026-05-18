@@ -715,9 +715,9 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Data Health"
-          title="Story Data Health"
-          description="Kiểm tra dữ liệu tiểu thuyết cục bộ IndexedDB, AI job, cache entry và khả năng backup/restore."
+          eyebrow="Nâng cao"
+          title="Backup & khôi phục"
+          description="Kiểm tra tình trạng dữ liệu truyện, export backup và khôi phục khi cần."
           action={
             <>
               <Button
@@ -727,7 +727,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                 onClick={handleRefreshInspection}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh inspection
+                Làm mới
               </Button>
               <Button
                 disabled={!inspection}
@@ -741,19 +741,13 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
           }
         />
 
-        <SectionCard title="Local Data Safety">
+        <SectionCard title="Dành cho nâng cao">
           <div className="space-y-2">
             <DataHealthHint>
-              Yuki lưu trữ dữ liệu tiểu thuyết cục bộ trong IndexedDB.
+              Trang này dành cho kiểm tra backup/khôi phục và dữ liệu cũ.
             </DataHealthHint>
             <DataHealthHint>
-              Backup là các tệp JSON cục bộ; full story backup được xử lý per story.
-            </DataHealthHint>
-            <DataHealthHint>
-              AI job/cache inspection giúp debug Gemini batch run và resume failed work.
-            </DataHealthHint>
-            <DataHealthHint>
-              Destructive action được tách biệt và nên sử dụng cẩn thận.
+              Nếu bạn chỉ đọc và rewrite, có thể bỏ qua trang này.
             </DataHealthHint>
           </div>
         </SectionCard>

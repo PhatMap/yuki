@@ -22,8 +22,8 @@ export default async function StoryLayout({
         <div className="app-story-shell-nav">
           <div className="app-story-shell-nav-inner">
             <div className="app-story-shell-title">
-              <p className="app-story-shell-eyebrow">Yuki workspace</p>
-              <h2 className="app-story-shell-heading">Công cụ truyện</h2>
+              <p className="app-story-shell-eyebrow">Yuki Story OS</p>
+              <h2 className="app-story-shell-heading">Hành trình viết truyện</h2>
             </div>
 
             <StoryNavigation storyId={storyId} />
