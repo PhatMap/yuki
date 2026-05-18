@@ -198,6 +198,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
   );
   const [isSavingChange, setIsSavingChange] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] = useState("");
   const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
   const [isCheckingSetup, setIsCheckingSetup] = useState(true);
 
@@ -369,12 +371,14 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
     const trimmedNewValue = newValue.trim();
 
     if (!trimmedTitle || !trimmedDescription) {
-      setActionMessage("Cần nhập tiêu đề và mô tả thay đổi.");
+      setRequestError("Cần nhập tiêu đề và mô tả yêu cầu rewrite.");
       return;
     }
 
     setIsSavingChange(true);
     setActionMessage("");
+    setRequestError("");
+    setRequestSuccess("");
 
     const now = new Date().toISOString();
     const affectedChapterNumbers = getAffectedChapterNumbers({
@@ -425,12 +429,12 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
       setChangeDescription("");
       setNewValue("");
       setImpactScope("from_chapter_forward");
-      setActionMessage(
-        "Đã tạo yêu cầu thay đổi. Mở Rewrite Planner để xem ảnh hưởng.",
+      setRequestSuccess(
+        "Đã gửi yêu cầu rewrite. Mở Rewrite Planner để xem ảnh hưởng.",
       );
     } catch (error) {
       console.error("Failed to save reader change request", error);
-      setActionMessage("Không thể lưu yêu cầu thay đổi vào IndexedDB.");
+      setRequestError("Không thể lưu yêu cầu rewrite vào IndexedDB.");
     } finally {
       setIsSavingChange(false);
     }
@@ -442,33 +446,40 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
         <PageHeader
           eyebrow="Đọc truyện"
           title={story?.title ?? "Đọc truyện"}
-          description="Đọc theo chương, chuyển chương trước/sau và xem nhanh bản rewrite nếu đã có draft."
-          action={canUseAiWorkflow ? (
+          description="Đọc theo chương và gửi yêu cầu rewrite khi cần."
+          action={
             <>
+              <Button asChild variant="outline">
+                <Link href={`/stories/${storyId}/workspace`}>
+                  <PenLine className="mr-2 h-4 w-4" />
+                  Workspace viết
+                </Link>
+              </Button>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/analysis`}>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Phân tích
+                  Phân tích truyện
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href={`/stories/${storyId}/rewrite-draft`}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Rewrite Draft
-                </Link>
-              </Button>
-              <Button asChild>
                 <Link href={`/stories/${storyId}/rewrite-planner`}>
                   <GitBranch className="mr-2 h-4 w-4" />
                   Rewrite Planner
                 </Link>
               </Button>
+              <details className="rounded-lg border bg-background/80 px-3 py-2 text-sm">
+                <summary className="cursor-pointer font-medium">Công cụ khác</summary>
+                <div className="mt-2 grid gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/stories/${storyId}/rewrite-draft`}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Rewrite Draft
+                    </Link>
+                  </Button>
+                </div>
+              </details>
             </>
-          ) : (
-            <Button asChild variant="outline">
-              <Link href="/settings">Thiáº¿t láº­p AI</Link>
-            </Button>
-          )}
+          }
         />
 
         {storageError ? (
@@ -494,12 +505,12 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
         ) : chapters.length === 0 ? (
           <EmptyState
             title="Chưa có chương để đọc"
-            description="Nhập truyện trước để Reader hiển thị các chương đã lưu."
+            description="Chưa có chương. Hãy nạp truyện trước."
             action={
               <Button asChild>
                 <Link href="/stories/import">
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Nhập truyện
+                  Nạp truyện
                 </Link>
               </Button>
             }
@@ -540,7 +551,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
             <section className="grid min-w-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
               <SectionCard
                 title="Danh sách chương"
-                description="Tất cả chương đã import nằm sẵn ở đây."
+                description="Chọn chương để đọc."
                 className="xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)]"
                 contentClassName="space-y-3"
               >
@@ -581,7 +592,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                           ) : null}
                         </div>
                         <p className="mt-1 line-clamp-2 text-sm font-semibold">
-                          {chapter.title}
+                          {chapter.title || "Không có tiêu đề"}
                         </p>
                         <p className="mt-2 text-xs text-muted-foreground">
                           {formatNumber(chapter.wordCount)} từ
@@ -740,8 +751,8 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                 </SectionCard>
 
                 <SectionCard
-                  title="Muốn đổi gì ở chương này?"
-                  description="Tạo change request để chuyển sang Rewrite Planner."
+                  title="Yêu cầu rewrite"
+                  description="Muốn đổi gì ở chương này?"
                 >
                   <div className="space-y-4">
                     <div className="grid gap-2">
@@ -764,7 +775,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                         className="text-sm font-medium"
                         htmlFor="change-description"
                       >
-                        Mô tả tình tiết muốn đổi
+                        Mô tả yêu cầu rewrite
                       </label>
                       <textarea
                         id="change-description"
@@ -773,7 +784,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                         onChange={(event) =>
                           setChangeDescription(event.target.value)
                         }
-                        placeholder="Bạn không thích điểm nào ở chương này?"
+                        placeholder="Muốn đổi gì ở chương này?"
                       />
                     </div>
 
@@ -789,7 +800,7 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                         className="app-editor-textarea min-h-28"
                         value={newValue}
                         onChange={(event) => setNewValue(event.target.value)}
-                        placeholder="Muốn đổi thành gì? Có thể để trống nếu chỉ muốn AI tự đề xuất."
+                        placeholder="Muốn đổi thành gì?"
                       />
                     </div>
 
@@ -827,19 +838,41 @@ export function StoryReaderClient({ storyId }: StoryReaderClientProps) {
                       </div>
                     </div>
 
-                    <Button
-                      className="w-full"
-                      type="button"
-                      disabled={!currentChapter || isSavingChange || !canUseAiWorkflow}
-                      onClick={handleCreateChangeRequest}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      {isSavingChange ? "Đang lưu..." : "Tạo yêu cầu thay đổi"}
-                    </Button>
+                    {canUseAiWorkflow ? (
+                      <Button
+                        className="w-full"
+                        type="button"
+                        disabled={!currentChapter || isSavingChange}
+                        onClick={handleCreateChangeRequest}
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        {isSavingChange ? "Đang xử lý..." : "Gửi yêu cầu rewrite"}
+                      </Button>
+                    ) : (
+                      <Button asChild className="w-full" variant="outline">
+                        <Link href="/settings">Thiết lập AI</Link>
+                      </Button>
+                    )}
                     {!canUseAiWorkflow ? (
                       <p className="text-xs text-muted-foreground">
                         Cáº§n thiáº¿t láº­p AI trÆ°á»›c khi táº¡o change request.
                       </p>
+                    ) : null}
+                    {requestError ? (
+                      <p className="text-xs text-destructive">{requestError}</p>
+                    ) : null}
+                    {requestSuccess ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">{requestSuccess}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/stories/${storyId}/rewrite-planner`}>Mở Rewrite Planner</Link>
+                          </Button>
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/stories/${storyId}/rewrite-draft`}>Mở Rewrite Draft</Link>
+                          </Button>
+                        </div>
+                      </div>
                     ) : null}
                   </div>
                 </SectionCard>
