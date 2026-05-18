@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpenCheck, FileText, Search, Upload } from "lucide-react";
 
 import { EmptyState } from "@/components/app/empty-state";
+import { JobStatusCard } from "@/components/app/job-status-card";
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
@@ -112,6 +113,12 @@ export default function ImportNovelPage() {
     : !hasDetectedChapters
       ? { title: "Tách chương", description: "Nhận diện tiêu đề chương để tạo danh sách kiểm tra." }
       : { title: "Kiểm tra và lưu truyện", description: "Xem chương đầu/cuối, cảnh báo tách chương, rồi lưu để phân tích." };
+
+  const isProcessingImport = isDetecting || isCreating;
+  const importStatusTitle = isCreating ? "Đang lưu truyện..." : "Đang tách chương...";
+  const importProgressLabel = importProgress
+    ? `Đã xử lý ${importProgress.chapterCount.toLocaleString("vi-VN")} chương / ${importProgress.chunkCount.toLocaleString("vi-VN")} đoạn`
+    : undefined;
 
   function createImportAbortController() {
     importAbortControllerRef.current?.abort();
@@ -332,6 +339,20 @@ export default function ImportNovelPage() {
             </div>
           </div>
         </SectionCard>
+
+        {isProcessingImport ? (
+          <JobStatusCard
+            status="running"
+            title={importStatusTitle}
+            description="Vui lòng giữ trang này mở cho đến khi hoàn tất."
+            progressLabel={importProgressLabel}
+            actions={
+              <Button type="button" variant="outline" onClick={handleCancelImportProcessing}>
+                Hủy
+              </Button>
+            }
+          />
+        ) : null}
 
         <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <SectionCard icon={<Upload className="h-5 w-5" />} title="Nạp truyện" contentClassName="space-y-5">

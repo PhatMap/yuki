@@ -351,6 +351,11 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     runtimeSettings?.providerId === "mock" ||
     runtimeSettings?.providerId === "gemini-proxy";
   const isAnalysisRunning = isSavingAnalysis || isLocalJobRunning;
+  const hasAnalysisFailed = localJobState?.status === "failed";
+  const hasAnalysisCompleted = localJobState?.status === "completed";
+  const analysisProgressLabel = localJobState
+    ? `Đang chạy ${localJobState.completedTasks.toLocaleString("vi-VN")} / ${localJobState.totalTasks.toLocaleString("vi-VN")} request`
+    : `Đã phân tích ${analyzedChapters.toLocaleString("vi-VN")} / ${totalChapters.toLocaleString("vi-VN")} chương`;
 
   const scoutCoveragePercent = totalChapters
     ? Math.round((parsedChapters / totalChapters) * 100)
@@ -1118,6 +1123,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         <SectionCard title="Việc tiếp theo">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">{nextActionLabel}</p>
+            {isAnalysisRunning ? (
+              <span className="app-chip">Đang phân tích... {analysisProgressLabel}</span>
+            ) : null}
+            {!isAnalysisRunning && hasAnalysisFailed ? (
+              <span className="app-chip border-destructive/40 bg-destructive/10 text-destructive">
+                Thất bại: {localJobState?.message ?? "Không rõ lý do"}
+              </span>
+            ) : null}
+            {!isAnalysisRunning && hasAnalysisCompleted ? (
+              <span className="app-chip-primary">Hoàn tất</span>
+            ) : null}
             {currentWorkflowStep === "import" ? (
               <Button asChild size="sm">
                 <Link href="/stories/import">Upload file truyện</Link>
