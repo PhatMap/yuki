@@ -95,31 +95,31 @@ export default function StoriesPage() {
     storySource === "mock" ? mockBranches : [];
 
   const pageDescription =
-    "Browse local stories stored in IndexedDB. Import a story, open workspace, run analysis, or check Data Health.";
+    "Duyệt truyện local trong IndexedDB. Có thể nhập truyện, mở workspace, chạy analysis hoặc kiểm tra Data Health.";
 
   return (
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Library"
-          title="Stories"
+          eyebrow="Thư viện"
+          title="Truyện"
           description={pageDescription}
           action={
             <div className="app-action-row">
               <Link href="/stories/new" className="app-primary-action">
-                New story
+                Tạo truyện mới
               </Link>
               <Link href="/stories/import" className="app-secondary-action">
-                Import story
+                Nhập truyện
               </Link>
             </div>
           }
         />
 
-        <SectionCard title="Local Story Library">
+        <SectionCard title="Thư viện truyện local">
           <p className="text-sm leading-6 text-muted-foreground">
-            Stories are local to this browser profile unless exported. Use Data
-            Health backup for long projects.
+            Truyện nằm cục bộ trong browser profile này nếu chưa export. Dùng
+            Data Health backup cho dự án dài.
           </p>
         </SectionCard>
 
