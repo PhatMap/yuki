@@ -176,11 +176,11 @@ const errorResponseExample = {
 };
 
 const contractChecks = [
-  "Frontend must call only the configured proxy endpoint.",
-  "Frontend must never store Gemini API keys.",
-  "Proxy response must include a valid StoryAnalysisResult directly or under analysisResult.",
-  "StoryAnalysisResult must preserve the existing shape used by Analysis, Workspace, Bible, Timeline, Relationships, World Tracker, and Rewrite Planner.",
-  "If the proxy fails or returns invalid data, the provider must return a safe failed status.",
+  "Frontend chỉ gọi proxy endpoint đã cấu hình.",
+  "Frontend không lưu Gemini API key.",
+  "Proxy response phải trả StoryAnalysisResult hợp lệ trực tiếp hoặc nằm trong analysisResult.",
+  "StoryAnalysisResult phải giữ shape hiện tại cho Analysis, Workspace, Story Bible, Timeline, Relationships, World Tracker và Rewrite Planner.",
+  "Nếu proxy lỗi hoặc trả dữ liệu không hợp lệ, provider phải trả trạng thái failed an toàn.",
 ];
 
 function formatJson(value: unknown) {
@@ -192,9 +192,8 @@ export function StoryAiContractClient() {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Step 33"
-          title="AI Proxy Contract Preview"
-          description="Documentation-only preview for the Gemini proxy request and response shape. This page does not call AI and does not create a backend."
+          title="AI Contract"
+          description="Tài liệu kỹ thuật cho request/response của Gemini Proxy. Trang này không gọi AI và không tạo backend."
         />
 
         <section className="app-three-column">
@@ -204,8 +203,8 @@ export function StoryAiContractClient() {
         </section>
 
         <SectionCard
-          title="Contract rules"
-          description="These rules describe the minimum backend/proxy contract required by the current frontend pipeline."
+          title="Quy tắc contract"
+          description="Các rule tối thiểu để backend/proxy tương thích với pipeline hiện tại."
         >
           <ul className="grid gap-3 md:grid-cols-2">
             {contractChecks.map((check) => (
@@ -217,44 +216,42 @@ export function StoryAiContractClient() {
         </SectionCard>
 
         <ContractBlock
-          title="Request body example"
-          description="The frontend provider sends this shape to NEXT_PUBLIC_AI_PROXY_ENDPOINT."
+          title="Ví dụ request body"
+          description="Frontend provider gửi shape này tới NEXT_PUBLIC_AI_PROXY_ENDPOINT."
           code={formatJson(requestBodyExample)}
         />
 
         <ContractBlock
-          title="Valid response example: raw StoryAnalysisResult"
-          description="The proxy may return StoryAnalysisResult directly."
+          title="Ví dụ response hợp lệ: raw StoryAnalysisResult"
+          description="Proxy có thể trả StoryAnalysisResult trực tiếp."
           code={formatJson(rawStoryAnalysisResultExample)}
         />
 
         <ContractBlock
-          title="Valid response example: pipeline wrapper"
-          description="The proxy may also return an object containing analysisResult."
+          title="Ví dụ response hợp lệ: pipeline wrapper"
+          description="Proxy cũng có thể trả object chứa analysisResult."
           code={formatJson(wrappedPipelineResponseExample)}
         />
 
         <ContractBlock
-          title="Error response example"
-          description="The frontend should handle failed provider status safely without breaking storage or UI."
+          title="Ví dụ response lỗi"
+          description="Frontend xử lý failed provider status mà không làm vỡ storage hoặc UI."
           code={formatJson(errorResponseExample)}
         />
 
-        <SectionCard title="Implementation notes">
+        <SectionCard title="Ghi chú triển khai">
           <div className="space-y-3 text-sm leading-6 text-muted-foreground">
             <p>
-              Backend/proxy implementation is intentionally not included in this
-              step. The current app only documents the expected contract so the
-              later endpoint can be implemented without changing UI pages.
+              Backend/proxy chưa nằm trong scope trang này. Mục tiêu là khóa
+              contract để endpoint thật có thể làm sau mà không cần đổi UI.
             </p>
             <p>
-              The response must remain compatible with the current
-              StoryAnalysisResult fields: characters, events, items, terms,
-              locations, writingStyleProfiles, storyId, and updatedAt.
+              Response phải tương thích với StoryAnalysisResult hiện tại:
+              characters, events, items, terms, locations,
+              writingStyleProfiles, storyId và updatedAt.
             </p>
             <p>
-              API keys must stay on the server side only. The browser should
-              know only the proxy URL from {proxyEndpointEnvKey}.
+              API key phải ở server side. Browser chỉ biết proxy URL từ {proxyEndpointEnvKey}.
             </p>
           </div>
         </SectionCard>
