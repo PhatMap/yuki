@@ -303,7 +303,7 @@ export function GlobalSettingsClient() {
 
     setSettings(nextSettings);
     setMessage(
-      "Gemini Core profile applied locally. Click Save Settings to persist it.",
+      "Đã áp dụng Gemini Core profile ở local. Bấm Lưu settings để ghi lại.",
     );
   }
 
@@ -312,7 +312,7 @@ export function GlobalSettingsClient() {
 
     setSettings(nextSettings);
     setMessage(
-      "Gemini Safe Batch profile applied locally. Click Save Settings to persist it.",
+      "Đã áp dụng Gemini Safe Batch profile ở local. Bấm Lưu settings để ghi lại.",
     );
   }
 
@@ -321,7 +321,7 @@ export function GlobalSettingsClient() {
 
     setSettings(nextSettings);
     setMessage(
-      "Gemini Fast Batch profile applied locally. Click Save Settings to persist it.",
+      "Đã áp dụng Gemini Fast Batch profile ở local. Bấm Lưu settings để ghi lại.",
     );
   }
 
@@ -338,14 +338,14 @@ export function GlobalSettingsClient() {
         endpoint.startsWith("https://")
       ) {
         setMessage(
-          "Absolute Gemini proxy endpoints are not fetched directly from this browser UI. Use Runtime Diagnostics or your server-side models route.",
+          "Endpoint Gemini Proxy dạng tuyệt đối không được tải trực tiếp từ UI trình duyệt. Hãy dùng Runtime Diagnostics hoặc route models phía server.",
         );
         return;
       }
 
       if (!endpoint.startsWith("/")) {
         setMessage(
-          "Gemini proxy endpoint should be a relative app route like /api/ai/gemini.",
+          "Gemini Proxy endpoint nên là route tương đối như /api/ai/gemini.",
         );
         return;
       }
@@ -362,14 +362,14 @@ export function GlobalSettingsClient() {
 
       if (!response.ok) {
         setMessage(
-          `Could not fetch Gemini proxy models (HTTP ${response.status}).`,
+          `Không thể tải Gemini Proxy models (HTTP ${response.status}).`,
         );
         return;
       }
 
       const payload = (await response.json()) as unknown;
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-        setMessage("Gemini proxy models response was invalid.");
+        setMessage("Phản hồi Gemini Proxy models không hợp lệ.");
         return;
       }
       const payloadRecord = payload as Record<string, unknown>;
@@ -387,14 +387,14 @@ export function GlobalSettingsClient() {
         const maybeMessage =
           typeof payloadRecord.message === "string"
             ? payloadRecord.message
-            : "Gemini proxy model discovery returned no models.";
+            : "Gemini Proxy model discovery không trả về model nào.";
 
         setMessage(maybeMessage);
         return;
       }
 
       setGeminiProxyDiscoveredModels(deduplicatedModels);
-      setMessage(`Gemini proxy models loaded: ${deduplicatedModels.length}.`);
+      setMessage(`Đã tải Gemini Proxy models: ${deduplicatedModels.length}.`);
 
       if (
         isInvalidGeminiProxyModel(settings.defaultModel) &&
@@ -404,7 +404,7 @@ export function GlobalSettingsClient() {
       }
     } catch (error) {
       console.error("Failed to fetch Gemini proxy models", error);
-      setMessage("Could not fetch Gemini proxy models.");
+      setMessage("Không thể tải Gemini Proxy models.");
     } finally {
       setIsFetchingGeminiProxyModels(false);
     }
@@ -418,10 +418,10 @@ export function GlobalSettingsClient() {
       const report = await runRuntimeDiagnostics(settings);
 
       setRuntimeDiagnostics(report);
-      setMessage(`Runtime diagnostics completed: ${report.overallStatus}.`);
+      setMessage(`Đã chạy Runtime diagnostics: ${report.overallStatus}.`);
     } catch (error) {
       console.error("Failed to run runtime diagnostics", error);
-      setMessage("Could not run runtime diagnostics.");
+      setMessage("Không thể chạy Runtime diagnostics.");
     } finally {
       setIsRunningDiagnostics(false);
     }
@@ -440,10 +440,10 @@ export function GlobalSettingsClient() {
 
       const fileName = downloadRuntimeDiagnosticsReport(report);
 
-      setMessage(`Runtime diagnostics exported: ${fileName}`);
+      setMessage(`Đã export Runtime diagnostics: ${fileName}`);
     } catch (error) {
       console.error("Failed to export runtime diagnostics", error);
-      setMessage("Could not export runtime diagnostics.");
+      setMessage("Không thể export Runtime diagnostics.");
     } finally {
       setIsExportingRuntimeDiagnostics(false);
     }
@@ -462,7 +462,7 @@ export function GlobalSettingsClient() {
       setRuntimeDiagnostics(report);
     } catch (error) {
       console.error("Failed to request persistent browser storage", error);
-      setMessage("Could not request persistent browser storage.");
+      setMessage("Không thể request persistent browser storage.");
     } finally {
       setIsRequestingStoragePersistence(false);
     }
@@ -479,7 +479,7 @@ export function GlobalSettingsClient() {
       setMessage(`App backup exported: ${fileName}`);
     } catch (error) {
       console.error("Failed to export app backup", error);
-      setMessage("Could not export app backup.");
+      setMessage("Không thể export app backup.");
     } finally {
       setIsExportingAppBackup(false);
     }
@@ -502,12 +502,12 @@ export function GlobalSettingsClient() {
       setAppBackupValidationResult(result);
       setMessage(
         result.isValid
-          ? "App backup file is valid."
-          : "App backup file has validation errors.",
+          ? "File app backup hợp lệ."
+          : "File app backup có lỗi validation.",
       );
     } catch (error) {
       console.error("Failed to validate app backup", error);
-      setMessage("Could not validate app backup.");
+      setMessage("Không thể validate app backup.");
     } finally {
       setIsValidatingAppBackup(false);
       event.target.value = "";
@@ -522,12 +522,12 @@ export function GlobalSettingsClient() {
     const payload = appBackupValidationResult?.payload;
 
     if (!payload) {
-      setMessage("No valid app backup is selected.");
+      setMessage("Chưa chọn app backup hợp lệ.");
       return;
     }
 
     const confirmed = window.confirm(
-      "Restore app backup settings? This will overwrite global runtime settings and prompt templates. Story content is not restored by this action.",
+      "Restore app backup settings? Hành động này sẽ ghi đè global runtime settings và prompt templates. Story content không được restore ở bước này.",
     );
 
     if (!confirmed) return;
@@ -551,8 +551,8 @@ export function GlobalSettingsClient() {
       console.error("Failed to restore app backup", error);
       setMessage(
         error instanceof Error
-          ? `Could not restore app backup: ${error.message}`
-          : "Could not restore app backup.",
+          ? `Không thể restore app backup: ${error.message}`
+          : "Không thể restore app backup.",
       );
     } finally {
       setIsRestoringAppBackup(false);
@@ -563,15 +563,15 @@ export function GlobalSettingsClient() {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Global Settings"
-          title="AI Runtime Control Center"
+          eyebrow="Cài đặt toàn cục"
+          title="Trung tâm kiểm soát AI Runtime"
           description="Quản lý provider, model, endpoint và runtime mặc định cho toàn bộ Yuki. Prompt templates nằm ở Prompt Manager."
           action={
             <>
               <Button asChild variant="outline">
                 <Link href="/prompt-manager">
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Prompt Manager
+                  Mở Prompt Manager
                 </Link>
               </Button>
 
@@ -581,7 +581,7 @@ export function GlobalSettingsClient() {
                 disabled={isLoading || isSaving}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {isSaving ? "Đang lưu..." : "Save Settings"}
+                {isSaving ? "Đang lưu..." : "Lưu settings"}
               </Button>
             </>
           }
@@ -599,25 +599,25 @@ export function GlobalSettingsClient() {
             icon={<Gauge className="h-4 w-4" />}
             title="Provider"
             value={getAiRuntimeProviderLabel(settings.providerId)}
-            description="Global runtime provider"
+            description="Global Runtime provider"
           />
           <StatCard
             icon={<Gauge className="h-4 w-4" />}
             title="Job runtime"
             value={settings.jobRuntime}
-            description="Analysis orchestration mode"
+            description="Chế độ orchestration cho analysis"
           />
           <StatCard
             icon={<Sparkles className="h-4 w-4" />}
             title="Model"
             value={activeModel}
-            description="Active model name"
+            description="Tên model đang active"
           />
           <StatCard
             icon={<Database className="h-4 w-4" />}
             title="Storage"
             value="IndexedDB"
-            description="No localStorage for runtime config"
+            description="Không dùng localStorage cho runtime config"
           />
           <StatCard
             icon={<RefreshCw className="h-4 w-4" />}
@@ -656,10 +656,10 @@ export function GlobalSettingsClient() {
               disabled={isLoading || isSaving}
             >
               <Server className="mr-2 h-4 w-4" />
-              Use Gemini Core Profile
+              Sử dụng Gemini Core Profile
             </Button>
             <SettingsHint>
-              This applies locally only. Click Save Settings to persist.
+              Điều này chỉ áp dụng cục bộ. Nhấp Lưu settings để duy trì.
             </SettingsHint>
           </div>
         </SectionCard>
@@ -895,8 +895,8 @@ export function GlobalSettingsClient() {
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   {isFetchingGeminiProxyModels
-                    ? "Fetching models..."
-                    : "Fetch Gemini Proxy Models"}
+                    ? "Đang tải model..."
+                    : "Tải Gemini Proxy Models"}
                 </Button>
                 <SettingsHint>
                   Models are fetched from the server proxy route. API keys stay
@@ -1111,8 +1111,8 @@ export function GlobalSettingsClient() {
                 </div>
               ) : (
                 <p className="app-muted-text">
-                  Run diagnostics to verify IndexedDB, Web Worker, selected job runtime,
-                  and provider wiring.
+                  Chạy diagnostics để kiểm tra IndexedDB, Web Worker, job runtime đã chọn,
+                  và wiring của provider.
                 </p>
               )}
               <div className="mt-3 space-y-2">
@@ -1124,7 +1124,7 @@ export function GlobalSettingsClient() {
                   disabled={isRunningDiagnostics}
                 >
                   <TestTube className="mr-2 h-4 w-4" />
-                  {isRunningDiagnostics ? "Checking runtime..." : "Run Runtime Diagnostics"}
+                  {isRunningDiagnostics ? "Đang kiểm tra runtime..." : "Chạy Runtime Diagnostics"}
                 </Button>
 
                 <Button
@@ -1136,8 +1136,8 @@ export function GlobalSettingsClient() {
                 >
                   <Database className="mr-2 h-4 w-4" />
                   {isExportingRuntimeDiagnostics
-                    ? "Exporting diagnostics..."
-                    : "Export Runtime Diagnostics JSON"}
+                    ? "Đang export diagnostics..."
+                    : "Export Runtime diagnostics JSON"}
                 </Button>
               </div>
             </SectionCard>
@@ -1153,13 +1153,12 @@ export function GlobalSettingsClient() {
                 >
                   <Database className="mr-2 h-4 w-4" />
                   {isRequestingStoragePersistence
-                    ? "Requesting storage..."
+                    ? "Đang request storage..."
                     : "Request Persistent Storage"}
                 </Button>
                 <p className="app-muted-text">
-                  Requests browser-level persistent storage for this origin. This can reduce
-                  the risk of browser eviction for large local IndexedDB data, but the browser
-                  may still deny the request.
+                  Request persistent storage ở cấp trình duyệt cho origin này. Cách này có thể
+                  giảm rủi ro bị browser dọn dữ liệu IndexedDB lớn, nhưng browser vẫn có thể từ chối.
                 </p>
 
                 <Button
@@ -1170,11 +1169,11 @@ export function GlobalSettingsClient() {
                   disabled={isExportingAppBackup}
                 >
                   <Database className="mr-2 h-4 w-4" />
-                  {isExportingAppBackup ? "Exporting app backup..." : "Export App Backup JSON"}
+                  {isExportingAppBackup ? "Đang export app backup..." : "Export app backup JSON"}
                 </Button>
                 <p className="app-muted-text">
-                  Exports global runtime settings, prompt templates, and the story index into
-                  one local JSON file. Full story content backup is still handled per story in
+                  Export global runtime settings, prompt templates và story index thành
+                  một file JSON local. Backup full story content vẫn xử lý theo từng story trong
                   Data Health.
                 </p>
 
@@ -1191,8 +1190,8 @@ export function GlobalSettingsClient() {
                   </label>
 
                   <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    Reads an app backup file locally and validates schema/counts only. This does
-                    not restore or write any settings.
+                    Đọc file app backup tại local và chỉ validate schema/counts. Bước này
+                    không restore hay ghi settings.
                   </p>
                 </div>
 
@@ -1248,7 +1247,7 @@ export function GlobalSettingsClient() {
                       </ul>
                     ) : (
                       <p className="mt-3 text-xs text-muted-foreground">
-                        No validation issues found.
+                        Không phát hiện lỗi validation.
                       </p>
                     )}
                   </div>
@@ -1265,21 +1264,21 @@ export function GlobalSettingsClient() {
                     >
                       <Database className="mr-2 h-4 w-4" />
                       {isRestoringAppBackup
-                        ? "Restoring app backup..."
-                        : "Restore app settings and prompts"}
+                        ? "Đang restore app backup..."
+                        : "Restore app settings và prompt"}
                     </Button>
 
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      Restores global runtime settings and prompt templates only. Story index
-                      entries in the app backup are kept as reference; full story data must be
-                      restored from per-story backup files in Data Health.
+                      Chỉ restore global runtime settings và prompt templates. Story index
+                      trong app backup chỉ giữ để tham chiếu; dữ liệu story đầy đủ phải
+                      restore từ file backup theo từng story trong Data Health.
                     </p>
                   </div>
                 ) : null}
               </div>
             </SectionCard>
 
-            <SectionCard title="Save and Reset">
+            <SectionCard title="Lưu và reset">
               <div className="space-y-3">
                 <Button
                   className="w-full"
@@ -1288,7 +1287,7 @@ export function GlobalSettingsClient() {
                   disabled={isLoading || isSaving}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  Save to IndexedDB
+                  Lưu vào IndexedDB
                 </Button>
 
                 <Button
@@ -1298,7 +1297,7 @@ export function GlobalSettingsClient() {
                   onClick={handleLocalTest}
                 >
                   <TestTube className="mr-2 h-4 w-4" />
-                  Local Test Preview
+                  Xem trước local test
                 </Button>
 
                 <Button
@@ -1309,13 +1308,13 @@ export function GlobalSettingsClient() {
                   disabled={isSaving}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  Reset Defaults
+                  Reset mặc định
                 </Button>
 
                 <Button asChild className="w-full" variant="outline">
                   <Link href="/prompt-manager">
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Open Prompt Manager
+                    Mở Prompt Manager
                   </Link>
                 </Button>
               </div>
@@ -1334,7 +1333,7 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
-            <SectionCard title="External Links">
+            <SectionCard title="Liên kết ngoài">
               <div className="space-y-2">
                 <Button asChild className="w-full" variant="outline">
                   <a
@@ -1350,7 +1349,7 @@ export function GlobalSettingsClient() {
                 <Button asChild className="w-full" variant="outline">
                   <Link href="/stories">
                     <BookOpen className="mr-2 h-4 w-4" />
-                    Back to Stories
+                    Quay lại Stories
                   </Link>
                 </Button>
               </div>

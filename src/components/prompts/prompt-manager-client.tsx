@@ -24,7 +24,7 @@ import type {
 type CategoryFilter = PromptTemplateCategory | "all";
 
 const categoryLabels: Record<CategoryFilter, string> = {
-  all: "All",
+  all: "Tất cả",
   system: "System",
   analysis: "Analysis",
   planning: "Planning",
@@ -76,7 +76,7 @@ export function PromptManagerClient() {
 
         if (!isActive) return;
 
-        setStatusMessage("Could not load prompt templates from IndexedDB.");
+        setStatusMessage("Không thể tải prompt templates từ IndexedDB.");
       } finally {
         if (isActive) {
           setIsLoading(false);
@@ -123,10 +123,10 @@ export function PromptManagerClient() {
       const storedTemplates = await getPromptTemplates();
 
       setTemplates(storedTemplates);
-      setStatusMessage("Prompt templates saved to IndexedDB.");
+      setStatusMessage("Đã lưu prompt templates vào IndexedDB.");
     } catch (error) {
       console.error("Failed to save prompt templates", error);
-      setStatusMessage("Could not save prompt templates.");
+      setStatusMessage("Không thể lưu prompt templates.");
     } finally {
       setIsSaving(false);
     }
@@ -144,10 +144,10 @@ export function PromptManagerClient() {
           template.id === templateId ? resetTemplate : template,
         ),
       );
-      setStatusMessage(`${resetTemplate.title} reset to default.`);
+      setStatusMessage(`Đã reset ${resetTemplate.title} về mặc định.`);
     } catch (error) {
       console.error("Failed to reset prompt template", error);
-      setStatusMessage("Could not reset prompt template.");
+      setStatusMessage("Không thể reset prompt template.");
     } finally {
       setIsSaving(false);
     }
@@ -161,10 +161,10 @@ export function PromptManagerClient() {
       const resetTemplates = await resetAllPromptTemplates();
 
       setTemplates(resetTemplates);
-      setStatusMessage("All prompt templates reset to defaults.");
+      setStatusMessage("Đã reset tất cả prompt templates về mặc định.");
     } catch (error) {
       console.error("Failed to reset prompt templates", error);
-      setStatusMessage("Could not reset prompt templates.");
+      setStatusMessage("Không thể reset prompt templates.");
     } finally {
       setIsSaving(false);
     }
@@ -174,9 +174,9 @@ export function PromptManagerClient() {
     <PageShell>
       <PageContainer className="max-w-7xl">
         <PageHeader
-          eyebrow="AI Runtime"
+          eyebrow="Runtime"
           title="Prompt Manager"
-          description="Edit global prompt templates stored in IndexedDB. Prompt contracts protect required output shapes for analysis and rewrite flows."
+          description="Chỉnh sửa mẫu prompt toàn cục được lưu trong IndexedDB. Prompt contract bảo vệ output shape bắt buộc cho analysis và rewrite flow."
           action={
             <>
               <Button
@@ -186,7 +186,7 @@ export function PromptManagerClient() {
                 onClick={handleResetAll}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Reset all
+                Reset tất cả
               </Button>
               <Button
                 type="button"
@@ -194,7 +194,7 @@ export function PromptManagerClient() {
                 onClick={handleSaveAll}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {isSaving ? "Saving..." : "Save all"}
+                {isSaving ? "Đang lưu..." : "Lưu tất cả"}
               </Button>
             </>
           }
@@ -210,25 +210,22 @@ export function PromptManagerClient() {
         <SectionCard title="Prompt Safety">
           <div className="space-y-2">
             <PromptManagerHint>
-              Editable prompt text controls model behavior.
+              Văn bản prompt có thể chỉnh sửa kiểm soát hành vi mô hình.
             </PromptManagerHint>
             <PromptManagerHint>
-              Locked contract describes required output shape and should not be
-              bypassed.
+              Locked contract mô tả hình dạng output bắt buộc và không nên bị bỏ qua.
             </PromptManagerHint>
+            <PromptManagerHint>Variable được chèn tại Runtime.</PromptManagerHint>
             <PromptManagerHint>
-              Variables are inserted at runtime.
-            </PromptManagerHint>
-            <PromptManagerHint>
-              Reset restores the selected template or all templates to defaults.
+              Reset khôi phục mẫu được chọn hoặc tất cả mẫu về mặc định.
             </PromptManagerHint>
           </div>
         </SectionCard>
 
         <SectionCard
           icon={<Database className="h-5 w-5" />}
-          title="Category"
-          description="Filter prompt templates by workflow area."
+          title="Danh mục"
+          description="Lọc prompt template theo nhóm workflow."
         >
           <div className="app-chip-row">
             {categoryFilters.map((category) => (
@@ -247,9 +244,9 @@ export function PromptManagerClient() {
         </SectionCard>
 
         {isLoading ? (
-          <SectionCard title="Loading prompt registry">
+          <SectionCard title="Đang tải prompt registry">
             <p className="app-muted-text">
-              Reading global prompt templates from IndexedDB...
+              Đang đọc mẫu prompt toàn cục từ IndexedDB...
             </p>
           </SectionCard>
         ) : (
@@ -310,21 +307,21 @@ function PromptTemplateEditor({
           onClick={() => onReset(template.id)}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
-          Reset this prompt
+          Reset prompt này
         </Button>
       </div>
 
       <PromptManagerHint>
-        Variables are filled by the runtime. Missing variables will be reported
-        before provider output is trusted.
+        Variable được điền bởi runtime. Missing variable sẽ được báo cáo
+        trước khi output provider được tin tưởng.
       </PromptManagerHint>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <label className="grid gap-2">
           <span className="text-sm font-medium">Editable prompt</span>
           <PromptManagerHint>
-            Edit instructions carefully. Keep structure requirements aligned with
-            the locked contract.
+            Chỉnh sửa instruction cẩn thận. Giữ yêu cầu cấu trúc phù hợp với
+            locked contract.
           </PromptManagerHint>
           <Textarea
             className="app-editor-textarea min-h-[260px]"
@@ -350,8 +347,8 @@ function PromptTemplateEditor({
       </div>
 
       <PromptManagerHint>
-        Reset affects prompt templates only. It does not delete stories,
-        analysis results, jobs, or cache.
+        Reset chỉ ảnh hưởng đến prompt template. Nó không xóa tiểu thuyết,
+        analysis result, job hay cache.
       </PromptManagerHint>
     </SectionCard>
   );

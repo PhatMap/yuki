@@ -113,7 +113,7 @@ async function readIndexedDbDashboardData(storyId: string) {
 }
 
 function formatRuntimeValue(value: string) {
-  return value || "not configured";
+  return value || "chưa cấu hình";
 }
 
 function shortenJobId(jobId: string) {
@@ -123,15 +123,15 @@ function shortenJobId(jobId: string) {
 }
 
 function formatJobProgressValue(state?: LocalAnalysisJobState) {
-  if (!state) return "idle";
+  if (!state) return "đang chờ";
 
   return `${state.completedTasks}/${state.totalTasks}`;
 }
 
 function formatJobProgressDescription(state?: LocalAnalysisJobState) {
-  if (!state) return "No local job has started yet.";
+  if (!state) return "Chưa có local job nào bắt đầu.";
 
-  return `${state.skippedTasks} skipped/cache hits · ${state.failedTasks} failed`;
+  return `${state.skippedTasks} bỏ qua/cache hit · ${state.failedTasks} lỗi`;
 }
 
 function toLocalJobState(
@@ -221,7 +221,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       setDashboardData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Story data may be unavailable."
+          ? "Đọc IndexedDB thất bại. Dữ liệu truyện có thể không khả dụng."
           : "",
       );
       setIsLoading(false);
@@ -288,13 +288,13 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const hasDashboardData = Boolean(story) || chapters.length > 0;
   const runtimeProviderLabel = runtimeSettings
     ? getAiRuntimeProviderLabel(runtimeSettings.providerId)
-    : "Loading";
+    : "Đang tải";
   const runtimeModel = runtimeSettings
     ? getActiveRuntimeModel(runtimeSettings)
-    : "Loading";
+    : "Đang tải";
   const runtimeEndpoint = runtimeSettings
     ? getActiveRuntimeEndpoint(runtimeSettings)
-    : "Loading";
+    : "Đang tải";
   const activeJobRuntime =
     runtimeSettings?.jobRuntime ?? runtimeConfig.jobRuntime;
   const canUseLocalAggregatedAnalysis =
@@ -846,22 +846,22 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Novel Analysis"
-          title={story?.title ?? "Imported Novel"}
-          description={`${story?.author ? `Author: ${story.author}. ` : ""}Analysis uses global runtime settings and Prompt Manager templates.`}
+          eyebrow="Phân tích tiểu thuyết"
+          title={story?.title ?? "Tiểu thuyết nhập khẩu"}
+          description={`${story?.author ? `Tác giả: ${story.author}. ` : ""}Phân tích sử dụng cài đặt runtime toàn cục và mẫu Prompt Manager.`}
           action={
             <>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/reader`}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Reader
+                  Đọc truyện
                 </Link>
               </Button>
 
               <Button asChild variant="outline">
                 <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />
-                  Runtime
+                  Runtime Settings
                 </Link>
               </Button>
 
@@ -873,7 +873,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 }
               >
                 <Play className="mr-2 h-4 w-4" />
-                {isSavingAnalysis ? "Running..." : "Run analysis"}
+                {isSavingAnalysis ? "Đang chạy..." : "Chạy analysis"}
               </Button>
 
               {isLocalJobRunning ? (
@@ -882,7 +882,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                   variant="outline"
                   onClick={handleCancelAnalysisJob}
                 >
-                  Cancel local job
+                  Hủy local job
                 </Button>
               ) : null}
 
@@ -898,18 +898,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                     isLoading || chapters.length === 0 || isSavingAnalysis
                   }
                 >
-                  {isResumingBatch ? "Resuming..." : "Resume failed batch"}
+                  {isResumingBatch ? "Đang tiếp tục..." : "Tiếp tục batch lỗi"}
                 </Button>
               ) : null}
             </>
           }
         />
 
-        <SectionCard title="Runtime, Jobs, and Prompt">
+        <SectionCard title="Runtime, Jobs và Prompt">
           <StoryAnalysisHint>
-            Gemini Proxy batch jobs run through the selected local runtime and
-            save only after all tasks complete or valid cache hits are
-            available.
+            Gemini Proxy batch job chạy qua runtime cục bộ được chọn và
+            chỉ lưu sau khi tất cả task hoàn tất hoặc cache hit hợp lệ có sẵn.
           </StoryAnalysisHint>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <RuntimeTile label="Provider" value={runtimeProviderLabel} />
@@ -942,20 +941,20 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           <div className="mt-3 grid gap-3 lg:grid-cols-3">
             <AnimatedStatusCard
-              eyebrow="Local execution"
+              eyebrow="Thực thi cục bộ"
               title="Job Runtime"
               value={activeJobRuntime}
-              description="Controls whether analysis job planning runs in the browser, a local worker, or a future cloud queue."
+              description="Kiểm soát xem analysis job planning chạy trong trình duyệt, local worker hay cloud queue tương lai."
             />
 
             <AnimatedStatusCard
               eyebrow="Story analysis job"
-              title={localJobState?.status ?? "idle"}
+              title={localJobState?.status ?? "đang chờ"}
               value={formatJobProgressValue(localJobState)}
               description={
                 localJobState?.jobId
                   ? shortenJobId(localJobState.jobId)
-                  : "not started"
+                  : "chưa bắt đầu"
               }
             >
               <ProgressMeter
@@ -967,9 +966,9 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
             {latestResumableJob && !isLoadingResumableJob && !isLocalJobRunning ? (
               <AnimatedStatusCard
-                eyebrow="Failed/incomplete batch"
-                title="Resume available"
-                value={`${latestResumableJob.retryableTasks} tasks`}
+                eyebrow="Batch lỗi/chưa hoàn tất"
+                title="Có thể tiếp tục"
+                value={`${latestResumableJob.retryableTasks} task`}
                 description={
                   latestResumableJob.jobId
                     ? shortenJobId(latestResumableJob.jobId)
@@ -989,8 +988,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                   </p>
                 ) : null}
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Resume retries failed or incomplete tasks only. No partial
-                  result will be saved.
+                  Tiếp tục chỉ retry task lỗi hoặc chưa hoàn tất. Không lưu kết quả một phần.
                 </p>
               </AnimatedStatusCard>
             ) : null}
@@ -998,10 +996,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link href="/settings">Open Runtime Settings</Link>
+              <Link href="/settings">Mở Runtime Settings</Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href="/prompt-manager">Open Prompt Manager</Link>
+              <Link href="/prompt-manager">Mở Prompt Manager</Link>
             </Button>
           </div>
 
@@ -1013,8 +1011,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           {localJobState && localJobState.failedTasks > 0 ? (
             <p className="mt-3 text-sm text-destructive">
-              Some batch tasks failed. Yuki will not save partial analysis. Use
-              Resume failed batch after checking the failed counts.
+              Một số batch task lỗi. Yuki sẽ không lưu analysis một phần. Sử dụng
+              Tiếp tục batch lỗi sau khi kiểm tra số lượng lỗi.
             </p>
           ) : null}
 
@@ -1026,25 +1024,24 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
 
           {localAggregatedResult?.updatedAt ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Aggregated batch result ready at{" "}
+              Kết quả batch tổng hợp sẵn sàng lúc{" "}
               {new Date(localAggregatedResult.updatedAt).toLocaleString(
                 "vi-VN",
               )}
-              . It will be saved only after completion checks pass.
+              . Nó sẽ được lưu chỉ sau khi kiểm tra hoàn tất thành công.
             </p>
           ) : null}
 
           {runtimeSettings?.providerId === "gemini-proxy" &&
           localAggregatedResult ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Gemini Proxy batch result is ready and will be saved without a
-              second full-story provider request.
+              Kết quả Gemini Proxy batch sẵn sàng và sẽ được lưu mà không cần yêu cầu provider full-story thứ hai.
             </p>
           ) : null}
 
           {lastPipelineResult?.promptContext?.missingVariables.length ? (
             <p className="mt-3 text-sm text-destructive">
-              Missing prompt variables:{" "}
+              Thiếu prompt variables:{" "}
               {lastPipelineResult.promptContext.missingVariables.join(", ")}
             </p>
           ) : null}
@@ -1057,66 +1054,66 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
         ) : null}
 
         {isLoading ? (
-          <SectionCard title="Loading analysis data">
+          <SectionCard title="Đang tải dữ liệu analysis">
             <p className="app-muted-text">
-              Reading imported story data from IndexedDB...
+              Đang đọc dữ liệu tiểu thuyết nhập khẩu từ IndexedDB...
             </p>
           </SectionCard>
         ) : !hasDashboardData ? (
           <EmptyState
-            title="No analysis data found"
-            description="No imported story data was found in IndexedDB for this story."
+            title="Chưa có dữ liệu analysis"
+            description="Không tìm thấy dữ liệu tiểu thuyết nhập khẩu trong IndexedDB cho tiểu thuyết này."
           />
         ) : (
           <>
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <StatCard
                 icon={<BookOpen className="h-4 w-4" />}
-                title="Total chapters"
+                title="Tổng số chương"
                 value={totalChapters.toLocaleString("vi-VN")}
               />
               <StatCard
                 icon={<ScrollText className="h-4 w-4" />}
-                title="Total words"
+                title="Tổng số từ"
                 value={totalWordCount.toLocaleString("vi-VN")}
               />
               <StatCard
                 icon={<Database className="h-4 w-4" />}
-                title="Total chunks"
+                title="Tổng số chunk"
                 value={totalChunks.toLocaleString("vi-VN")}
               />
               <StatCard
                 icon={<BarChart3 className="h-4 w-4" />}
-                title="Parsed chapters"
+                title="Chương đã phân tích"
                 value={parsedChapters.toLocaleString("vi-VN")}
               />
               <StatCard
                 icon={<Sparkles className="h-4 w-4" />}
-                title="Analyzed chapters"
+                title="Chương đã phân tích"
                 value={analyzedChapters.toLocaleString("vi-VN")}
               />
             </section>
 
             <section className="grid gap-4 lg:grid-cols-3">
-              <ProgressCard label="Import progress" value={100} />
-              <ProgressCard label="Chunk progress" value={chunkProgress} />
+              <ProgressCard label="Tiến độ nhập khẩu" value={100} />
+              <ProgressCard label="Tiến độ chunk" value={chunkProgress} />
               <ProgressCard
-                label="Analysis progress"
+                label="Tiến độ analysis"
                 value={analysisProgress}
               />
             </section>
 
-            <SectionCard title="Chapter preview">
+            <SectionCard title="Xem trước chương">
               {chapters.length > 0 ? (
                 <div className="app-table-wrap">
                   <table className="app-table">
                     <thead>
                       <tr>
-                        <th>Chapter</th>
-                        <th>Title</th>
-                        <th>Words</th>
-                        <th>Chunks</th>
-                        <th>Status</th>
+                        <th>Chương</th>
+                        <th>Tiêu đề</th>
+                        <th>Từ</th>
+                        <th>Chunk</th>
+                        <th>Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1138,8 +1135,8 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 </div>
               ) : (
                 <EmptyState
-                  title="No imported chapters"
-                  description="No local IndexedDB data found for this story."
+                  title="Không có chương nhập khẩu"
+                  description="Không tìm thấy dữ liệu IndexedDB cục bộ cho tiểu thuyết này."
                 />
               )}
             </SectionCard>
@@ -1153,17 +1150,17 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               <EventAnalysisCard events={analysisResult?.events} />
               <EntityAnalysisCard
                 icon={Boxes}
-                title="Items"
+                title="Vật phẩm"
                 entities={analysisResult?.items}
               />
               <EntityAnalysisCard
                 icon={ScrollText}
-                title="Terms"
+                title="Thuật ngữ"
                 entities={analysisResult?.terms}
               />
               <EntityAnalysisCard
                 icon={MapPin}
-                title="Locations"
+                title="Địa điểm"
                 entities={analysisResult?.locations}
               />
               <WritingStyleCard
@@ -1234,7 +1231,7 @@ function AnalysisCardShell({
 }
 
 function NotAnalyzedYet() {
-  return <p className="text-sm text-muted-foreground">Not analyzed yet</p>;
+  return <p className="text-sm text-muted-foreground">Chưa phân tích</p>;
 }
 
 function EntityAnalysisCard({
@@ -1250,7 +1247,7 @@ function EntityAnalysisCard({
     <AnalysisCardShell icon={icon} title={title}>
       {entities ? (
         <div>
-          <p className="text-sm font-medium">{entities.length} detected</p>
+          <p className="text-sm font-medium">Phát hiện {entities.length}</p>
           <div className="mt-3 space-y-3">
             {entities.slice(0, 5).map((entity) => (
               <div key={entity.id} className="rounded-md border p-3">
@@ -1271,16 +1268,16 @@ function EntityAnalysisCard({
 
 function EventAnalysisCard({ events }: { events?: StoryEvent[] }) {
   return (
-    <AnalysisCardShell icon={CalendarDays} title="Events">
+    <AnalysisCardShell icon={CalendarDays} title="Sự kiện">
       {events ? (
         <div>
-          <p className="text-sm font-medium">{events.length} detected</p>
+          <p className="text-sm font-medium">Phát hiện {events.length}</p>
           <div className="mt-3 space-y-3">
             {events.slice(0, 5).map((event) => (
               <div key={event.id} className="rounded-md border p-3">
                 <p className="text-sm font-medium">{event.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Chapter {event.chapterNumber} · {event.importance}
+                  Chương {event.chapterNumber} · {event.importance}
                 </p>
               </div>
             ))}
@@ -1295,17 +1292,17 @@ function EventAnalysisCard({ events }: { events?: StoryEvent[] }) {
 
 function WritingStyleCard({ profile }: { profile?: WritingStyleProfile }) {
   return (
-    <AnalysisCardShell icon={PenLine} title="Writing Style">
+    <AnalysisCardShell icon={PenLine} title="Phong cách viết">
       {profile ? (
         <div className="space-y-3 text-sm">
           <div>
-            <p className="font-medium">Narration</p>
+            <p className="font-medium">Lối kể</p>
             <p className="mt-1 text-muted-foreground">
               {profile.narrationStyle}
             </p>
           </div>
           <div>
-            <p className="font-medium">Pacing</p>
+            <p className="font-medium">Nhịp độ</p>
             <p className="mt-1 text-muted-foreground">{profile.pacing}</p>
           </div>
           <div>

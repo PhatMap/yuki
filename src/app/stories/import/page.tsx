@@ -406,8 +406,8 @@ export default function ImportNovelPage() {
 
 function getImportStatusLabel(status: LocalImportWorkerProgressSnapshot["status"]) {
   if (status === "completed") return "Hoàn tất";
-  if (status === "processing") return "Đang xử lý";
-  if (status === "failed") return "Thất bại";
+  if (status === "detecting") return "Đang phát hiện chương";
+  if (status === "chunking") return "Đang chunk";
 
   return status;
 }

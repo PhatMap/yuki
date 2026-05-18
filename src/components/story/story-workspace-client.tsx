@@ -206,7 +206,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
       setStorageData(indexedDbData);
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Workspace data may be unavailable."
+          ? "Đọc IndexedDB thất bại. Dữ liệu Workspace có thể không khả dụng."
           : "",
       );
       setIsLoading(false);
@@ -381,7 +381,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     const saved = await saveBranchesToStorage(storyId, nextBranches);
 
     if (!saved) {
-      setBranchStorageError("Could not save branch data to IndexedDB.");
+      setBranchStorageError("Không thể lưu dữ liệu branch vào IndexedDB.");
     }
 
     setIsSavingBranchData(false);
@@ -457,7 +457,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     });
 
     if (!branchSaved || !changesSaved) {
-      setBranchStorageError("Could not save branch changes to IndexedDB.");
+      setBranchStorageError("Không thể lưu branch changes vào IndexedDB.");
     }
 
     setIsSavingBranchData(false);
@@ -477,7 +477,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold">{story.title}</h1>
               {hasImportedChapters ? (
-                <Badge variant="outline">Imported novel</Badge>
+                <Badge variant="outline">Tiểu thuyết nhập khẩu</Badge>
               ) : null}
             </div>
             <p className="text-sm text-muted-foreground">
@@ -485,7 +485,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               {story.isFanwork ? "Fanwork" : "Original"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Workspace reads from IndexedDB as the source of truth.
+              Workspace đọc dữ liệu từ IndexedDB làm source of truth.
             </p>
           </div>
 
@@ -493,61 +493,61 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/reader`}>
                 <BookOpen className="mr-2 h-4 w-4" />
-                Continue Reading
+                Tiếp tục đọc
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/analysis`}>
                 <WandSparkles className="mr-2 h-4 w-4" />
-                Run Analysis
+                Chạy analysis
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/data-health`}>
                 <Database className="mr-2 h-4 w-4" />
-                Open Data Health
+                Mở Data Health
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/prompt-manager">
                 <Sparkles className="mr-2 h-4 w-4" />
-                Open Prompt Manager
+                Mở Prompt Manager
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/bible`}>
                 <BookOpen className="mr-2 h-4 w-4" />
-                Open Story Bible
+                Mở Story Bible
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/timeline`}>
                 <CalendarDays className="mr-2 h-4 w-4" />
-                Open Timeline
+                Mở Timeline
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/relationships`}>
                 <HeartHandshake className="mr-2 h-4 w-4" />
-                Open Relationships
+                Mở Relationships
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/world-tracker`}>
                 <Boxes className="mr-2 h-4 w-4" />
-                Open World Tracker
+                Mở World Tracker
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/rewrite-planner`}>
                 <PenLine className="mr-2 h-4 w-4" />
-                Open Rewrite Planner
+                Mở Rewrite Planner
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={`/stories/${storyId}/rewrite-draft`}>
                 <FileText className="mr-2 h-4 w-4" />
-                Open Rewrite Draft
+                Mở Rewrite Draft
               </Link>
             </Button>
             <Button variant="outline">
@@ -556,7 +556,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             </Button>
             <Button onClick={handleFakeGenerate}>
               <WandSparkles className="mr-2 h-4 w-4" />
-              Generate
+              Tạo nội dung
             </Button>
           </div>
         </div>
@@ -569,17 +569,17 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm leading-6 text-muted-foreground">
-              Story data is loaded from IndexedDB.
+              Dữ liệu truyện được tải từ IndexedDB.
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Use Analysis for Gemini batch extraction.
+              Dùng Analysis để chạy Gemini batch extraction.
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Use Data Health for backups, job/cache state, and restore
-              readiness.
+              Dùng Data Health cho backup, trạng thái job/cache và kiểm tra
+              khả năng restore.
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Reader and planning tools use the same local story data.
+              Reader và các công cụ planning dùng chung dữ liệu truyện local.
             </p>
           </CardContent>
         </Card>
@@ -589,11 +589,11 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         <div className="app-workspace-grid">
           <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>Loading local story workspace...</CardTitle>
+              <CardTitle>Đang tải workspace tiểu thuyết cục bộ...</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="app-muted-text">
-                Reading workspace data from IndexedDB...
+                Đang đọc dữ liệu workspace từ IndexedDB...
               </p>
             </CardContent>
           </Card>
@@ -612,11 +612,11 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="app-panel-title">
                     <BookOpen className="h-4 w-4" />
-                    Chapters
+                    Chương
                   </CardTitle>
                   {hasImportedChapters ? (
                     <Badge variant="secondary">
-                      {importedChapters.length} imported
+                      {importedChapters.length} nhập khẩu
                     </Badge>
                   ) : null}
                 </div>
@@ -657,7 +657,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   })
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No local story data found for this route.
+                    Không tìm thấy dữ liệu tiểu thuyết cục bộ cho route này.
                   </p>
                 )}
               </CardContent>
@@ -667,16 +667,16 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <CardHeader>
                 <CardTitle className="app-panel-title">
                   <GitBranch className="h-4 w-4" />
-                  Branches / Alternate Canon
+                  Nhánh / Alternate Canon
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Branch data is saved to IndexedDB.
+                  Dữ liệu branch được lưu vào IndexedDB.
                 </p>
                 {isSavingBranchData ? (
                   <p className="text-xs text-muted-foreground">
-                    Saving branch data...
+                    Đang lưu dữ liệu branch...
                   </p>
                 ) : null}
                 {branchStorageError ? (
@@ -729,21 +729,21 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     onClick={handleCreateAlternateBranch}
                     disabled={isSavingBranchData}
                   >
-                    Create alternate branch
+                    Tạo nhánh thay thế
                   </Button>
                   <Button
                     type="button"
                     onClick={handleAddChangeToBranch}
                     disabled={isSavingBranchData}
                   >
-                    Add change to branch
+                    Thêm thay đổi vào branch
                   </Button>
                 </div>
 
                 {storyBranches.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
-                      Legacy mock branch notes
+                      Ghi chú legacy mock branch
                     </p>
                     {storyBranches.map((branch) => (
                       <div key={branch.id} className="app-list-item">
@@ -760,7 +760,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Change Set</p>
+                    <p className="text-sm font-medium">Change set</p>
                     <Badge variant="secondary">
                       {activeBranchChanges.length}
                     </Badge>
@@ -774,8 +774,8 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                             {change.type} · {change.impactScope}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {change.affectedChapterNumbers.length} affected
-                            chapters · {change.status}
+                            {change.affectedChapterNumbers.length} chương bị ảnh hưởng
+                            · {change.status}
                           </p>
                         </div>
                       ))
@@ -791,7 +791,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Continuity Issues</p>
+                    <p className="text-sm font-medium">Continuity issues</p>
                     <Badge variant="secondary">
                       {activeContinuityIssues.length}
                     </Badge>
@@ -805,8 +805,8 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                             <Badge variant="outline">{issue.severity}</Badge>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {issue.affectedChapterNumbers.length} affected
-                            chapters · {issue.status}
+                            {issue.affectedChapterNumbers.length} chương bị ảnh hưởng
+                            · {issue.status}
                           </p>
                         </div>
                       ))
@@ -831,9 +831,9 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     </CardTitle>
                     {selectedChapter ? (
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Chapter {selectedChapter.chapterNumber}
+                        Chương {selectedChapter.chapterNumber}
                         {typeof selectedChapter.wordCount === "number"
-                          ? ` · ${selectedChapter.wordCount.toLocaleString()} words`
+                          ? ` · ${selectedChapter.wordCount.toLocaleString("vi-VN")} từ`
                           : ""}
                       </p>
                     ) : null}
@@ -855,7 +855,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
                 {aiResult ? (
                   <div className="mt-4 rounded-lg border bg-muted/40 p-4">
-                    <p className="mb-2 text-sm font-medium">AI Output</p>
+                    <p className="mb-2 text-sm font-medium">Output AI</p>
                     <pre className="app-code-block">{aiResult}</pre>
                   </div>
                 ) : null}
@@ -868,7 +868,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <CardHeader>
                 <CardTitle className="app-panel-title">
                   <Bot className="h-4 w-4" />
-                  AI Assistant
+                  Trợ lý AI
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -897,7 +897,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                 <Separator />
 
                 <div>
-                  <p className="mb-2 text-sm font-medium">Canon adherence</p>
+                  <p className="mb-2 text-sm font-medium">Tuân thủ bản gốc</p>
                   <div className="grid gap-2 text-sm text-muted-foreground">
                     <button className="app-list-button">
                       Rất sát bản gốc
@@ -913,7 +913,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Chapter Inspector</CardTitle>
+                <CardTitle className="text-base">Chapter inspector</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChapterInspector
@@ -928,18 +928,18 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Characters</CardTitle>
+                <CardTitle className="text-base">Nhân vật</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {analysisResult ? (
                   <AnalysisEntityList
-                    emptyText="No characters detected."
+                    emptyText="Không tìm thấy nhân vật."
                     entities={analysisResult.characters}
                   />
                 ) : (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      No analysis result yet. Run analysis first.
+                      Chưa có kết quả analysis. Chạy analysis trước.
                     </p>
                     {storyCharacters.length > 0 ? (
                       storyCharacters.map((character) => (
@@ -972,7 +972,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                 ) : (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      No analysis result yet. Run analysis first.
+                      Chưa có kết quả analysis. Chạy analysis trước.
                     </p>
                     <div className="space-y-2">
                       {notes.length > 0 ? (
@@ -997,14 +997,14 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Story Events</CardTitle>
+                <CardTitle className="text-base">Story events</CardTitle>
               </CardHeader>
               <CardContent>
                 {analysisResult ? (
                   <StoryEventsList events={nearbyEvents} />
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No analysis result yet. Run analysis first.
+                    Chưa có kết quả analysis. Chạy analysis trước.
                   </p>
                 )}
               </CardContent>
@@ -1057,7 +1057,7 @@ function ChapterInspector({
   if (!chapter) {
     return (
       <p className="text-sm text-muted-foreground">
-        Select a chapter to inspect.
+        Chọn chương để kiểm tra.
       </p>
     );
   }
@@ -1065,36 +1065,35 @@ function ChapterInspector({
   return (
     <div className="space-y-4">
       <div className="grid gap-2 text-sm">
-        <InspectorRow label="Chapter" value={chapter.chapterNumber} />
-        <InspectorRow label="Title" value={chapter.title} />
+        <InspectorRow label="Chương" value={chapter.chapterNumber} />
+        <InspectorRow label="Tiêu đề" value={chapter.title} />
         {typeof chapter.wordCount === "number" ? (
           <InspectorRow
-            label="Word count"
-            value={chapter.wordCount.toLocaleString()}
+            label="Số từ"
+            value={chapter.wordCount.toLocaleString("vi-VN")}
           />
         ) : null}
         {chapter.status ? (
-          <InspectorRow label="Status" value={chapter.status} />
+          <InspectorRow label="Trạng thái" value={chapter.status} />
         ) : null}
         <InspectorRow
-          label="Content length"
-          value={chapter.content.length.toLocaleString()}
+          label="Độ dài nội dung"
+          value={chapter.content.length.toLocaleString("vi-VN")}
         />
         <InspectorRow
-          label="Source"
-          value={isImportedChapter ? "Imported chapter" : "Mock chapter"}
+          label="Nguồn"
+          value={isImportedChapter ? "Chương nhập khẩu" : "Chương mock"}
         />
       </div>
 
       <div className="rounded-md border bg-muted/30 p-3">
-        <p className="text-sm font-medium">Chunks</p>
+        <p className="text-sm font-medium">Chunk</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Chunk data is available in analysis dashboard. Chunk details will be
-          added after workspace chunk loading.
+          Dữ liệu chunk có sẵn trong dashboard analysis. Chi tiết chunk sẽ được thêm sau khi workspace chunk loading.
         </p>
       </div>
 
-      <InspectorSection title="Nearby Story Events">
+      <InspectorSection title="Sự kiện tiểu thuyết gần đó">
         {events.length > 0 ? (
           events.map((event) => (
             <div key={event.id} className="app-list-item">
@@ -1103,7 +1102,7 @@ function ChapterInspector({
                 <Badge variant="outline">{event.importance}</Badge>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Chapter {event.chapterNumber}
+                Chương {event.chapterNumber}
               </p>
               <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
                 {event.description}
@@ -1112,7 +1111,7 @@ function ChapterInspector({
           ))
         ) : (
           <p className="text-sm text-muted-foreground">
-            No events for this chapter.
+            Không có sự kiện cho chương này.
           </p>
         )}
       </InspectorSection>
@@ -1132,12 +1131,12 @@ function ChapterInspector({
           ))
         ) : (
           <p className="text-sm text-muted-foreground">
-            No branch changes affect this chapter.
+            Không có branch change ảnh hưởng đến chương này.
           </p>
         )}
       </InspectorSection>
 
-      <InspectorSection title="Continuity Issues">
+      <InspectorSection title="Continuity issues">
         {continuityIssues.length > 0 ? (
           continuityIssues.map((issue) => (
             <div key={issue.id} className="app-list-item">
@@ -1157,7 +1156,7 @@ function ChapterInspector({
           ))
         ) : (
           <p className="text-sm text-muted-foreground">
-            No continuity issues for this chapter.
+            Không có continuity issue cho chương này.
           </p>
         )}
       </InspectorSection>
@@ -1205,7 +1204,7 @@ function WorldBibleAnalysis({ result }: { result: StoryAnalysisResult }) {
       <WorldBibleSection title="Items" entities={result.items} />
       {style ? (
         <div>
-          <p className="mb-2 text-sm font-medium">Writing Style</p>
+          <p className="mb-2 text-sm font-medium">Writing style</p>
           <div className="app-list-item">
             <p className="text-xs text-muted-foreground">{style.tone}</p>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -1239,7 +1238,7 @@ function WorldBibleSection({
             </div>
           ))
         ) : (
-          <p className="text-sm text-muted-foreground">No entries detected.</p>
+          <p className="text-sm text-muted-foreground">Không phát hiện mục nào.</p>
         )}
       </div>
     </div>
@@ -1248,7 +1247,7 @@ function WorldBibleSection({
 
 function StoryEventsList({ events }: { events: StoryEvent[] }) {
   if (events.length === 0) {
-    return <p className="text-sm text-muted-foreground">No events detected.</p>;
+    return <p className="text-sm text-muted-foreground">Không có sự kiện được phát hiện.</p>;
   }
 
   return (
@@ -1260,7 +1259,7 @@ function StoryEventsList({ events }: { events: StoryEvent[] }) {
             <Badge variant="outline">{event.importance}</Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Chapter {event.chapterNumber}
+            Chương {event.chapterNumber}
           </p>
           <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
             {event.description}

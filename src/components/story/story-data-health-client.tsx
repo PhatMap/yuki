@@ -365,12 +365,12 @@ function buildWarnings({
 
   if (indexedDbError) warnings.push(`IndexedDB read error: ${indexedDbError}`);
   if (!indexedDb.story && !localStory)
-    warnings.push("Story record is missing.");
+    warnings.push("Thiếu bản ghi story.");
   if (
     indexedDb.chapters.length === 0 &&
     !legacyFallback.chapters.value?.length
   ) {
-    warnings.push("Story has no imported chapters.");
+    warnings.push("Story chưa có chapter đã import.");
   }
   if (!indexedDb.analysisResult && !legacyFallback.analysisResult.value) {
     warnings.push("Analysis result is missing.");
@@ -394,7 +394,7 @@ function buildWarnings({
     warnings.push("Rewrite drafts are missing or empty.");
   }
   if (!legacyFallback.settings.exists) {
-    warnings.push("Story settings are missing.");
+    warnings.push("Thiếu story settings.");
   }
   if (indexedDb.aiJobs.length > 0 && indexedDb.aiJobTasks.length === 0) {
     warnings.push("AI jobs exist but AI job tasks are missing.");
@@ -414,7 +414,7 @@ function buildWarnings({
 
   if (!indexedDb.story && localStory) {
     warnings.push(
-      "Legacy story fallback exists but IndexedDB story is missing.",
+      "Có legacy story fallback nhưng thiếu story trong IndexedDB.",
     );
   }
   if (
@@ -422,12 +422,12 @@ function buildWarnings({
     legacyFallback.chapters.value?.length
   ) {
     warnings.push(
-      "Legacy chapter fallback exists but IndexedDB chapters are missing.",
+      "Có legacy chapter fallback nhưng thiếu chapters trong IndexedDB.",
     );
   }
   if (!indexedDb.analysisResult && legacyFallback.analysisResult.value) {
     warnings.push(
-      "Legacy analysis fallback exists but IndexedDB analysis is missing.",
+      "Có legacy analysis fallback nhưng thiếu analysis trong IndexedDB.",
     );
   }
   if (
@@ -435,7 +435,7 @@ function buildWarnings({
     legacyFallback.rewriteDrafts.value?.length
   ) {
     warnings.push(
-      "Legacy rewrite draft fallback exists but IndexedDB drafts are missing.",
+      "Có legacy rewrite draft fallback nhưng thiếu drafts trong IndexedDB.",
     );
   }
 
@@ -513,14 +513,14 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       setActionMessage("Diagnostic summary copied as JSON.");
     } catch (error) {
       console.error("Failed to copy diagnostic summary", error);
-      setActionMessage("Could not copy diagnostic summary.");
+      setActionMessage("Không thể sao chép diagnostic summary.");
     }
   }
 
   async function handleClearSettings() {
     localStorage.removeItem(legacyFallbackKeys.settings(storyId));
     await handleRefreshInspection();
-    setActionMessage("Story settings key cleared.");
+    setActionMessage("Đã xóa key story settings.");
   }
 
   async function handleMigrateLegacyData() {
@@ -552,7 +552,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       Boolean(inspection.legacyFallback.rewriteDrafts.value?.length);
 
     if (!hasLegacyData) {
-      setActionMessage("No legacy story data found for this story.");
+      setActionMessage("Không tìm thấy legacy story data cho story này.");
       setIsMigratingLegacyData(false);
       return;
     }
@@ -576,7 +576,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
 
       clearLegacyStoryDataKeys(storyId);
       await handleRefreshInspection();
-      setActionMessage("Legacy story data migrated to IndexedDB and cleared.");
+      setActionMessage("Đã migrate legacy story data sang IndexedDB và dọn key cũ.");
     } catch (error) {
       console.error("Failed to migrate legacy story data", error);
       setActionMessage("Failed to migrate legacy story data.");
@@ -610,7 +610,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       const payload = await createStoryBackupPayload(storyId);
       const fileName = downloadStoryBackup(payload);
 
-      setActionMessage(`Story backup exported: ${fileName}`);
+      setActionMessage(`Đã export story backup: ${fileName}`);
     } catch (error) {
       console.error("Failed to export story backup", error);
       setActionMessage("Failed to export story backup.");
@@ -643,8 +643,8 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
       setBackupValidationResult(result);
       setActionMessage(
         result.isValid
-          ? "Story backup file is valid."
-          : "Story backup file has validation errors.",
+          ? "File story backup hợp lệ."
+          : "File story backup có lỗi validation.",
       );
     } catch (error) {
       console.error("Failed to validate story backup", error);
@@ -659,19 +659,19 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
     const payload = backupValidationResult?.payload;
 
     if (!payload) {
-      setActionMessage("No valid story backup is selected.");
+      setActionMessage("Chưa chọn story backup hợp lệ.");
       return;
     }
 
     if (payload.manifest.storyId !== storyId) {
       setActionMessage(
-        "Backup storyId does not match the current story. Restore was blocked.",
+        "Backup storyId không khớp story hiện tại. Đã chặn restore.",
       );
       return;
     }
 
     const confirmed = window.confirm(
-      "Restore this backup into the current story? This will overwrite the current local IndexedDB data for this story.",
+      "Restore backup này vào story hiện tại? Hành động sẽ ghi đè dữ liệu IndexedDB local hiện tại của story này.",
     );
 
     if (!confirmed) return;
@@ -717,7 +717,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
         <PageHeader
           eyebrow="Data Health"
           title="Story Data Health"
-          description="Inspect local IndexedDB story data, AI jobs, cache entries, and backup/restore readiness."
+          description="Kiểm tra dữ liệu tiểu thuyết cục bộ IndexedDB, AI job, cache entry và khả năng backup/restore."
           action={
             <>
               <Button
@@ -744,30 +744,28 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
         <SectionCard title="Local Data Safety">
           <div className="space-y-2">
             <DataHealthHint>
-              Yuki stores story data locally in IndexedDB.
+              Yuki lưu trữ dữ liệu tiểu thuyết cục bộ trong IndexedDB.
             </DataHealthHint>
             <DataHealthHint>
-              Backups are local JSON files; full story backups are handled per
-              story.
+              Backup là các tệp JSON cục bộ; full story backup được xử lý per story.
             </DataHealthHint>
             <DataHealthHint>
-              AI job/cache inspection helps debug Gemini batch runs and resume
-              failed work.
+              AI job/cache inspection giúp debug Gemini batch run và resume failed work.
             </DataHealthHint>
             <DataHealthHint>
-              Destructive actions are separated and should be used carefully.
+              Destructive action được tách biệt và nên sử dụng cẩn thận.
             </DataHealthHint>
           </div>
         </SectionCard>
 
         {!inspection ? (
           <EmptyState
-            title="No inspection loaded yet."
-            description="Refresh inspection to read IndexedDB and legacy fallback data for this story."
+            title="Chưa load inspection."
+            description="Refresh inspection để đọc dữ liệu IndexedDB và legacy fallback cho tiểu thuyết này."
             action={
               <Button type="button" onClick={handleRefreshInspection}>
                 <Database className="mr-2 h-4 w-4" />
-                Inspect story data
+                Kiểm tra dữ liệu tiểu thuyết
               </Button>
             }
           />
@@ -776,37 +774,37 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
               <StatCard
                 icon={<Database className="h-4 w-4" />}
-                title="Overall health"
+                title="Tổng thể health"
                 value={overallHealth}
               />
               <StatCard
                 icon={<BookOpen className="h-4 w-4" />}
-                title="Chapters"
+                title="Chương"
                 value={inspection.indexedDb.chapters.length}
-                description={`${inspection.legacyFallback.chapters.value?.length ?? 0} in legacy fallback`}
+                description={`${inspection.legacyFallback.chapters.value?.length ?? 0} trong legacy fallback`}
               />
               <StatCard
                 icon={<GitBranchIcon />}
-                title="Branch changes"
+                title="Branch change"
                 value={inspection.indexedDb.branchChanges.length}
-                description={`${inspection.legacyFallback.branchChanges.value?.length ?? 0} in legacy fallback`}
+                description={`${inspection.legacyFallback.branchChanges.value?.length ?? 0} trong legacy fallback`}
               />
               <StatCard
                 icon={<AlertTriangle className="h-4 w-4" />}
-                title="Warnings"
+                title="Cảnh báo"
                 value={inspection.warnings.length}
               />
               <StatCard
                 icon={<Database className="h-4 w-4" />}
-                title="AI jobs"
+                title="AI job"
                 value={inspection.indexedDb.aiJobs.length}
-                description={`${inspection.indexedDb.aiJobTasks.length} tasks`}
+                description={`${inspection.indexedDb.aiJobTasks.length} task`}
               />
               <StatCard
                 icon={<Database className="h-4 w-4" />}
                 title="AI cache"
                 value={inspection.indexedDb.aiJobCacheEntries.length}
-                description="cached task outputs"
+                description="cached task output"
               />
             </section>
 
@@ -818,18 +816,18 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       label="IndexedDB"
                       state={inspection.indexedDbError ? "error" : "healthy"}
                       value={
-                        inspection.indexedDbError ?? "Readable for this browser"
+                        inspection.indexedDbError ?? "Có thể đọc cho trình duyệt này"
                       }
                     />
                     <HealthRow
                       label="Legacy fallback"
                       state="healthy"
-                      value="Readable for this browser"
+                      value="Có thể đọc cho trình duyệt này"
                     />
                     <HealthRow
                       label="Inspected at"
                       state="healthy"
-                      value={new Date(inspection.inspectedAt).toLocaleString()}
+                      value={new Date(inspection.inspectedAt).toLocaleString("vi-VN")}
                     />
                     <HealthRow
                       label="Story id"
@@ -839,23 +837,23 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Story record health">
+                <SectionCard title="Tình trạng bản ghi story">
                   <div className="grid gap-3 md:grid-cols-2">
                     <HealthRow
-                      label="Story record"
+                      label="Bản ghi story"
                       state={getStateForRecord(
                         Boolean(inspection.indexedDb.story),
                         Boolean(localStory),
                       )}
-                      value={story?.title ?? "No story record"}
+                      value={story?.title ?? "Không có story record"}
                     />
                     <HealthRow
-                      label="Settings status"
+                      label="Trạng thái settings"
                       state={inspection.legacyFallback.settings.status}
                       value={
                         inspection.legacyFallback.settings.exists
-                          ? "Settings key exists"
-                          : "Settings missing"
+                          ? "Có settings key"
+                          : "Thiếu settings"
                       }
                     />
                     <HealthRow
@@ -867,7 +865,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       value={
                         inspection.indexedDb.analysisResult
                           ? "IndexedDB analysis found"
-                          : "No IndexedDB analysis"
+                          : "Không có IndexedDB analysis"
                       }
                     />
                     <HealthRow
@@ -879,7 +877,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       value={
                         inspection.indexedDb.analysisStatus
                           ? `${inspection.indexedDb.analysisStatus.analyzedChapters}/${inspection.indexedDb.analysisStatus.totalChapters} analyzed`
-                          : "No analysis status"
+                          : "Không có analysis status"
                       }
                     />
                   </div>
@@ -941,41 +939,39 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="AI job and cache state">
+                <SectionCard title="AI job và cache state">
                   <div className="mb-3 space-y-1">
                     <DataHealthHint>
-                      AI jobs and cache entries are used by Gemini Proxy batch
-                      analysis.
+                      AI job và cache entry được sử dụng bởi Gemini Proxy batch analysis.
                     </DataHealthHint>
                     <DataHealthHint>
-                      Cache hits can skip completed work.
+                      Cache hit có thể skip completed work.
                     </DataHealthHint>
                     <DataHealthHint>
-                      Failed or incomplete jobs may be resumable from the Story
-                      Analysis Dashboard.
+                      Failed hoặc incomplete job có thể resumable từ Story Analysis Dashboard.
                     </DataHealthHint>
                     <DataHealthHint>
-                      Clearing AI cache does not delete story text or chapters.
+                      Clearing AI cache không xóa story text hoặc chapter.
                     </DataHealthHint>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <HealthRow
-                      label="AI jobs"
+                      label="AI job"
                       state={getCountState(inspection.indexedDb.aiJobs.length)}
-                      value={`${inspection.indexedDb.aiJobs.length} job(s)`}
+                      value={`${inspection.indexedDb.aiJobs.length} job`}
                     />
                     <HealthRow
-                      label="AI job tasks"
+                      label="AI job task"
                       state={getCountState(inspection.indexedDb.aiJobTasks.length)}
-                      value={`${inspection.indexedDb.aiJobTasks.length} task(s)`}
+                      value={`${inspection.indexedDb.aiJobTasks.length} task`}
                     />
                     <HealthRow
-                      label="AI cache entries"
+                      label="AI cache entry"
                       state={getCountState(inspection.indexedDb.aiJobCacheEntries.length)}
-                      value={`${inspection.indexedDb.aiJobCacheEntries.length} cache entrie(s)`}
+                      value={`${inspection.indexedDb.aiJobCacheEntries.length} cache entry`}
                     />
                     <HealthRow
-                      label="Cache hits"
+                      label="Cache hit"
                       state={getCountState(
                         inspection.indexedDb.aiJobCacheEntries.reduce(
                           (total, entry) => total + entry.hitCount,
@@ -985,12 +981,12 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       value={`${inspection.indexedDb.aiJobCacheEntries.reduce(
                         (total, entry) => total + entry.hitCount,
                         0,
-                      )} hit(s)`}
+                      )} hit`}
                     />
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Recent AI jobs">
+                <SectionCard title="Recent AI job">
                   {inspection.indexedDb.aiJobs.length > 0 ? (
                     <div className="space-y-2">
                       {inspection.indexedDb.aiJobs.slice(0, 5).map((job) => (
@@ -1015,13 +1011,13 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   ) : (
                     <div className="app-list-item">
                       <p className="text-sm text-muted-foreground">
-                        No AI jobs found for this story.
+                        Không tìm thấy AI job cho tiểu thuyết này.
                       </p>
                     </div>
                   )}
                 </SectionCard>
 
-                <SectionCard title="Legacy fallback keys">
+                <SectionCard title="Legacy fallback key">
                   <div className="space-y-2">
                     {Object.values(inspection.legacyFallback).map((item) => (
                       <StorageKeyRow key={item.key} item={item} />
@@ -1031,7 +1027,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
               </div>
 
               <aside className="space-y-4">
-                <SectionCard title="Basic warnings">
+                <SectionCard title="Cảnh báo cơ bản">
                   {inspection.warnings.length > 0 ? (
                     <div className="space-y-2">
                       {inspection.warnings.map((warning) => (
@@ -1050,14 +1046,14 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-primary" />
                         <p className="text-sm text-muted-foreground">
-                          No basic warnings detected.
+                          Không phát hiện cảnh báo cơ bản.
                         </p>
                       </div>
                     </div>
                   )}
                 </SectionCard>
 
-                <SectionCard title="Safe actions">
+                <SectionCard title="Safe action">
                   <div className="space-y-3">
                     <Button
                       className="w-full"
@@ -1067,13 +1063,13 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                     >
                       <Database className="mr-2 h-4 w-4" />
                       {isMigratingLegacyData
-                        ? "Migrating legacy data..."
-                        : "Migrate legacy story data to IndexedDB"}
+                        ? "Đang migrate legacy data..."
+                        : "Migrate legacy story data vào IndexedDB"}
                     </Button>
                     <p className="app-muted-text">
-                      Migrates legacy story metadata/setup/data for this story
-                      into IndexedDB, then clears only those legacy story keys.
-                      UI settings are preserved.
+                      Migrate legacy story metadata/setup/data của story này
+                      vào IndexedDB, rồi chỉ xóa các legacy story key đó.
+                      UI settings vẫn được giữ nguyên.
                     </p>
 
                     <Button
@@ -1083,14 +1079,14 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       onClick={handleClearSettings}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Clear only story settings
+                      Clear chỉ story setting
                     </Button>
                     <p className="app-muted-text">
                       This only removes{" "}
                       <span className="font-mono">
                         {legacyFallbackKeys.settings(storyId)}
                       </span>
-                      . No delete-all control is provided here.
+                      . Không có nút xóa tất cả ở đây.
                     </p>
 
                     <Button
@@ -1101,12 +1097,12 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       onClick={handleExportStoryBackup}
                     >
                       <Database className="mr-2 h-4 w-4" />
-                      {isExportingStoryBackup ? "Exporting backup..." : "Export story backup JSON"}
+                      {isExportingStoryBackup ? "Đang export backup..." : "Export story backup JSON"}
                     </Button>
                     <p className="app-muted-text">
-                      Export creates a local JSON backup for the current story.
-                      App-level settings backup lives in Global Settings; full
-                      story content backup lives here.
+                      Export tạo file JSON backup local cho story hiện tại.
+                      Backup app-level settings nằm ở Global Settings; backup
+                      full story content nằm tại đây.
                     </p>
                     <div className="rounded-xl border bg-background p-3">
                       <label className="block">
@@ -1121,8 +1117,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       </label>
 
                       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Validate reads a backup file locally without writing
-                        data.
+                        Validate đọc file backup tại local mà không ghi dữ liệu.
                       </p>
                     </div>
 
@@ -1183,7 +1178,7 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                           </ul>
                         ) : (
                           <p className="mt-3 text-xs text-muted-foreground">
-                            No validation issues found.
+                            Không phát hiện lỗi validation.
                           </p>
                         )}
                       </div>
@@ -1200,14 +1195,14 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                         >
                           <Database className="mr-2 h-4 w-4" />
                           {isRestoringStoryBackup
-                            ? "Restoring backup..."
-                            : "Restore validated backup to this story"}
+                            ? "Đang restore backup..."
+                            : "Restore validated backup vào tiểu thuyết này"}
                         </Button>
 
                         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                          Restore is guarded and only allowed when backup
-                          storyId matches the current story. The restore
-                          overwrites local IndexedDB data for this story only.
+                          Restore được bảo vệ và chỉ cho phép khi backup
+                          storyId khớp với tiểu thuyết hiện tại. Restore sẽ
+                          ghi đè dữ liệu IndexedDB cục bộ cho đúng tiểu thuyết này.
                         </p>
                       </div>
                     ) : null}
@@ -1220,12 +1215,12 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                       onClick={handleClearAiCache}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      {isClearingAiCache ? "Clearing AI cache..." : "Clear AI cache for this story"}
+                      {isClearingAiCache ? "Đang clear AI cache..." : "Clear AI cache cho tiểu thuyết này"}
                     </Button>
                     <p className="app-muted-text">
-                      Clear AI cache removes cached AI task outputs for this
-                      story only. It does not delete chapters, story text, or
-                      saved analysis.
+                      Clear AI cache sẽ xóa cached output của AI task cho đúng
+                      story này. Nó không xóa chapters, story text hay analysis
+                      đã lưu.
                     </p>
                     {actionMessage ? (
                       <p className="app-muted-text">{actionMessage}</p>
@@ -1233,11 +1228,11 @@ export function StoryDataHealthClient({ storyId }: StoryDataHealthClientProps) {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Open story">
+                <SectionCard title="Mở story">
                   <Button asChild className="w-full" variant="outline">
                     <Link href={`/stories/${storyId}/workspace`}>
                       <BookOpen className="mr-2 h-4 w-4" />
-                      Open Workspace
+                      Mở Workspace
                     </Link>
                   </Button>
                 </SectionCard>
@@ -1287,7 +1282,7 @@ function StorageKeyRow<T>({ item }: { item: ParsedLegacyFallbackValue<T> }) {
           <p className="mt-1 text-xs text-muted-foreground">
             {item.exists
               ? `${getStorageValueCount(item.value)} item(s)`
-              : "Missing"}
+              : "Thiếu"}
             {item.error ? ` / ${item.error}` : ""}
           </p>
         </div>
