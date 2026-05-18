@@ -54,6 +54,7 @@ const GEMINI_PROXY_PRESET_ENDPOINT = "/api/proxy";
 interface GeminiProxyRemoteModel {
   id: string;
   displayName: string;
+  channel?: string;
   isGemini: boolean;
 }
 
@@ -127,6 +128,31 @@ function getActiveModel(settings: AiRuntimeSettings) {
   if (settings.providerId === "custom-openai") return settings.customOpenAiModel;
   if (settings.providerId === "ollama") return settings.ollamaModel;
   return settings.defaultModel;
+}
+
+function isGeminiProxyModelId(value: string) {
+  return value.toLowerCase().includes("gemini");
+}
+
+function getGeminiProxyModelLabel(input: {
+  id: string;
+  display_name?: unknown;
+}) {
+  return typeof input.display_name === "string" && input.display_name.trim()
+    ? input.display_name.trim()
+    : input.id;
+}
+
+function sortGeminiProxyModels(models: GeminiProxyRemoteModel[]) {
+  return [...models].sort((a, b) => {
+    const geminiRank = Number(b.isGemini) - Number(a.isGemini);
+    if (geminiRank !== 0) return geminiRank;
+
+    const channelRank = (a.channel ?? "").localeCompare(b.channel ?? "");
+    if (channelRank !== 0) return channelRank;
+
+    return a.displayName.localeCompare(b.displayName);
+  });
 }
 
 export function GlobalSettingsClient() {
@@ -232,8 +258,9 @@ export function GlobalSettingsClient() {
 
   function buildGeminiModelsEndpoint(endpoint: string) {
     const trimmed = endpoint.trim();
-    if (!trimmed) return "/api/proxy/v1/models";
-    if (trimmed === GEMINI_PROXY_PRESET_ENDPOINT) return "/api/proxy/v1/models";
+    if (!trimmed || trimmed === GEMINI_PROXY_PRESET_ENDPOINT) {
+      return "/api/proxy/v1/models";
+    }
 
     const normalized = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
     return `${normalized}/v1/models`;
@@ -258,6 +285,7 @@ export function GlobalSettingsClient() {
       }
 
       const payload = (await response.json()) as unknown;
+
       if (!payload || typeof payload !== "object") {
         setModelLoadMessage("Không thể tải models: response không hợp lệ.");
         return;
@@ -269,33 +297,32 @@ export function GlobalSettingsClient() {
         return;
       }
 
-      const parsedModels: GeminiProxyRemoteModel[] = [];
+      const nextModels: GeminiProxyRemoteModel[] = [];
+
       for (const item of record.data) {
         if (!item || typeof item !== "object") continue;
-        const modelRecord = item as Record<string, unknown>;
-        if (typeof modelRecord.id !== "string") continue;
+        const model = item as Record<string, unknown>;
+        if (typeof model.id !== "string") continue;
 
-        const id = modelRecord.id.trim();
+        const id = model.id.trim();
         if (!id) continue;
-        const displayName =
-          typeof modelRecord.display_name === "string" && modelRecord.display_name.trim()
-            ? modelRecord.display_name.trim()
-            : id;
-        parsedModels.push({
+        nextModels.push({
           id,
-          displayName,
-          isGemini: id.toLowerCase().includes("gemini"),
+          displayName: getGeminiProxyModelLabel({
+            id,
+            display_name: model.display_name,
+          }),
+          channel: typeof model.channel === "string" ? model.channel : undefined,
+          isGemini: isGeminiProxyModelId(id),
         });
       }
 
-      const uniqueById = new Map<string, GeminiProxyRemoteModel>();
-      parsedModels.forEach((model) => uniqueById.set(model.id, model));
-      const merged = Array.from(uniqueById.values()).sort((left, right) =>
-        left.displayName.localeCompare(right.displayName),
-      );
+      const unique = new Map<string, GeminiProxyRemoteModel>();
+      nextModels.forEach((model) => unique.set(model.id, model));
+      const sorted = sortGeminiProxyModels(Array.from(unique.values()));
 
-      setGeminiProxyModels(merged);
-      setModelLoadMessage(`Đã tải ${merged.length} model.`);
+      setGeminiProxyModels(sorted);
+      setModelLoadMessage(`Đã tải ${sorted.length} model.`);
     } catch (error) {
       console.error("Failed to load Gemini Proxy models", error);
       setModelLoadMessage(
@@ -394,6 +421,30 @@ export function GlobalSettingsClient() {
     () => settings.defaultModel.trim(),
     [settings.defaultModel],
   );
+  const geminiProxySelectOptions = useMemo(() => {
+    const loadedModels =
+      geminiProxyModels.length > 0
+        ? geminiProxyModels.filter((model) => model.isGemini)
+        : geminiProxyModelOptions.map((model) => ({
+            id: model,
+            displayName: model,
+            isGemini: true,
+          }));
+
+    const currentModel = settings.defaultModel.trim();
+    const exists = loadedModels.some((model) => model.id === currentModel);
+
+    if (exists || !currentModel) return loadedModels;
+
+    return [
+      ...loadedModels,
+      {
+        id: currentModel,
+        displayName: `${currentModel} (giữ cấu hình hiện tại)`,
+        isGemini: currentModel.toLowerCase().includes("gemini"),
+      },
+    ];
+  }, [geminiProxyModels, settings.defaultModel]);
   const geminiModelsOnly = useMemo(
     () => geminiProxyModels.filter((model) => model.isGemini),
     [geminiProxyModels],
@@ -527,7 +578,6 @@ export function GlobalSettingsClient() {
                 </div>
 
                 <ProviderKeySection
-                  providerId="gemini-proxy"
                   title="API key Gemini Proxy"
                   keys={providerKeys["gemini-proxy"]}
                   draft={keyDrafts["gemini-proxy"]}
@@ -538,9 +588,9 @@ export function GlobalSettingsClient() {
                   onDelete={(id) => void handleDeleteKey(id)}
                 />
 
-                <p className="text-xs text-muted-foreground">
-                  API key được lưu cục bộ trong trình duyệt dưới dạng plaintext.
-                </p>
+                  <p className="text-xs text-muted-foreground">
+                    API key Gemini Proxy được lưu cục bộ trong trình duyệt. Key này không dùng chung với Custom OpenAI-compatible.
+                  </p>
 
                 <div className="rounded-xl border bg-background p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -571,29 +621,23 @@ export function GlobalSettingsClient() {
                         updateSetting("defaultModel", event.target.value)
                       }
                     >
-                      {geminiModelsOnly.length > 0
-                        ? geminiModelsOnly.map((model) => (
-                            <option key={model.id} value={model.id}>
-                              {model.displayName}
-                            </option>
-                          ))
-                        : geminiProxyModelOptions.map((model) => (
-                            <option key={model} value={model}>
-                              {model}
-                            </option>
-                          ))}
-                      {!geminiModelsOnly.some(
-                        (model) => model.id === settings.defaultModel,
-                      ) ? (
-                        <option value={settings.defaultModel}>
-                          {settings.defaultModel} (giữ cấu hình hiện tại)
+                      {geminiProxySelectOptions.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.displayName}
                         </option>
-                      ) : null}
+                      ))}
                     </select>
                   </div>
-                  {geminiModelsOnly.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {geminiModelsOnly.slice(0, 8).map((model) => (
+                  {geminiProxyModels.length > 0 ? (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted-foreground">
+                        Danh sách model Gemini Proxy: {geminiProxyModels.length} model
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {geminiProxyModels
+                          .filter((model) => model.isGemini)
+                          .slice(0, 12)
+                          .map((model) => (
                         <Button
                           key={model.id}
                           type="button"
@@ -605,7 +649,8 @@ export function GlobalSettingsClient() {
                         >
                           {model.displayName}
                         </Button>
-                      ))}
+                          ))}
+                      </div>
                     </div>
                   ) : null}
                   {nonGeminiModels.length > 0 ? (
@@ -661,7 +706,6 @@ export function GlobalSettingsClient() {
                   </select>
                 </div>
                 <ProviderKeySection
-                  providerId="gemini-direct"
                   title="API key Gemini Direct"
                   keys={providerKeys["gemini-direct"]}
                   draft={keyDrafts["gemini-direct"]}
@@ -694,7 +738,6 @@ export function GlobalSettingsClient() {
                   placeholder="gpt-4o-mini / custom-model"
                 />
                 <ProviderKeySection
-                  providerId="custom-openai"
                   title="API key Custom OpenAI-compatible"
                   keys={providerKeys["custom-openai"]}
                   draft={keyDrafts["custom-openai"]}
@@ -728,25 +771,25 @@ export function GlobalSettingsClient() {
           </SectionCard>
 
           <SectionCard title="3) Test kết nối">
-            <Button
-              type="button"
-              className="h-11 px-6"
-              onClick={handleTestProvider}
-              disabled={isLoading || isTestingProvider}
-            >
-              <TestTube className="mr-2 h-4 w-4" />
-              {isTestingProvider ? "Đang test..." : "Test kết nối"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                className="h-10 px-4"
+                onClick={handleTestProvider}
+                disabled={isLoading || isTestingProvider}
+              >
+                <TestTube className="mr-2 h-4 w-4" />
+                {isTestingProvider ? "Đang test..." : "Test kết nối"}
+              </Button>
 
-            {testMessage ? <p className="mt-3 text-sm text-muted-foreground">{testMessage}</p> : null}
-
-            {readiness?.isReady ? (
-              <div className="mt-4">
+              {readiness?.isReady ? (
                 <Button asChild>
                   <Link href="/stories/import">Bắt đầu nạp truyện</Link>
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
+
+            {testMessage ? <p className="mt-3 text-sm text-muted-foreground">{testMessage}</p> : null}
           </SectionCard>
 
           <details className="rounded-xl border bg-card/70">
@@ -809,7 +852,6 @@ function SettingInput({
 }
 
 function ProviderKeySection({
-  providerId,
   title,
   keys,
   draft,
@@ -819,7 +861,6 @@ function ProviderKeySection({
   onAddBulk,
   onDelete,
 }: {
-  providerId: ApiKeyProviderId;
   title: string;
   keys: AiProviderApiKeyRecord[];
   draft: ProviderKeyDraft;
@@ -831,63 +872,76 @@ function ProviderKeySection({
 }) {
   return (
     <div className="rounded-xl border bg-background p-3">
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium">{title}</p>
-        <span className="app-chip">{keys.length} key</span>
+        <span className="text-xs text-muted-foreground">{keys.length} key</span>
       </div>
 
-      <div className="flex gap-2">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <Input
           value={draft.single}
           onChange={(event) => onDraftChange({ single: event.target.value })}
-          placeholder={`Thêm 1 key cho ${providerId}`}
+          placeholder="Dán 1 API key..."
+          className="font-mono text-xs"
         />
-        <Button type="button" onClick={onAddSingle} disabled={isMutating}>
+        <Button
+          type="button"
+          onClick={onAddSingle}
+          disabled={isMutating || !draft.single.trim()}
+        >
           Thêm key
         </Button>
       </div>
 
-      <details className="mt-2 rounded-lg border bg-muted/20">
+      <details className="mt-3 rounded-lg border bg-muted/20">
         <summary className="cursor-pointer px-3 py-2 text-sm">Nhập nhiều key</summary>
         <div className="space-y-2 border-t p-3">
           <Textarea
-            className="min-h-24"
+            className="min-h-28 font-mono text-xs"
             value={draft.bulk}
             onChange={(event) => onDraftChange({ bulk: event.target.value })}
-            placeholder="Mỗi dòng một key"
+            placeholder="Mỗi dòng một API key..."
           />
-          <Button type="button" onClick={onAddBulk} disabled={isMutating}>
-            Thêm tất cả key hợp lệ
+          <Button
+            type="button"
+            size="sm"
+            onClick={onAddBulk}
+            disabled={isMutating || !draft.bulk.trim()}
+          >
+            Thêm nhiều key
           </Button>
         </div>
       </details>
 
-      <div className="mt-3 max-h-56 space-y-2 overflow-auto pr-1">
-        {keys.length > 0 ? (
-          keys.map((key) => (
+      {keys.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {keys.map((key, index) => (
             <div
               key={key.id}
-              className="flex items-center justify-between gap-2 rounded-lg border px-2 py-2"
+              className="flex items-center justify-between gap-2 rounded-lg border bg-muted/20 px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="truncate text-xs font-medium">{key.maskedKey}</p>
-                <p className="text-[11px] text-muted-foreground">{formatDateTime(key.updatedAt)}</p>
+                <p className="text-xs text-muted-foreground">Key {index + 1}</p>
+                <code className="block truncate text-xs">{key.maskedKey}</code>
+                <p className="text-[11px] text-muted-foreground">
+                  {formatDateTime(key.updatedAt)}
+                </p>
               </div>
               <Button
                 type="button"
-                variant="ghost"
                 size="sm"
+                variant="ghost"
                 onClick={() => onDelete(key.id)}
                 disabled={isMutating}
               >
                 Xóa
               </Button>
             </div>
-          ))
-        ) : (
-          <p className="text-xs text-muted-foreground">Chưa có API key.</p>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-muted-foreground">Chưa có key.</p>
+      )}
     </div>
   );
 }
