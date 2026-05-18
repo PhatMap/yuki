@@ -68,6 +68,7 @@ import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface StoryAnalysisClientProps {
   storyId: string;
@@ -91,6 +92,21 @@ interface LocalAnalysisJobState {
   percentComplete: number;
   message?: string;
 }
+
+type WorkflowStep =
+  | "import"
+  | "scout"
+  | "deep"
+  | "canon-pack"
+  | "bible";
+
+type ScoutCoverageFilter =
+  | "all"
+  | "missing-scout"
+  | "missing-digest"
+  | "missing-deep"
+  | "fallback"
+  | "error";
 
 async function readIndexedDbDashboardData(storyId: string) {
   const [story, chapters, chunks, analysisStatus, analysisResult] =
@@ -169,6 +185,12 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     useState<ResumableStoryAnalysisJobSummary | null>(null);
   const [isLoadingResumableJob, setIsLoadingResumableJob] = useState(false);
   const [isResumingBatch, setIsResumingBatch] = useState(false);
+  const [scoutSearch, setScoutSearch] = useState("");
+  const [scoutFilter, setScoutFilter] = useState<ScoutCoverageFilter>("all");
+  const [deepPreset, setDeepPreset] = useState("ai-auto");
+  const [deepFromChapter, setDeepFromChapter] = useState("");
+  const [deepToChapter, setDeepToChapter] = useState("");
+  const [deepCharacter, setDeepCharacter] = useState("");
   const analysisAbortControllerRef = useRef<AbortController | null>(null);
   const runtimeConfig = useMemo(() => getPublicRuntimeConfig(), []);
 
@@ -285,6 +307,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
       : 0;
   const chunkProgress = chunks.length > 0 ? 100 : 0;
   const hasDashboardData = Boolean(story) || chapters.length > 0;
+  const hasImportedData = chapters.length > 0;
   const runtimeProviderLabel = runtimeSettings
     ? getAiRuntimeProviderLabel(runtimeSettings.providerId)
     : "Đang tải";
@@ -299,6 +322,137 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const canUseLocalAggregatedAnalysis =
     runtimeSettings?.providerId === "mock" ||
     runtimeSettings?.providerId === "gemini-proxy";
+
+  const scoutCoveragePercent = totalChapters
+    ? Math.round((parsedChapters / totalChapters) * 100)
+    : 0;
+  const deepCoveragePercent = totalChapters
+    ? Math.round((analyzedChapters / totalChapters) * 100)
+    : 0;
+  const canonReadinessPercent = Math.min(
+    100,
+    Math.round(scoutCoveragePercent * 0.4 + deepCoveragePercent * 0.6),
+  );
+  const canonReadinessLevel =
+    canonReadinessPercent >= 80
+      ? "Sẵn sàng"
+      : canonReadinessPercent >= 50
+        ? "Đang hoàn thiện"
+        : "Chưa sẵn sàng";
+
+  const selectedDeepChapterNumbers = useMemo(() => {
+    const numbers = chapters.map((chapter) => chapter.chapterNumber);
+    if (!numbers.length) return [];
+
+    const minChapter = Math.min(...numbers);
+    const maxChapter = Math.max(...numbers);
+    const from = Number(deepFromChapter);
+    const to = Number(deepToChapter);
+    const fromValue = Number.isFinite(from) ? from : minChapter;
+    const toValue = Number.isFinite(to) ? to : maxChapter;
+
+    return numbers.filter(
+      (number) =>
+        number >= Math.min(fromValue, toValue) &&
+        number <= Math.max(fromValue, toValue),
+    );
+  }, [chapters, deepFromChapter, deepToChapter]);
+
+  const selectedDeepChapterCount = selectedDeepChapterNumbers.length;
+  const deepTargetCoverage = totalChapters
+    ? Math.round((selectedDeepChapterCount / totalChapters) * 100)
+    : 0;
+  const estimatedTokens = selectedDeepChapterCount * 3200;
+  const estimatedRequests = Math.max(1, Math.ceil(selectedDeepChapterCount / 5));
+
+  const currentWorkflowStep: WorkflowStep = !hasImportedData
+    ? "import"
+    : parsedChapters === 0
+      ? "scout"
+      : analyzedChapters === 0
+        ? "deep"
+        : canonReadinessPercent < 80
+          ? "canon-pack"
+          : "bible";
+
+  const nextActionLabel =
+    currentWorkflowStep === "import"
+      ? "Upload file truyện"
+      : currentWorkflowStep === "scout"
+        ? "Quét nhanh"
+        : currentWorkflowStep === "deep"
+          ? "Tạo bản đồ arc / Chọn phân tích sâu"
+          : currentWorkflowStep === "canon-pack"
+            ? "Dựng Canon Pack"
+            : currentWorkflowStep === "bible"
+              ? "Đưa vào Story Bible"
+              : "Mở editor / Viết truyện";
+
+  const scoutRows = useMemo(() => {
+    return chapters.map((chapter) => {
+      const chunkCount = chunkCountsByChapterId[chapter.id] ?? 0;
+      const isDeep = chapter.status === "analyzed" || chunkCount >= 5;
+      const isDigest = chunkCount >= 2;
+      const isFallback = chunkCount === 0;
+      const isError = chapter.status === "failed";
+
+      const badges: string[] = [];
+      if (isDeep) {
+        badges.push("Nạp sâu - Cao");
+      } else if (isDigest) {
+        badges.push("Nạp nhẹ - Vừa");
+      }
+      if (!isDigest) badges.push("Thiếu digest");
+      if (!isDeep) badges.push("Thiếu deep");
+      if (isFallback) badges.push("Fallback");
+      if (isError) badges.push("Lỗi");
+
+      return {
+        chapter,
+        chunkCount,
+        isDeep,
+        isDigest,
+        isFallback,
+        isError,
+        badges,
+      };
+    });
+  }, [chapters, chunkCountsByChapterId]);
+
+  const filteredScoutRows = useMemo(() => {
+    const keyword = scoutSearch.trim().toLowerCase();
+
+    return scoutRows.filter((row) => {
+      const matchSearch =
+        !keyword ||
+        String(row.chapter.chapterNumber).includes(keyword) ||
+        row.chapter.title.toLowerCase().includes(keyword);
+      if (!matchSearch) return false;
+
+      if (scoutFilter === "all") return true;
+      if (scoutFilter === "missing-scout") return row.chunkCount === 0;
+      if (scoutFilter === "missing-digest") return !row.isDigest;
+      if (scoutFilter === "missing-deep") return !row.isDeep;
+      if (scoutFilter === "fallback") return row.isFallback;
+      if (scoutFilter === "error") return row.isError;
+
+      return true;
+    });
+  }, [scoutRows, scoutSearch, scoutFilter]);
+
+  const scoutResultCards = useMemo(() => {
+    return filteredScoutRows.slice(0, 6).map((row) => ({
+      chapterNumber: row.chapter.chapterNumber,
+      title: row.chapter.title,
+      decision: row.isDeep ? "Nạp sâu" : row.isDigest ? "Nạp nhẹ" : "Bỏ qua",
+      reason: row.isDeep
+        ? "Nhiều tín hiệu nhân vật/sự kiện đáng theo dõi."
+        : row.isDigest
+          ? "Có thông tin bối cảnh, nên nạp ở mức vừa."
+          : "Ít tín hiệu nổi bật ở lượt quét nhanh.",
+      tags: row.badges.slice(0, 3),
+    }));
+  }, [filteredScoutRows]);
 
   function createAnalysisAbortController() {
     analysisAbortControllerRef.current?.abort();
@@ -907,6 +1061,341 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               label="Tiến trình phân tích"
               description={`Đã phân tích ${analyzedChapters.toLocaleString("vi-VN")} / ${totalChapters.toLocaleString("vi-VN")} chương`}
             />
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Việc tiếp theo">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{nextActionLabel}</p>
+            {currentWorkflowStep === "import" ? (
+              <Button asChild size="sm">
+                <Link href="/stories/import">Upload file truyện</Link>
+              </Button>
+            ) : currentWorkflowStep === "scout" ? (
+              <Button size="sm" disabled>
+                Quét nhanh (sắp có)
+              </Button>
+            ) : currentWorkflowStep === "deep" ? (
+              <Button size="sm" disabled>
+                Chọn phân tích sâu (sắp có)
+              </Button>
+            ) : currentWorkflowStep === "canon-pack" ? (
+              <Button size="sm" disabled>
+                Dựng Canon Pack (sắp có)
+              </Button>
+            ) : (
+              <Button size="sm" disabled>
+                Đưa vào Story Bible (sắp có)
+              </Button>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Workflow">
+          <div className="grid gap-2 md:grid-cols-5">
+            {[
+              { id: "import", label: "Nạp liệu" },
+              { id: "scout", label: "Quét nhanh" },
+              { id: "deep", label: "Phân tích sâu" },
+              { id: "canon-pack", label: "Canon Pack" },
+              { id: "bible", label: "Đưa vào Story Bible" },
+            ].map((step) => (
+              <div
+                key={step.id}
+                className={
+                  currentWorkflowStep === step.id
+                    ? "rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium"
+                    : "rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground"
+                }
+              >
+                {step.label}
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Quét nhanh"
+          description="Quét mẫu từng chương bằng AI để tìm chương đáng chú ý, reveal, worldbuilding, đổi quan hệ và chương nên nạp sâu."
+        >
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ["all", "Tất cả"],
+                  ["missing-scout", "Thiếu Scout"],
+                  ["missing-digest", "Thiếu digest"],
+                  ["missing-deep", "Thiếu deep"],
+                  ["fallback", "Fallback"],
+                  ["error", "Lỗi"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={
+                      scoutFilter === value ? "app-chip-primary" : "app-chip"
+                    }
+                    onClick={() => setScoutFilter(value as ScoutCoverageFilter)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Input
+                value={scoutSearch}
+                onChange={(event) => setScoutSearch(event.target.value)}
+                placeholder="Tìm chương..."
+              />
+
+              <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
+                {filteredScoutRows.map((row) => (
+                  <div key={row.chapter.id} className="rounded-lg border p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">
+                        Chương {row.chapter.chapterNumber} - {row.chapter.title}
+                      </p>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/stories/${storyId}/reader?chapter=${row.chapter.chapterNumber}`}>
+                          Mở chương
+                        </Link>
+                      </Button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {row.badges.map((badge) => (
+                        <span
+                          key={`${row.chapter.id}-${badge}`}
+                          className={badge.includes("Nạp sâu") ? "app-chip-primary" : "app-chip"}
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-sm font-medium">AI scan panel</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Mục tiêu, Bộ lọc, Tìm kết quả
+                </p>
+                <div className="mt-3 grid gap-2">
+                  <Button size="sm" disabled>Quét chương</Button>
+                  <Button size="sm" variant="outline" disabled>Quét lại tất cả</Button>
+                  <Button size="sm" variant="outline" disabled>Tạm dừng</Button>
+                  <Button size="sm" variant="outline" disabled>Hủy</Button>
+                  <Button size="sm" variant="outline" disabled>Thử lại lỗi</Button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-sm font-medium">Bản đồ arc</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Gom kết quả quét thành mạch truyện để chọn phần cần nạp sâu.
+                </p>
+                <Button className="mt-3 w-full" size="sm" variant="outline" disabled>
+                  Tạo arc
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {scoutResultCards.map((result) => (
+              <div key={`${result.chapterNumber}-${result.title}`} className="rounded-lg border p-3">
+                <p className="text-sm font-medium">
+                  Chương {result.chapterNumber} - {result.decision}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{result.reason}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {result.tags.map((tag) => (
+                    <span key={tag} className="app-chip">{tag}</span>
+                  ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/stories/${storyId}/reader?chapter=${result.chapterNumber}`}>
+                      Mở chương
+                    </Link>
+                  </Button>
+                  <Button size="sm" disabled>
+                    Chọn phân tích sâu
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Phân tích sâu"
+          description="Chọn phần quan trọng để AI đọc kỹ, thay vì bắt tác giả lần tay qua danh sách dài."
+        >
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-1">
+                  <label className="text-sm font-medium">Preset</label>
+                  <select
+                    className="h-10 rounded-md border bg-background px-3 text-sm"
+                    value={deepPreset}
+                    onChange={(event) => setDeepPreset(event.target.value)}
+                  >
+                    <option value="ai-auto">AI tự chọn phần quan trọng</option>
+                    <option value="arc">Arc quan trọng</option>
+                    <option value="reveal-world-rel">Reveal / worldbuilding / quan hệ</option>
+                    <option value="sensitive">Cảnh 18+ / nhạy cảm</option>
+                    <option value="chapter-range">Khoảng chương</option>
+                    <option value="character">Nhân vật xuất hiện</option>
+                    <option value="missing-digest">Mọi chương còn thiếu digest</option>
+                  </select>
+                </div>
+                <div className="grid gap-1">
+                  <label className="text-sm font-medium">Nhân vật</label>
+                  <Input
+                    value={deepCharacter}
+                    onChange={(event) => setDeepCharacter(event.target.value)}
+                    placeholder="Tên nhân vật"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-1">
+                  <label className="text-sm font-medium">Từ chương</label>
+                  <Input
+                    value={deepFromChapter}
+                    onChange={(event) => setDeepFromChapter(event.target.value)}
+                    placeholder="1"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <label className="text-sm font-medium">Đến chương</label>
+                  <Input
+                    value={deepToChapter}
+                    onChange={(event) => setDeepToChapter(event.target.value)}
+                    placeholder={String(totalChapters || "")}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-background p-3 text-sm">
+                <p>{selectedDeepChapterCount.toLocaleString("vi-VN")} chương được chọn</p>
+                <p className="mt-1 text-muted-foreground">
+                  Độ phủ sau chạy: {deepTargetCoverage}%
+                </p>
+              </div>
+
+              <details className="rounded-xl border bg-background p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Ước tính kỹ thuật
+                </summary>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <p>{estimatedTokens.toLocaleString("vi-VN")} token</p>
+                  <p>{estimatedRequests.toLocaleString("vi-VN")} request dự kiến</p>
+                </div>
+              </details>
+
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled>Để AI tự chọn phần quan trọng</Button>
+                <Button size="sm" variant="outline" disabled>
+                  Phân tích mọi chương còn thiếu digest
+                </Button>
+                <Button size="sm" onClick={handleStartAnalysis} disabled={isSavingAnalysis || !hasImportedData}>
+                  Chạy phân tích sâu
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleCancelAnalysisJob} disabled={!isSavingAnalysis}>
+                  Dừng
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-sm font-medium">Arc đã chọn</p>
+                <p className="mt-1 text-xs text-muted-foreground">Chưa có arc được chọn.</p>
+              </div>
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-sm font-medium">Danh sách chương đã chọn</p>
+                <div className="mt-2 max-h-40 space-y-1 overflow-auto pr-1 text-xs text-muted-foreground">
+                  {selectedDeepChapterNumbers.length > 0 ? (
+                    selectedDeepChapterNumbers.map((number) => (
+                      <p key={number}>Chương {number}</p>
+                    ))
+                  ) : (
+                    <p>Chưa chọn chương nào.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Dùng Canon Pack để viết"
+          description="Gộp kết quả quét, bản đồ arc và phân tích sâu thành bộ nhớ tác giả có thể dùng ngay trong dự án."
+        >
+          <div className="rounded-xl border bg-background p-3">
+            <p className="text-sm font-medium">
+              {canonReadinessLevel} - {canonReadinessPercent}%
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${canonReadinessPercent}%` }}
+              />
+            </div>
+            {canonReadinessPercent < 80 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Chưa đủ vì thiếu: coverage. Dùng Deep Selection Planner để tăng độ phủ chương/arc trọng tâm.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" disabled>Dựng Canon Pack</Button>
+            <Button size="sm" variant="outline" disabled>Dùng cho dự án này</Button>
+            <Button size="sm" variant="outline" disabled>Tạo project đồng nhân từ Canon Pack</Button>
+            <Button size="sm" variant="outline" disabled>Mở editor với Canon Pack</Button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {["Tổng quan", "Nhân vật", "Quan hệ", "Timeline", "Style", "Cấm phá canon", "Vùng trống"].map((tab) => (
+              <span key={tab} className="app-chip">{tab}</span>
+            ))}
+          </div>
+
+          <div className="mt-3 rounded-xl border bg-background p-3">
+            <p className="text-sm font-medium">Gợi ý dùng để viết</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Các vùng trống và unresolved threads sẽ hiển thị ở đây sau khi Canon Pack được dựng.
+            </p>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Đưa vào Story Bible"
+          description="Bước này không bắt buộc. Duyệt các mục sẽ thêm hoặc cập nhật trước khi ghi vào dự án."
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-1">
+              <label className="text-sm font-medium">Canon Pack selector</label>
+              <select className="h-10 rounded-md border bg-background px-3 text-sm" disabled>
+                <option>Chưa có Canon Pack</option>
+              </select>
+            </div>
+            <div className="grid gap-1">
+              <label className="text-sm font-medium">Dự án</label>
+              <select className="h-10 rounded-md border bg-background px-3 text-sm" disabled>
+                <option>{story?.title ?? "Dự án hiện tại"}</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" disabled>Tạo bản duyệt</Button>
+            <Button size="sm" variant="outline" disabled>Áp dụng 0 mục đã duyệt</Button>
           </div>
         </SectionCard>
 
