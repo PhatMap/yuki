@@ -68,7 +68,6 @@ import { SectionCard } from "@/components/app/section-card";
 import { StatCard } from "@/components/app/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { AiSetupBlockingCard } from "@/components/settings/ai-setup-blocking-card";
 import { getAiSetupReadiness, type AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 
@@ -101,14 +100,6 @@ type WorkflowStep =
   | "deep"
   | "canon-pack"
   | "bible";
-
-type ScoutCoverageFilter =
-  | "all"
-  | "missing-scout"
-  | "missing-digest"
-  | "missing-deep"
-  | "fallback"
-  | "error";
 
 async function readIndexedDbDashboardData(storyId: string) {
   const [story, chapters, chunks, analysisStatus, analysisResult] =
@@ -187,12 +178,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
     useState<ResumableStoryAnalysisJobSummary | null>(null);
   const [isLoadingResumableJob, setIsLoadingResumableJob] = useState(false);
   const [isResumingBatch, setIsResumingBatch] = useState(false);
-  const [scoutSearch, setScoutSearch] = useState("");
-  const [scoutFilter, setScoutFilter] = useState<ScoutCoverageFilter>("all");
-  const [deepPreset, setDeepPreset] = useState("ai-auto");
-  const [deepFromChapter, setDeepFromChapter] = useState("");
-  const [deepToChapter, setDeepToChapter] = useState("");
-  const [deepCharacter, setDeepCharacter] = useState("");
+  const [scoutSearch] = useState("");
+  const [scoutFilter] = useState("all");
+  const [deepFromChapter] = useState("");
+  const [deepToChapter] = useState("");
   const [setupReadiness, setSetupReadiness] = useState<AiSetupReadiness>();
   const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const analysisAbortControllerRef = useRef<AbortController | null>(null);
@@ -353,6 +342,13 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const isAnalysisRunning = isSavingAnalysis || isLocalJobRunning;
   const hasAnalysisFailed = localJobState?.status === "failed";
   const hasAnalysisCompleted = localJobState?.status === "completed";
+  const workflowStep = !hasImportedData
+    ? "import"
+    : isAnalysisRunning
+      ? "analysis-running"
+      : analysisResult
+        ? "completed"
+        : "analysis-ready";
   const analysisProgressLabel = localJobState
     ? `Đang chạy ${localJobState.completedTasks.toLocaleString("vi-VN")} / ${localJobState.totalTasks.toLocaleString("vi-VN")} request`
     : `Đã phân tích ${analyzedChapters.toLocaleString("vi-VN")} / ${totalChapters.toLocaleString("vi-VN")} chương`;
@@ -1075,7 +1071,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 }
               >
                 <Play className="mr-2 h-4 w-4" />
-                {isSavingAnalysis ? "Đang chạy..." : "Chạy phân tích"}
+                {isAnalysisRunning ? "Đang phân tích..." : "Chạy phân tích"}
               </Button>
 
               {isLocalJobRunning ? (
@@ -1084,7 +1080,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                   variant="outline"
                   onClick={handleCancelAnalysisJob}
                 >
-                  Hủy local job
+                  Hủy
                 </Button>
               ) : null}
 
@@ -1111,57 +1107,119 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           <StoryAnalysisHint>
             Yuki đang đọc các chương đã nhập để tạo context canon cho đọc và rewrite.
           </StoryAnalysisHint>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {isAnalysisRunning ? <span className="app-chip">Đang phân tích...</span> : null}
+            {hasAnalysisFailed ? (
+              <span className="app-chip border-destructive/40 bg-destructive/10 text-destructive">
+                Thất bại
+              </span>
+            ) : null}
+            {hasAnalysisCompleted || analysisResult ? (
+              <span className="app-chip-primary">Hoàn tất</span>
+            ) : null}
+          </div>
           <div className="mt-3">
             <ProgressMeter
               value={analysisProgress}
               label="Tiến trình phân tích"
-              description={`Đã phân tích ${analyzedChapters.toLocaleString("vi-VN")} / ${totalChapters.toLocaleString("vi-VN")} chương`}
+              description={analysisProgressLabel}
             />
           </div>
         </SectionCard>
 
         <SectionCard title="Việc tiếp theo">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">{nextActionLabel}</p>
-            {isAnalysisRunning ? (
-              <span className="app-chip">Đang phân tích... {analysisProgressLabel}</span>
+          <div className="space-y-3">
+            {workflowStep === "import" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Chưa có chương đã nhập. Hãy nạp truyện trước khi chạy analysis.
+                </p>
+                <Button asChild size="sm">
+                  <Link href="/stories/import">Nạp truyện</Link>
+                </Button>
+              </>
             ) : null}
+
+            {workflowStep === "analysis-ready" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Đã có chương. Bước tiếp theo là chạy analysis.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleStartAnalysis}
+                  disabled={isLoading || chapters.length === 0 || isAnalysisRunning}
+                >
+                  Chạy phân tích
+                </Button>
+              </>
+            ) : null}
+
+            {workflowStep === "analysis-running" ? (
+              <>
+                <span className="app-chip">Đang phân tích...</span>
+                <p className="text-sm text-muted-foreground">{analysisProgressLabel}</p>
+              </>
+            ) : null}
+
             {!isAnalysisRunning && hasAnalysisFailed ? (
-              <span className="app-chip border-destructive/40 bg-destructive/10 text-destructive">
-                Thất bại: {localJobState?.message ?? "Không rõ lý do"}
-              </span>
+              <div className="space-y-2">
+                <span className="app-chip border-destructive/40 bg-destructive/10 text-destructive">
+                  Thất bại
+                </span>
+                <p className="text-sm text-muted-foreground">
+                  {localJobState?.message ?? "Không rõ lý do"}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleStartAnalysis}
+                    disabled={isLoading || chapters.length === 0 || isAnalysisRunning}
+                  >
+                    Thử lại
+                  </Button>
+                  {latestResumableJob && !isLoadingResumableJob ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleResumeFailedBatch}
+                      disabled={isLoading || chapters.length === 0 || isAnalysisRunning}
+                    >
+                      Tiếp tục batch lỗi
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
             ) : null}
-            {!isAnalysisRunning && hasAnalysisCompleted ? (
-              <span className="app-chip-primary">Hoàn tất</span>
+
+            {workflowStep === "completed" ? (
+              <div className="space-y-2">
+                <span className="app-chip-primary">Hoàn tất</span>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/stories/${storyId}/reader`}>Đọc truyện</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/stories/${storyId}/rewrite-planner`}>
+                      Mở Rewrite Planner
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/stories/${storyId}/bible`}>Mở Story Bible</Link>
+                  </Button>
+                </div>
+              </div>
             ) : null}
-            {currentWorkflowStep === "import" ? (
-              <Button asChild size="sm">
-                <Link href="/stories/import">Upload file truyện</Link>
-              </Button>
-            ) : currentWorkflowStep === "scout" ? (
-              <Button size="sm" disabled>
-                Quét nhanh (sắp có)
-              </Button>
-            ) : currentWorkflowStep === "deep" ? (
-              <Button size="sm" disabled>
-                Chọn phân tích sâu (sắp có)
-              </Button>
-            ) : currentWorkflowStep === "canon-pack" ? (
-              <Button size="sm" disabled>
-                Dựng Canon Pack (sắp có)
-              </Button>
-            ) : (
-              <Button size="sm" disabled>
-                Đưa vào Story Bible (sắp có)
-              </Button>
-            )}
           </div>
         </SectionCard>
 
         <SectionCard title="Workflow">
           <div className="grid gap-2 md:grid-cols-5">
             {[
-              { id: "import", label: "Nạp liệu" },
+              { id: "import", label: "Nạp truyện" },
               { id: "scout", label: "Quét nhanh" },
               { id: "deep", label: "Phân tích sâu" },
               { id: "canon-pack", label: "Canon Pack" },
@@ -1170,7 +1228,10 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
               <div
                 key={step.id}
                 className={
-                  currentWorkflowStep === step.id
+                  (workflowStep === "import" && step.id === "import") ||
+                  (workflowStep === "analysis-ready" && step.id === "deep") ||
+                  (workflowStep === "analysis-running" && step.id === "deep") ||
+                  (workflowStep === "completed" && step.id === "bible")
                     ? "rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium"
                     : "rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground"
                 }
@@ -1181,290 +1242,30 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
           </div>
         </SectionCard>
 
-        <SectionCard
-          title="Quét nhanh"
-          description="Quét mẫu từng chương bằng AI để tìm chương đáng chú ý, reveal, worldbuilding, đổi quan hệ và chương nên nạp sâu."
-        >
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ["all", "Tất cả"],
-                  ["missing-scout", "Thiếu Scout"],
-                  ["missing-digest", "Thiếu digest"],
-                  ["missing-deep", "Thiếu deep"],
-                  ["fallback", "Fallback"],
-                  ["error", "Lỗi"],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={
-                      scoutFilter === value ? "app-chip-primary" : "app-chip"
-                    }
-                    onClick={() => setScoutFilter(value as ScoutCoverageFilter)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <Input
-                value={scoutSearch}
-                onChange={(event) => setScoutSearch(event.target.value)}
-                placeholder="Tìm chương..."
-              />
-
-              <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
-                {filteredScoutRows.map((row) => (
-                  <div key={row.chapter.id} className="rounded-lg border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">
-                        Chương {row.chapter.chapterNumber} - {row.chapter.title}
-                      </p>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/stories/${storyId}/reader?chapter=${row.chapter.chapterNumber}`}>
-                          Mở chương
-                        </Link>
-                      </Button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {row.badges.map((badge) => (
-                        <span
-                          key={`${row.chapter.id}-${badge}`}
-                          className={badge.includes("Nạp sâu") ? "app-chip-primary" : "app-chip"}
-                        >
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">AI scan panel</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Mục tiêu, Bộ lọc, Tìm kết quả
-                </p>
-                <div className="mt-3 grid gap-2">
-                  <Button size="sm" disabled>Quét chương</Button>
-                  <Button size="sm" variant="outline" disabled>Quét lại tất cả</Button>
-                  <Button size="sm" variant="outline" disabled>Tạm dừng</Button>
-                  <Button size="sm" variant="outline" disabled>Hủy</Button>
-                  <Button size="sm" variant="outline" disabled>Thử lại lỗi</Button>
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Bản đồ arc</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Gom kết quả quét thành mạch truyện để chọn phần cần nạp sâu.
-                </p>
-                <Button className="mt-3 w-full" size="sm" variant="outline" disabled>
-                  Tạo arc
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {scoutResultCards.map((result) => (
-              <div key={`${result.chapterNumber}-${result.title}`} className="rounded-lg border p-3">
-                <p className="text-sm font-medium">
-                  Chương {result.chapterNumber} - {result.decision}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">{result.reason}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {result.tags.map((tag) => (
-                    <span key={tag} className="app-chip">{tag}</span>
-                  ))}
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/stories/${storyId}/reader?chapter=${result.chapterNumber}`}>
-                      Mở chương
-                    </Link>
-                  </Button>
-                  <Button size="sm" disabled>
-                    Chọn phân tích sâu
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="Phân tích sâu"
-          description="Chọn phần quan trọng để AI đọc kỹ, thay vì bắt tác giả lần tay qua danh sách dài."
-        >
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-3">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-1">
-                  <label className="text-sm font-medium">Preset</label>
-                  <select
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
-                    value={deepPreset}
-                    onChange={(event) => setDeepPreset(event.target.value)}
-                  >
-                    <option value="ai-auto">AI tự chọn phần quan trọng</option>
-                    <option value="arc">Arc quan trọng</option>
-                    <option value="reveal-world-rel">Reveal / worldbuilding / quan hệ</option>
-                    <option value="sensitive">Cảnh 18+ / nhạy cảm</option>
-                    <option value="chapter-range">Khoảng chương</option>
-                    <option value="character">Nhân vật xuất hiện</option>
-                    <option value="missing-digest">Mọi chương còn thiếu digest</option>
-                  </select>
-                </div>
-                <div className="grid gap-1">
-                  <label className="text-sm font-medium">Nhân vật</label>
-                  <Input
-                    value={deepCharacter}
-                    onChange={(event) => setDeepCharacter(event.target.value)}
-                    placeholder="Tên nhân vật"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-1">
-                  <label className="text-sm font-medium">Từ chương</label>
-                  <Input
-                    value={deepFromChapter}
-                    onChange={(event) => setDeepFromChapter(event.target.value)}
-                    placeholder="1"
-                  />
-                </div>
-                <div className="grid gap-1">
-                  <label className="text-sm font-medium">Đến chương</label>
-                  <Input
-                    value={deepToChapter}
-                    onChange={(event) => setDeepToChapter(event.target.value)}
-                    placeholder={String(totalChapters || "")}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-background p-3 text-sm">
-                <p>{selectedDeepChapterCount.toLocaleString("vi-VN")} chương được chọn</p>
-                <p className="mt-1 text-muted-foreground">
-                  Độ phủ sau chạy: {deepTargetCoverage}%
-                </p>
-              </div>
-
-              <details className="rounded-xl border bg-background p-3">
-                <summary className="cursor-pointer text-sm font-medium">
-                  Ước tính kỹ thuật
-                </summary>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  <p>{estimatedTokens.toLocaleString("vi-VN")} token</p>
-                  <p>{estimatedRequests.toLocaleString("vi-VN")} request dự kiến</p>
-                </div>
-              </details>
-
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" disabled>Để AI tự chọn phần quan trọng</Button>
-                <Button size="sm" variant="outline" disabled>
-                  Phân tích mọi chương còn thiếu digest
-                </Button>
-                <Button size="sm" onClick={handleStartAnalysis} disabled={isSavingAnalysis || !hasImportedData}>
-                  Chạy phân tích sâu
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleCancelAnalysisJob} disabled={!isSavingAnalysis}>
-                  Dừng
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Arc đã chọn</p>
-                <p className="mt-1 text-xs text-muted-foreground">Chưa có arc được chọn.</p>
-              </div>
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-sm font-medium">Danh sách chương đã chọn</p>
-                <div className="mt-2 max-h-40 space-y-1 overflow-auto pr-1 text-xs text-muted-foreground">
-                  {selectedDeepChapterNumbers.length > 0 ? (
-                    selectedDeepChapterNumbers.map((number) => (
-                      <p key={number}>Chương {number}</p>
-                    ))
-                  ) : (
-                    <p>Chưa chọn chương nào.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="Dùng Canon Pack để viết"
-          description="Gộp kết quả quét, bản đồ arc và phân tích sâu thành bộ nhớ tác giả có thể dùng ngay trong dự án."
-        >
-          <div className="rounded-xl border bg-background p-3">
-            <p className="text-sm font-medium">
-              {canonReadinessLevel} - {canonReadinessPercent}%
+        <details className="rounded-xl border bg-card/70">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+            Tính năng đang phát triển
+          </summary>
+          <div className="space-y-3 border-t p-4">
+            <p className="text-sm text-muted-foreground">
+              Quét nhanh, Phân tích sâu, Canon Pack và bước đưa vào Story Bible sẽ
+              được mở dần trong các bước tiếp theo. Hiện tại luồng chính là:
+              Nạp truyện → Chạy phân tích → Đọc truyện / Rewrite / Story Bible.
             </p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${canonReadinessPercent}%` }}
-              />
-            </div>
-            {canonReadinessPercent < 80 ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Chưa đủ vì thiếu: coverage. Dùng Deep Selection Planner để tăng độ phủ chương/arc trọng tâm.
+            <div className="grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+              <p>Trạng thái workflow: {nextActionLabel}</p>
+              <p>Mã bước hiện tại: {currentWorkflowStep}</p>
+              <p>Quét nhanh: {filteredScoutRows.length}/{scoutRows.length} chương</p>
+              <p>Kết quả gợi ý: {scoutResultCards.length} chương</p>
+              <p>Canon Pack readiness: {canonReadinessLevel} ({canonReadinessPercent}%)</p>
+              <p>
+                Phân tích sâu dự kiến: {selectedDeepChapterCount} chương · {deepTargetCoverage}%
               </p>
-            ) : null}
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" disabled>Dựng Canon Pack</Button>
-            <Button size="sm" variant="outline" disabled>Dùng cho dự án này</Button>
-            <Button size="sm" variant="outline" disabled>Tạo project đồng nhân từ Canon Pack</Button>
-            <Button size="sm" variant="outline" disabled>Mở editor với Canon Pack</Button>
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {["Tổng quan", "Nhân vật", "Quan hệ", "Timeline", "Style", "Cấm phá canon", "Vùng trống"].map((tab) => (
-              <span key={tab} className="app-chip">{tab}</span>
-            ))}
-          </div>
-
-          <div className="mt-3 rounded-xl border bg-background p-3">
-            <p className="text-sm font-medium">Gợi ý dùng để viết</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Các vùng trống và unresolved threads sẽ hiển thị ở đây sau khi Canon Pack được dựng.
-            </p>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="Đưa vào Story Bible"
-          description="Bước này không bắt buộc. Duyệt các mục sẽ thêm hoặc cập nhật trước khi ghi vào dự án."
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Canon Pack selector</label>
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" disabled>
-                <option>Chưa có Canon Pack</option>
-              </select>
-            </div>
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Dự án</label>
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" disabled>
-                <option>{story?.title ?? "Dự án hiện tại"}</option>
-              </select>
+              <p>Ước tính token: {estimatedTokens.toLocaleString("vi-VN")}</p>
+              <p>Ước tính request: {estimatedRequests.toLocaleString("vi-VN")}</p>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" disabled>Tạo bản duyệt</Button>
-            <Button size="sm" variant="outline" disabled>Áp dụng 0 mục đã duyệt</Button>
-          </div>
-        </SectionCard>
+        </details>
 
         <details className="rounded-xl border bg-card/70">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
