@@ -29,90 +29,61 @@ Priority 1 is product-usable when:
 11. UI is Vietnamese-first and not overloaded.
 12. `npm.cmd run lint` and `npm.cmd run build` pass.
 
-## Remaining cleanup before moving to Priority 2
+## Completed Priority 1 UX cleanup
 
-### 1. Timeline cleanup
+The remaining large UX cleanup batch has been completed.
 
-Goal:
+Completed issue scope:
 
-- Vietnamese-first copy.
-- Keep technical terms only where useful.
-- Move IndexedDB/storage/debug copy into collapsed `Chi tiết kỹ thuật`.
-- Keep filters and sorting behavior unchanged.
+- Timeline cleanup.
+- Story Settings cleanup.
+- Prompt Manager light polish.
+- Data Health final copy and density pass.
 
-Risk:
+Completed GitHub issues:
 
-- File is large. Prefer Codex/local editor for this file.
+- #1 `Priority 1: Timeline UX cleanup`
+- #2 `Priority 1: Story Settings UX cleanup`
+- #3 `Priority 1: Prompt Manager light polish`
+- #4 `Priority 1: Data Health final copy and density pass`
 
-### 2. Story Settings cleanup
+Completion commit:
 
-Goal:
+- `ee73d47` — `Polish remaining Priority 1 UX`
 
-- Make it clear this is `Cài đặt truyện`, not app/global settings.
-- Keep reading/workspace settings visible.
-- Move storage key details into `Chi tiết kỹ thuật`.
-- Keep setup notes: original title, original author, mustKeep, mustChange.
-
-Risk:
-
-- File is large. Prefer Codex/local editor.
-
-### 3. Prompt Manager light polish
-
-Goal:
-
-- Keep it under `Nâng cao`.
-- Reduce scary/verbose helper text.
-- Make variable / editable prompt / locked contract clearer.
-- Do not change prompt registry logic.
-
-Risk:
-
-- Medium. File length can hit chat tooling limits.
-
-### 4. Data Health final pass
-
-Goal:
-
-- Keep as advanced page.
-- Make backup/restore actions clear.
-- Reduce visible technical clutter where possible.
-- Keep all warnings and safeguards.
-
-Risk:
-
-- High because it touches backup/restore UX and storage diagnostics.
-- Use Codex/local validation.
-
-## Validation batch
-
-Latest known validated commit:
-
-- `3bbfb63` passed lint/build.
-
-Commits after that need validation:
-
-- `9832330` — Simplify AI setup blocking card
-- `c0cdc67` — Update continuation brief after story library polish
-- `ef6070c` — Update working preferences for direct ChatGPT workflow
-- `9fb4ae7` — Replace default README with Yuki overview
-- `d1fbee1` — Add Reader Persona feature plan
-- `417bed6` — Add Reader Persona priority note
-- `95fdd79` — Add Yuki core pillars roadmap
-- `154068c` — Add Role-play feature plan
-- this Priority 1 completion plan commit
-
-Run:
+Validation result for completion commit:
 
 ```bash
-npm.cmd run lint
-npm.cmd run build
+npm.cmd run lint   # pass
+npm.cmd run build  # pass
 ```
 
-If errors appear, fix only exact errors.
+## Current Priority 1 status
+
+Priority 1 UX cleanup is complete at the current known state.
+
+Next work should be an end-to-end product verification pass, not another broad copy cleanup pass.
+
+Recommended verification checklist:
+
+1. Fresh user first launch sees AI setup gate.
+2. Settings can configure provider/key/model and test connection.
+3. Import can accept TXT and split chapters.
+4. Import can save story/chapter/chunk into IndexedDB.
+5. Analysis starts and shows progress.
+6. Analysis can cancel.
+7. Analysis can retry/resume failed/incomplete batch work.
+8. Reader can open chapters.
+9. Workspace can open the imported story.
+10. Rewrite Planner and Rewrite Draft can operate without breaking storage.
+11. Story Bible, Timeline, Relationships, and World Tracker render analysis output.
+12. Data Health can export backup and show validation preview.
+13. `npm.cmd run lint` and `npm.cmd run build` pass after any follow-up fixes.
 
 ## Work rule
 
 Do not implement Priority 2 or Priority 3 yet.
 
-Priority 2 and 3 are documented so the product direction is locked, but current implementation work remains Priority 1 until the product is usable.
+Priority 2 and 3 are documented so the product direction is locked, but current implementation work remains Priority 1 until the product is verified usable end-to-end.
+
+After the end-to-end product verification pass is clean, start Reader Persona Phase 1.
