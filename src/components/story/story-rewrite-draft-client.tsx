@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  BookOpen,
-  FileText,
-  GitBranch,
-  Save,
-} from "lucide-react";
+import { BookOpen, GitBranch, PenLine, Save } from "lucide-react";
 
 import {
   getAnalysisResult,
@@ -36,7 +30,6 @@ import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { PageShell } from "@/components/app/page-shell";
 import { SectionCard } from "@/components/app/section-card";
-import { StatCard } from "@/components/app/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,8 +138,7 @@ function findTargetChapterForChange(
 ) {
   if (!change) return draftChapters[0];
 
-  const chapterNumber =
-    change.chapterNumber ?? change.affectedChapterNumbers[0];
+  const chapterNumber = change.chapterNumber ?? change.affectedChapterNumbers[0];
 
   return (
     draftChapters.find((chapter) => chapter.chapterNumber === chapterNumber) ??
@@ -195,6 +187,16 @@ async function saveDraftToStorage({
     saved: indexedDbSaved,
     nextDrafts,
   };
+}
+
+function getDraftStatusLabel(status: RewriteDraft["status"]) {
+  if (status === "reviewed") return "Đã duyệt";
+  if (status === "accepted") return "Đã chấp nhận";
+  return "Draft";
+}
+
+function getChapterSourceLabel(source: DraftChapter["source"]) {
+  return source === "imported" ? "Truyện đã nhập" : "Mock";
 }
 
 export function StoryRewriteDraftClient({
@@ -300,7 +302,7 @@ export function StoryRewriteDraftClient({
       setStatus(initialDraft?.status ?? "draft");
       setStorageError(
         indexedDbFailed
-          ? "IndexedDB read failed. Rewrite draft data may be unavailable."
+          ? "Không thể đọc dữ liệu Rewrite Draft từ IndexedDB."
           : "",
       );
       setIsLoading(false);
@@ -389,9 +391,7 @@ export function StoryRewriteDraftClient({
       chapter,
     });
 
-    setDraftTitle(
-      draft?.title ?? `${change.title} - ${chapter.title}`,
-    );
+    setDraftTitle(draft?.title ?? `${change.title} - ${chapter.title}`);
     setRewrittenText(draft?.rewrittenText ?? "");
     setNotes(draft?.notes ?? "");
     setStatus(draft?.status ?? "draft");
@@ -445,9 +445,9 @@ export function StoryRewriteDraftClient({
         ...current,
         rewriteDrafts: nextDrafts,
       }));
-      setSaveMessage("Rewrite draft saved locally.");
+      setSaveMessage("Đã lưu Rewrite Draft trong IndexedDB.");
     } else {
-      setSaveMessage("Could not save rewrite draft to IndexedDB.");
+      setSaveMessage("Không thể lưu Rewrite Draft vào IndexedDB.");
     }
 
     setIsSaving(false);
@@ -479,9 +479,8 @@ export function StoryRewriteDraftClient({
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Rewrite Draft Workspace"
-          title={story.title}
-          description="Select a rewrite proposal, compare original chapter text, and save a manual alternate draft locally."
+          title="Rewrite Draft"
+          description="Viết bản rewrite cho chương đã chọn và lưu draft để duyệt sau."
           action={
             <>
               <Button asChild variant="outline">
@@ -492,118 +491,98 @@ export function StoryRewriteDraftClient({
               </Button>
               <Button asChild variant="outline">
                 <Link href={`/stories/${storyId}/workspace`}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Workspace
+                  <PenLine className="mr-2 h-4 w-4" />
+                  Workspace viết
                 </Link>
               </Button>
               <Button asChild>
-                <Link href={`/stories/${storyId}/analysis`}>
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Analysis
+                <Link href={`/stories/${storyId}/reader`}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Đọc truyện
                 </Link>
               </Button>
             </>
           }
         />
 
-
-        <p className="app-muted-text">
-          Rewrite Draft Workspace reads from IndexedDB as the source of truth.
-        </p>
-
-        {storageError ? (
-          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-            {storageError}
-          </p>
-        ) : null}
-
         {isLoading ? (
-          <SectionCard title="Loading rewrite draft workspace">
-            <p className="app-muted-text">
-              Reading rewrite proposals, chapters, and drafts from local storage
-              layers...
-            </p>
+          <SectionCard title="Đang tải Rewrite Draft...">
+            <p className="app-muted-text">Đang tải yêu cầu rewrite, chương và draft đã lưu.</p>
           </SectionCard>
         ) : rewriteChanges.length === 0 ? (
           <EmptyState
-            title="No rewrite proposals yet."
-            description="Open Rewrite Planner and save a proposal before drafting rewritten chapter text."
+            title="Chưa có yêu cầu rewrite"
+            description="Mở Rewrite Planner và lưu một yêu cầu trước khi viết draft."
             action={
               <Button asChild>
                 <Link href={`/stories/${storyId}/rewrite-planner`}>
-                  Open Rewrite Planner
+                  Mở Rewrite Planner
                 </Link>
               </Button>
             }
           />
         ) : !selectedChapter ? (
           <EmptyState
-            title="No chapter text available."
-            description="Import chapters or use a mock story chapter before drafting a rewrite."
+            title="Chưa có chương"
+            description="Hãy nạp truyện trước khi viết Rewrite Draft."
+            action={
+              <Button asChild>
+                <Link href="/stories/import">Nạp truyện</Link>
+              </Button>
+            }
           />
         ) : (
-          <>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard
-                icon={<GitBranch className="h-4 w-4" />}
-                title="Rewrite proposals"
-                value={rewriteChanges.length}
+          <section className="grid gap-4 xl:grid-cols-[380px_1fr] 2xl:grid-cols-[420px_1fr]">
+            <div className="space-y-4">
+              <RewriteSelectors
+                draftChapters={draftChapters}
+                rewriteChanges={rewriteChanges}
+                selectedChange={selectedChange}
+                selectedChapter={selectedChapter}
+                setSelectedChangeId={handleSelectChange}
+                setSelectedChapterId={handleSelectChapter}
               />
-              <StatCard
-                icon={<FileText className="h-4 w-4" />}
-                title="Available chapters"
-                value={draftChapters.length}
-              />
-              <StatCard
-                icon={<AlertTriangle className="h-4 w-4" />}
-                title="Related issues"
-                value={relatedIssues.length}
-              />
-              <StatCard
-                icon={<Save className="h-4 w-4" />}
-                title="Saved drafts"
-                value={draftData.rewriteDrafts.length}
-              />
-            </section>
+              <ImpactScopeSummary change={selectedChange} />
+              <ContinuityIssuesPanel issues={relatedIssues} />
+              <details className="rounded-xl border bg-card/80">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                  Chi tiết kỹ thuật
+                </summary>
+                <div className="space-y-4 border-t p-4">
+                  {storageError ? (
+                    <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                      {storageError}
+                    </p>
+                  ) : null}
+                  <PromptTemplateSummary promptRender={promptRender} />
+                  <p className="text-xs text-muted-foreground">
+                    Rewrite Draft được lưu trong IndexedDB theo story, yêu cầu rewrite và chương đích.
+                  </p>
+                </div>
+              </details>
+            </div>
 
-            <PromptTemplateSummary promptRender={promptRender} />
-
-            <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
-              <div className="space-y-4">
-                <RewriteSelectors
-                  draftChapters={draftChapters}
-                  rewriteChanges={rewriteChanges}
-                  selectedChange={selectedChange}
-                  selectedChapter={selectedChapter}
-                  setSelectedChangeId={handleSelectChange}
-                  setSelectedChapterId={handleSelectChapter}
-                />
-                <ImpactScopeSummary change={selectedChange} />
-                <ContinuityIssuesPanel issues={relatedIssues} />
-              </div>
-
-              <div className="space-y-4">
-                <OriginalChapterViewer chapter={selectedChapter} />
-                <RewriteDraftEditor
-                  draftTitle={draftTitle}
-                  isSaving={isSaving}
-                  notes={notes}
-                  rewrittenText={rewrittenText}
-                  saveMessage={saveMessage}
-                  status={status}
-                  setDraftTitle={setDraftTitle}
-                  setNotes={setNotes}
-                  setRewrittenText={setRewrittenText}
-                  setStatus={setStatus}
-                  onSave={handleSaveDraft}
-                />
-                <RewriteComparison
-                  originalText={selectedChapter.content}
-                  rewrittenText={rewrittenText}
-                />
-              </div>
-            </section>
-          </>
+            <div className="space-y-4">
+              <OriginalChapterViewer chapter={selectedChapter} />
+              <RewriteDraftEditor
+                draftTitle={draftTitle}
+                isSaving={isSaving}
+                notes={notes}
+                rewrittenText={rewrittenText}
+                saveMessage={saveMessage}
+                status={status}
+                setDraftTitle={setDraftTitle}
+                setNotes={setNotes}
+                setRewrittenText={setRewrittenText}
+                setStatus={setStatus}
+                onSave={handleSaveDraft}
+              />
+              <RewriteComparison
+                originalText={selectedChapter.content}
+                rewrittenText={rewrittenText}
+              />
+            </div>
+          </section>
         )}
       </PageContainer>
     </PageShell>
@@ -626,10 +605,10 @@ function RewriteSelectors({
   setSelectedChapterId: (value: string) => void;
 }) {
   return (
-    <SectionCard title="Rewrite proposal selector">
+    <SectionCard title="Chọn yêu cầu và chương">
       <div className="space-y-4">
         <label className="grid gap-2 text-sm">
-          <span className="font-medium">Rewrite proposal/change</span>
+          <span className="font-medium">Yêu cầu rewrite</span>
           <select
             className="rounded-md border bg-background px-3 py-2 text-sm"
             value={selectedChange?.id ?? ""}
@@ -644,7 +623,7 @@ function RewriteSelectors({
         </label>
 
         <label className="grid gap-2 text-sm">
-          <span className="font-medium">Target chapter</span>
+          <span className="font-medium">Chương cần viết</span>
           <select
             className="rounded-md border bg-background px-3 py-2 text-sm"
             value={selectedChapter.id}
@@ -652,7 +631,7 @@ function RewriteSelectors({
           >
             {draftChapters.map((chapter) => (
               <option key={chapter.id} value={chapter.id}>
-                Chapter {chapter.chapterNumber} - {chapter.title}
+                Chương {chapter.chapterNumber} - {chapter.title || "Không có tiêu đề"}
               </option>
             ))}
           </select>
@@ -680,18 +659,18 @@ function PromptTemplateSummary({
   promptRender?: PromptRenderResult;
 }) {
   return (
-    <SectionCard title="Prompt template">
+    <SectionCard title="Chi tiết prompt">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant="secondary">
           {promptRender?.template.id ?? "rewrite-draft"}
         </Badge>
         <span className="text-muted-foreground">
-          {promptRender?.template.title ?? "Loading Prompt Manager template..."}
+          {promptRender?.template.title ?? "Đang tải template Prompt Manager..."}
         </span>
       </div>
       {promptRender?.missingVariables.length ? (
         <p className="mt-3 text-sm text-destructive">
-          Missing prompt variables: {promptRender.missingVariables.join(", ")}
+          Thiếu biến prompt: {promptRender.missingVariables.join(", ")}
         </p>
       ) : null}
     </SectionCard>
@@ -700,34 +679,34 @@ function PromptTemplateSummary({
 
 function ImpactScopeSummary({ change }: { change?: BranchChange }) {
   return (
-    <SectionCard title="Impact scope summary">
+    <SectionCard title="Phạm vi ảnh hưởng">
       {change ? (
         <div className="space-y-3 text-sm">
-          <SummaryRow label="Type" value={change.type} />
-          <SummaryRow label="Impact scope" value={change.impactScope} />
+          <SummaryRow label="Loại thay đổi" value={change.type} />
+          <SummaryRow label="Phạm vi" value={change.impactScope} />
           <SummaryRow
-            label="Affected chapters"
+            label="Chương bị ảnh hưởng"
             value={change.affectedChapterNumbers.length}
           />
           <SummaryRow
-            label="Characters"
-            value={change.affectedCharacters.join(", ") || "None"}
+            label="Nhân vật"
+            value={change.affectedCharacters.join(", ") || "Không có"}
           />
           <SummaryRow
-            label="Items"
-            value={change.affectedItems.join(", ") || "None"}
+            label="Vật phẩm"
+            value={change.affectedItems.join(", ") || "Không có"}
           />
           <SummaryRow
-            label="Terms"
-            value={change.affectedTerms.join(", ") || "None"}
+            label="Thuật ngữ"
+            value={change.affectedTerms.join(", ") || "Không có"}
           />
           <SummaryRow
-            label="Locations"
-            value={change.affectedLocations.join(", ") || "None"}
+            label="Địa điểm"
+            value={change.affectedLocations.join(", ") || "Không có"}
           />
         </div>
       ) : (
-        <p className="app-muted-text">No selected rewrite proposal.</p>
+        <p className="app-muted-text">Chưa chọn yêu cầu rewrite.</p>
       )}
     </SectionCard>
   );
@@ -754,7 +733,7 @@ function ContinuityIssuesPanel({
   issues: BranchContinuityIssue[];
 }) {
   return (
-    <SectionCard title="Continuity issues panel">
+    <SectionCard title="Canon / continuity">
       {issues.length > 0 ? (
         <div className="space-y-2">
           {issues.map((issue) => (
@@ -768,14 +747,14 @@ function ContinuityIssuesPanel({
               </p>
               {issue.suggestedFix ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Suggested fix: {issue.suggestedFix}
+                  Đề xuất sửa: {issue.suggestedFix}
                 </p>
               ) : null}
             </article>
           ))}
         </div>
       ) : (
-        <p className="app-muted-text">No continuity issues for this selection.</p>
+        <p className="app-muted-text">Không có issue continuity cho lựa chọn này.</p>
       )}
     </SectionCard>
   );
@@ -784,13 +763,13 @@ function ContinuityIssuesPanel({
 function OriginalChapterViewer({ chapter }: { chapter: DraftChapter }) {
   return (
     <SectionCard
-      title="Original chapter viewer"
-      description={`Chapter ${chapter.chapterNumber} / ${chapter.source}`}
+      title="Chương gốc"
+      description={`Chương ${chapter.chapterNumber} / ${getChapterSourceLabel(chapter.source)}`}
     >
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-base font-medium">{chapter.title}</h2>
+        <h2 className="text-base font-medium">{chapter.title || "Không có tiêu đề"}</h2>
         <Badge variant="secondary">
-          {chapter.content.length.toLocaleString()} chars
+          {chapter.content.length.toLocaleString("vi-VN")} ký tự
         </Badge>
       </div>
       <pre className="app-code-block max-h-[360px] overflow-auto">
@@ -826,10 +805,10 @@ function RewriteDraftEditor({
   onSave: () => void;
 }) {
   return (
-    <SectionCard title="Rewrite draft editor">
+    <SectionCard title="Bản rewrite">
       <div className="space-y-4">
         <label className="grid gap-2 text-sm">
-          <span className="font-medium">Draft title</span>
+          <span className="font-medium">Tiêu đề draft</span>
           <Input
             value={draftTitle}
             onChange={(event) => setDraftTitle(event.target.value)}
@@ -837,27 +816,27 @@ function RewriteDraftEditor({
         </label>
 
         <label className="grid gap-2 text-sm">
-          <span className="font-medium">Rewritten text</span>
+          <span className="font-medium">Nội dung rewrite</span>
           <Textarea
             className="min-h-[320px] text-base leading-7"
             value={rewrittenText}
             onChange={(event) => setRewrittenText(event.target.value)}
-            placeholder="Write the alternate version of this chapter manually..."
+            placeholder="Viết phiên bản rewrite của chương này..."
           />
         </label>
 
         <label className="grid gap-2 text-sm">
-          <span className="font-medium">Notes</span>
+          <span className="font-medium">Ghi chú</span>
           <Textarea
             className="min-h-20"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Continuity notes, unresolved questions, or next-pass edits..."
+            placeholder="Ghi chú canon, điểm cần sửa tiếp, hoặc câu hỏi còn mở..."
           />
         </label>
 
         <label className="grid gap-2 text-sm">
-          <span className="font-medium">Status</span>
+          <span className="font-medium">Trạng thái</span>
           <select
             className="rounded-md border bg-background px-3 py-2 text-sm"
             value={status}
@@ -866,14 +845,14 @@ function RewriteDraftEditor({
             }
           >
             <option value="draft">Draft</option>
-            <option value="reviewed">Reviewed</option>
-            <option value="accepted">Accepted</option>
+            <option value="reviewed">Đã duyệt</option>
+            <option value="accepted">Đã chấp nhận</option>
           </select>
         </label>
 
         <Button disabled={isSaving} type="button" onClick={onSave}>
           <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : "Save draft"}
+          {isSaving ? "Đang lưu..." : "Lưu draft"}
         </Button>
 
         {saveMessage ? <p className="app-muted-text">{saveMessage}</p> : null}
@@ -890,13 +869,13 @@ function RewriteComparison({
   rewrittenText: string;
 }) {
   return (
-    <SectionCard title="Side-by-side original vs rewrite comparison">
+    <SectionCard title="So sánh bản gốc / rewrite">
       <div className="grid gap-4 lg:grid-cols-2">
         <div>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-sm font-medium">Original</p>
+            <p className="text-sm font-medium">Bản gốc</p>
             <Badge variant="secondary">
-              {originalText.length.toLocaleString()} chars
+              {originalText.length.toLocaleString("vi-VN")} ký tự
             </Badge>
           </div>
           <pre className="app-code-block max-h-[420px] overflow-auto">
@@ -907,11 +886,11 @@ function RewriteComparison({
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-sm font-medium">Rewrite</p>
             <Badge variant="secondary">
-              {rewrittenText.length.toLocaleString()} chars
+              {rewrittenText.length.toLocaleString("vi-VN")} ký tự
             </Badge>
           </div>
           <pre className="app-code-block max-h-[420px] overflow-auto">
-            {rewrittenText || "No rewrite draft yet."}
+            {rewrittenText || "Chưa có Rewrite Draft."}
           </pre>
         </div>
       </div>
