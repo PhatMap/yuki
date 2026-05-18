@@ -87,45 +87,40 @@ export default function StoriesPage() {
     };
   }, []);
 
-  const displayedStories =
-    storedStories.length > 0 ? storedStories : mockStories;
+  const displayedStories = storedStories.length > 0 ? storedStories : mockStories;
   const displayedChapters =
     storedStories.length > 0 ? storedChapters : mockChapters;
   const displayedBranches: StoryBranch[] =
     storySource === "mock" ? mockBranches : [];
-
-  const pageDescription =
-    "Duyệt truyện local trong IndexedDB. Có thể nhập truyện, mở workspace, chạy analysis hoặc kiểm tra Data Health.";
 
   return (
     <PageShell>
       <PageContainer>
         <PageHeader
           eyebrow="Thư viện"
-          title="Truyện"
-          description={pageDescription}
+          title="Thư viện truyện"
+          description="Mở lại truyện đã lưu, nhập truyện mới hoặc kiểm tra nhanh sơ đồ chương."
           action={
             <div className="app-action-row">
-              <Link href="/stories/new" className="app-primary-action">
-                Tạo truyện mới
-              </Link>
-              <Link href="/stories/import" className="app-secondary-action">
+              <Link href="/stories/import" className="app-primary-action">
                 Nhập truyện
+              </Link>
+              <Link href="/stories/new" className="app-secondary-action">
+                Tạo truyện mới
               </Link>
             </div>
           }
         />
 
-        <SectionCard title="Thư viện truyện local">
+        <SectionCard title="Truyện trong máy này">
           <p className="text-sm leading-6 text-muted-foreground">
-            Truyện nằm cục bộ trong browser profile này nếu chưa export. Dùng
-            Data Health backup cho dự án dài.
+            Dữ liệu truyện được lưu local trong browser. Với truyện dài, hãy export backup từ Data Health sau khi nhập hoặc phân tích.
           </p>
         </SectionCard>
 
-        <section className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="min-w-0 space-y-4">
-            <div className="grid min-w-0 gap-4 md:grid-cols-2">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {displayedStories.map((story) => {
                 const chapterCount = displayedChapters.filter(
                   (chapter) => chapter.storyId === story.id,
