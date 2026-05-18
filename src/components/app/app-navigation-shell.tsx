@@ -27,7 +27,7 @@ type AppNavItem = {
 
 const appNavItems: AppNavItem[] = [
   {
-    label: "Dashboard",
+    label: "Trang chủ",
     href: "/",
     icon: Home,
     requiresAi: true,
@@ -182,7 +182,7 @@ export function AppNavigationShell({ children }: { children: ReactNode }) {
                 href="/settings"
                 className="mt-3 inline-flex rounded-lg border bg-background px-3 py-1.5 text-xs font-medium"
               >
-                Mở Settings
+                Mở Thiết lập AI
               </Link>
             </div>
           ) : null}
