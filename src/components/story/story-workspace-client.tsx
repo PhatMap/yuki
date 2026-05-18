@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  Bot,
   BookOpen,
   Boxes,
   CalendarDays,
@@ -410,7 +409,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     const saved = await saveBranchesToStorage(storyId, nextBranches);
 
     if (!saved) {
-      setBranchStorageError("Không thể lưu dữ liệu branch vào IndexedDB.");
+      setBranchStorageError("Không thể lưu dữ liệu nhánh vào IndexedDB.");
     }
 
     setIsSavingBranchData(false);
@@ -486,7 +485,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
     });
 
     if (!branchSaved || !changesSaved) {
-      setBranchStorageError("Không thể lưu branch changes vào IndexedDB.");
+      setBranchStorageError("Không thể lưu thay đổi nhánh vào IndexedDB.");
     }
 
     setIsSavingBranchData(false);
@@ -526,18 +525,12 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold">Viết và rewrite</h1>
+              <h1 className="text-xl font-semibold">Workspace viết</h1>
               {hasImportedChapters ? (
-                <Badge variant="outline">Tiểu thuyết nhập khẩu</Badge>
+                <Badge variant="outline">Truyện đã nhập</Badge>
               ) : null}
             </div>
-            <p className="text-sm text-muted-foreground">
-              {story.title}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {story.genre} · {story.tone} ·{" "}
-              {story.isFanwork ? "Fanwork" : "Original"}
-            </p>
+            <p className="text-sm text-muted-foreground">{story.title}</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -618,7 +611,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm leading-6 text-muted-foreground">
-              Viết, sửa và theo dõi thay đổi chương ngay tại đây. Dùng Reader để đọc lại và dùng Rewrite Planner để xem ảnh hưởng chương sau.
+              Đọc chương, ghi nhánh rewrite và kiểm tra ảnh hưởng canon.
             </p>
           </CardContent>
         </Card>
@@ -628,7 +621,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
         <div className="app-workspace-grid">
           <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>Đang tải workspace tiểu thuyết cục bộ...</CardTitle>
+              <CardTitle>Đang tải workspace truyện...</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="app-muted-text">
@@ -655,7 +648,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   </CardTitle>
                   {hasImportedChapters ? (
                     <Badge variant="secondary">
-                      {importedChapters.length} nhập khẩu
+                      {importedChapters.length} truyện đã nhập
                     </Badge>
                   ) : null}
                 </div>
@@ -677,7 +670,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <span className="font-medium">
-                            Ch. {chapter.chapterNumber}
+                            Chương {chapter.chapterNumber}
                           </span>
                           {chapter.status ? (
                             <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
@@ -688,7 +681,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                         <p className="mt-1 line-clamp-2">{chapter.title}</p>
                         {typeof chapter.wordCount === "number" ? (
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {chapter.wordCount.toLocaleString()} words
+                            {chapter.wordCount.toLocaleString("vi-VN")} từ
                           </p>
                         ) : null}
                       </button>
@@ -696,7 +689,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   })
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Không tìm thấy dữ liệu tiểu thuyết cục bộ cho route này.
+                    Chưa có chương. Hãy nạp truyện trước.
                   </p>
                 )}
               </CardContent>
@@ -706,16 +699,13 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
               <CardHeader>
                 <CardTitle className="app-panel-title">
                   <GitBranch className="h-4 w-4" />
-                  Nhánh / Alternate Canon
+                  Nhánh rewrite
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-xs text-muted-foreground">
-                  Dữ liệu branch được lưu vào IndexedDB.
-                </p>
                 {isSavingBranchData ? (
                   <p className="text-xs text-muted-foreground">
-                    Đang lưu dữ liệu branch...
+                    Đang lưu dữ liệu nhánh...
                   </p>
                 ) : null}
                 {branchStorageError ? (
@@ -753,7 +743,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                         </p>
                         {branch.divergesFromChapter ? (
                           <p className="mt-2 text-xs text-muted-foreground">
-                            Diverges from chapter {branch.divergesFromChapter}
+                            Rẽ nhánh từ chương {branch.divergesFromChapter}
                           </p>
                         ) : null}
                       </button>
@@ -768,22 +758,20 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                     onClick={handleCreateAlternateBranch}
                     disabled={isSavingBranchData}
                   >
-                    Tạo nhánh thay thế
+                    Tạo nhánh rewrite
                   </Button>
                   <Button
                     type="button"
                     onClick={handleAddChangeToBranch}
                     disabled={isSavingBranchData}
                   >
-                    Thêm thay đổi vào branch
+                    Thêm thay đổi vào nhánh
                   </Button>
                 </div>
 
                 {storyBranches.length > 0 ? (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Ghi chú legacy mock branch
-                    </p>
+                    <p className="text-xs font-medium text-muted-foreground">Legacy mock branch (test)</p>
                     {storyBranches.map((branch) => (
                       <div key={branch.id} className="app-list-item">
                         <p className="text-sm font-medium">{branch.name}</p>
@@ -797,9 +785,20 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
                 <Separator />
 
+                <details className="rounded-md border bg-muted/20 p-3">
+                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                    Chi tiết kỹ thuật
+                  </summary>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Dữ liệu nhánh và continuity được lưu trong IndexedDB.
+                  </p>
+                </details>
+
+                <Separator />
+
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Change set</p>
+                    <p className="text-sm font-medium">Bộ thay đổi</p>
                     <Badge variant="secondary">
                       {activeBranchChanges.length}
                     </Badge>
@@ -820,7 +819,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                       ))
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Chưa có change set cho branch này.
+                        Chưa có thay đổi cho nhánh này.
                       </p>
                     )}
                   </div>
@@ -830,7 +829,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
 
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Continuity issues</p>
+                    <p className="text-sm font-medium">Canon / continuity</p>
                     <Badge variant="secondary">
                       {activeContinuityIssues.length}
                     </Badge>
@@ -851,7 +850,7 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                       ))
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Chưa có continuity issue.
+                        Chưa có issue continuity.
                       </p>
                     )}
                   </div>
@@ -891,13 +890,6 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
                   }
                   placeholder="Bắt đầu viết chương truyện..."
                 />
-
-                {aiResult ? (
-                  <div className="mt-4 rounded-lg border bg-muted/40 p-4">
-                    <p className="mb-2 text-sm font-medium">Output AI</p>
-                    <pre className="app-code-block">{aiResult}</pre>
-                  </div>
-                ) : null}
               </CardContent>
             </Card>
           </section>
@@ -906,53 +898,75 @@ export function StoryWorkspaceClient({ storyId }: StoryWorkspaceClientProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="app-panel-title">
-                  <Bot className="h-4 w-4" />
-                  Trợ lý AI
+                  Nhánh rewrite
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Textarea
                   value={aiPrompt}
                   onChange={(event) => setAiPrompt(event.target.value)}
-                  placeholder="Nhập yêu cầu: viết tiếp, thêm cao trào, sửa đoạn này u tối hơn..."
+                  placeholder="Muốn đổi gì ở chương này?"
                   className="min-h-28"
                 />
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button variant="secondary" onClick={handleFakeGenerate}>
-                    Viết tiếp
+                  <Button
+                    variant="secondary"
+                    onClick={handleAddChangeToBranch}
+                    disabled={isSavingBranchData || !selectedChapter}
+                  >
+                    Ghi vào nhánh
                   </Button>
-                  <Button variant="secondary" onClick={handleFakeGenerate}>
-                    Viết lại
-                  </Button>
-                  <Button variant="secondary" onClick={handleFakeGenerate}>
-                    Thêm thoại
-                  </Button>
-                  <Button variant="secondary" onClick={handleFakeGenerate}>
-                    Tạo nhánh
+                  <Button
+                    variant="secondary"
+                    onClick={handleCreateAlternateBranch}
+                    disabled={isSavingBranchData || !selectedChapter}
+                  >
+                    Tạo nhánh rewrite
                   </Button>
                 </div>
 
                 <Separator />
 
                 <div>
-                  <p className="mb-2 text-sm font-medium">Tuân thủ bản gốc</p>
+                  <p className="mb-2 text-sm font-medium">Mức bám canon</p>
                   <div className="grid gap-2 text-sm text-muted-foreground">
-                    <button className="app-list-button">
-                      Rất sát bản gốc
-                    </button>
+                    <button className="app-list-button">Rất sát bản gốc</button>
                     <button className="app-list-button">Vừa phải</button>
-                    <button className="app-list-button">
-                      Chỉ lấy cảm hứng
-                    </button>
+                    <button className="app-list-button">Chỉ lấy cảm hứng</button>
                   </div>
                 </div>
+
+                <details className="rounded-md border bg-muted/20 p-3">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Thử nghiệm
+                  </summary>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Mock draft chỉ để test UI. Không phải output AI thật.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={handleFakeGenerate}
+                  >
+                    Tạo Mock draft (test only)
+                  </Button>
+                  {aiResult ? (
+                    <div className="mt-3 rounded-lg border bg-muted/40 p-3">
+                      <p className="mb-2 text-xs font-medium">
+                        Mock draft (test only)
+                      </p>
+                      <pre className="app-code-block">{aiResult}</pre>
+                    </div>
+                  ) : null}
+                </details>
               </CardContent>
           </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Chapter inspector</CardTitle>
+                <CardTitle className="text-base">Kiểm tra chương</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChapterInspector
@@ -1121,7 +1135,7 @@ function ChapterInspector({
         />
         <InspectorRow
           label="Nguồn"
-          value={isImportedChapter ? "Chương nhập khẩu" : "Chương mock"}
+          value={isImportedChapter ? "Truyện đã nhập" : "Mock"}
         />
       </div>
 
@@ -1155,7 +1169,7 @@ function ChapterInspector({
         )}
       </InspectorSection>
 
-      <InspectorSection title="Branch Changes">
+      <InspectorSection title="Thay đổi nhánh">
         {branchChanges.length > 0 ? (
           branchChanges.map((change) => (
             <div key={change.id} className="app-list-item">
@@ -1170,7 +1184,7 @@ function ChapterInspector({
           ))
         ) : (
           <p className="text-sm text-muted-foreground">
-            Không có branch change ảnh hưởng đến chương này.
+            Không có thay đổi nhánh ảnh hưởng đến chương này.
           </p>
         )}
       </InspectorSection>
