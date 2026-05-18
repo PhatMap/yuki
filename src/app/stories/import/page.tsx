@@ -50,6 +50,9 @@ export default function ImportNovelPage() {
   const [selectedChapterId, setSelectedChapterId] = useState<string>();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadSectionRef = useRef<HTMLDivElement | null>(null);
+  const preflightSectionRef = useRef<HTMLDivElement | null>(null);
+  const chapterListSectionRef = useRef<HTMLDivElement | null>(null);
   const importAbortControllerRef = useRef<AbortController | null>(null);
 
   const totalWordCount = useMemo(() => {
@@ -68,7 +71,49 @@ export default function ImportNovelPage() {
 
   const hasText = novelText.trim().length > 0;
   const hasDetectedChapters = detectedChapters.length > 0;
-  const currentStepIndex = !hasText ? 0 : 1;
+
+  const guidedWorkflowSteps = [
+    {
+      label: "Nạp liệu",
+      status: hasDetectedChapters
+        ? `${detectedChapters.length.toLocaleString("vi-VN")} chương đã tách`
+        : hasText
+          ? "đã nạp file"
+          : "chưa nạp",
+    },
+    {
+      label: "Quét nhanh",
+      status: "sau khi lưu truyện",
+    },
+    {
+      label: "Phân tích sâu",
+      status: "chọn phần quan trọng",
+    },
+    {
+      label: "Canon Pack",
+      status: "đóng gói context",
+    },
+    {
+      label: "Đưa vào Story Bible",
+      status: "sẵn sàng để viết",
+    },
+  ];
+
+  const nextAction = !hasText
+    ? {
+        title: "Nạp liệu",
+        description: "Chọn file TXT chứa toàn bộ truyện.",
+      }
+    : !hasDetectedChapters
+      ? {
+          title: "Tách chương",
+          description: "Nhận diện tiêu đề chương để tạo danh sách kiểm tra.",
+        }
+      : {
+          title: "Kiểm tra và lưu truyện",
+          description:
+            "Xem chương đầu/cuối, cảnh báo tách chương, rồi lưu để phân tích.",
+        };
 
   const chapterSearchKeyword = chapterSearch.trim().toLowerCase();
   const filteredChapters = useMemo(() => {
@@ -315,6 +360,34 @@ export default function ImportNovelPage() {
     }
   }
 
+  function handleOpenCurrentStep() {
+    const target = hasDetectedChapters
+      ? chapterListSectionRef.current
+      : hasText
+        ? preflightSectionRef.current
+        : uploadSectionRef.current;
+
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    if (!hasText) {
+      fileInputRef.current?.focus();
+    }
+  }
+
+  function handleRunSuggestedStep() {
+    if (!hasText) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    if (!hasDetectedChapters) {
+      void handleDetectChapters();
+      return;
+    }
+
+    void handleCreateStoryFromImport();
+  }
+
   return (
     <PageShell>
       <PageContainer className="max-w-7xl">
@@ -334,83 +407,53 @@ export default function ImportNovelPage() {
           }
         />
 
-        <SectionCard title="Workflow">
-          <div className="grid gap-2 md:grid-cols-5">
-            {[
-              "Nạp liệu",
-              "Kiểm tra chương",
-              "Quét nhanh",
-              "Phân tích sâu",
-              "Story Bible",
-            ].map((step, index) => (
-              <div
-                key={step}
-                className={
-                  index === currentStepIndex
-                    ? "rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium"
-                    : "rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground"
-                }
-              >
-                {step}
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Việc tiếp theo">
-          {!hasText ? (
-            <div>
-              <div>
-                <p className="text-sm font-medium">Upload file truyện</p>
-                <p className="text-sm text-muted-foreground">
-                  Chọn file TXT ở khối Nạp liệu bên dưới. File nên chứa toàn bộ truyện.
-                </p>
-              </div>
-            </div>
-          ) : !hasDetectedChapters ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Tách chương</p>
-                <p className="text-sm text-muted-foreground">
-                  Yuki sẽ nhận diện tiêu đề chương và tạo danh sách chương để bạn
-                  kiểm tra.
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={handleDetectChapters}
-                disabled={isDetecting || isCreating}
-              >
-                Tách chương
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Kiểm tra chương đã tách</p>
-                <p className="text-sm text-muted-foreground">
-                  Xem số chương, kiểm tra chương đầu/cuối, rồi lưu để phân tích.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  onClick={handleCreateStoryFromImport}
-                  disabled={isCreating || isDetecting || !hasDetectedChapters}
+        <SectionCard title="Quy trình nạp truyện">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-2 md:grid-cols-5">
+              {guidedWorkflowSteps.map((step, index) => (
+                <div
+                  key={step.label}
+                  className={
+                    index === 0
+                      ? "rounded-lg border border-primary/40 bg-primary/10 px-3 py-2"
+                      : "rounded-lg border bg-background px-3 py-2 text-muted-foreground"
+                  }
                 >
-                  Lưu và phân tích
-                </Button>
+                  <span className="block text-sm font-medium">{step.label}</span>
+                  <small className="mt-1 block text-xs leading-4 text-muted-foreground">
+                    {step.status}
+                  </small>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border bg-background p-4">
+              <strong className="text-sm">Việc tiếp theo</strong>
+              <p className="mt-1 text-sm font-medium">{nextAction.title}</p>
+              <small className="mt-1 block text-xs leading-5 text-muted-foreground">
+                {nextAction.description}
+              </small>
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleDetectChapters}
-                  disabled={isDetecting || isCreating}
+                  size="sm"
+                  onClick={handleOpenCurrentStep}
                 >
-                  Tách lại
+                  Mở bước này
+                  <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleRunSuggestedStep}
+                  disabled={isDetecting || isCreating || (hasText && !novelText.trim())}
+                >
+                  Chạy bước đề xuất
                 </Button>
               </div>
             </div>
-          )}
+          </div>
         </SectionCard>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
@@ -419,7 +462,7 @@ export default function ImportNovelPage() {
             title="Nạp liệu"
             contentClassName="space-y-5"
           >
-            <div className="rounded-xl border border-dashed bg-background p-4">
+            <div ref={uploadSectionRef} className="rounded-xl border border-dashed bg-background p-4">
               <p className="text-sm font-medium">Kéo thả hoặc chọn file TXT</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Hỗ trợ định dạng .txt
@@ -521,51 +564,53 @@ export default function ImportNovelPage() {
             </SectionCard>
 
             <SectionCard title="Kiểm tra sau khi tách">
-              {hasDetectedChapters ? (
-                <div className="space-y-3">
-                  <div className="grid gap-2 text-sm md:grid-cols-2">
-                    <PreflightRow
-                      label="Số chương"
-                      value={detectedChapters.length.toLocaleString("vi-VN")}
-                    />
-                    <PreflightRow
-                      label="Số từ ước tính"
-                      value={totalWordCount.toLocaleString("vi-VN")}
-                    />
-                    <PreflightRow
-                      label="Số đoạn"
-                      value={detectedChunks.length.toLocaleString("vi-VN")}
-                    />
-                    <PreflightRow
-                      label="Chương đầu"
-                      value={`Chương ${detectedChapters[0]?.chapterNumber ?? "-"}`}
-                    />
-                    <PreflightRow
-                      label="Chương cuối"
-                      value={`Chương ${detectedChapters.at(-1)?.chapterNumber ?? "-"}`}
-                    />
-                  </div>
+              <div ref={preflightSectionRef}>
+                {hasDetectedChapters ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-2 text-sm md:grid-cols-2">
+                      <PreflightRow
+                        label="Số chương"
+                        value={detectedChapters.length.toLocaleString("vi-VN")}
+                      />
+                      <PreflightRow
+                        label="Số từ ước tính"
+                        value={totalWordCount.toLocaleString("vi-VN")}
+                      />
+                      <PreflightRow
+                        label="Số đoạn"
+                        value={detectedChunks.length.toLocaleString("vi-VN")}
+                      />
+                      <PreflightRow
+                        label="Chương đầu"
+                        value={`Chương ${detectedChapters[0]?.chapterNumber ?? "-"}`}
+                      />
+                      <PreflightRow
+                        label="Chương cuối"
+                        value={`Chương ${detectedChapters.at(-1)?.chapterNumber ?? "-"}`}
+                      />
+                    </div>
 
-                  {showSingleChapterWarning ? (
-                    <WarningText text="Có thể Yuki chưa nhận diện đúng tiêu đề chương." />
-                  ) : null}
-                  {duplicateChapterNumbers.length > 0 ? (
-                    <WarningText
-                      text={`Phát hiện chapter number trùng: ${duplicateChapterNumbers.join(", ")}.`}
-                    />
-                  ) : null}
-                  {genericTitleCount > 0 ? (
-                    <WarningText
-                      text={`Có ${genericTitleCount.toLocaleString("vi-VN")} chương có title trống hoặc quá chung.`}
-                    />
-                  ) : null}
-                </div>
-              ) : (
-                <EmptyState
-                  title="Chưa có dữ liệu tách chương"
-                  description="Upload TXT, sau đó bấm Tách chương."
-                />
-              )}
+                    {showSingleChapterWarning ? (
+                      <WarningText text="Có thể Yuki chưa nhận diện đúng tiêu đề chương." />
+                    ) : null}
+                    {duplicateChapterNumbers.length > 0 ? (
+                      <WarningText
+                        text={`Phát hiện chapter number trùng: ${duplicateChapterNumbers.join(", ")}.`}
+                      />
+                    ) : null}
+                    {genericTitleCount > 0 ? (
+                      <WarningText
+                        text={`Có ${genericTitleCount.toLocaleString("vi-VN")} chương có title trống hoặc quá chung.`}
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Chưa có dữ liệu tách chương"
+                    description="Upload TXT, sau đó bấm Tách chương."
+                  />
+                )}
+              </div>
             </SectionCard>
 
             <SectionCard title="Quét nhanh / Bản đồ arc">
@@ -586,120 +631,122 @@ export default function ImportNovelPage() {
         </div>
 
         <SectionCard title="Danh sách chương">
-          {hasDetectedChapters ? (
-            <div className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
-              <div className="space-y-3">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      className="pl-9"
-                      value={chapterSearch}
-                      onChange={(event) => setChapterSearch(event.target.value)}
-                      placeholder="Tìm chương..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      value={jumpChapterValue}
-                      onChange={(event) => setJumpChapterValue(event.target.value)}
-                      placeholder="Nhảy chương số..."
-                    />
-                    <Button type="button" variant="outline" onClick={handleJumpToChapter}>
-                      Đi
-                    </Button>
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Hiển thị {visibleChapters.length.toLocaleString("vi-VN")} /{" "}
-                  {filteredChapters.length.toLocaleString("vi-VN")} chương
-                </p>
-
-                <div className="max-h-[520px] space-y-2 overflow-auto pr-1">
-                  {visibleChapters.map((chapter) => (
-                    <button
-                      key={chapter.id}
-                      type="button"
-                      className={
-                        chapter.id === selectedChapter?.id
-                          ? "w-full rounded-lg border border-primary/40 bg-primary/10 p-3 text-left"
-                          : "w-full rounded-lg border bg-background p-3 text-left hover:bg-muted/50"
-                      }
-                      onClick={() => setSelectedChapterId(chapter.id)}
-                    >
-                      <p className="text-xs text-muted-foreground">
-                        Chương {chapter.chapterNumber}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-sm font-medium">
-                        {chapter.title || "(Không có tiêu đề)"}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {chapter.wordCount.toLocaleString("vi-VN")} từ ·{" "}
-                        {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString("vi-VN")} đoạn
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-semibold">Xem trước chương</h3>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!previousChapter}
-                      onClick={() => setSelectedChapterId(previousChapter?.id)}
-                    >
-                      <ArrowLeft className="mr-1 h-4 w-4" />
-                      Trước
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!nextChapter}
-                      onClick={() => setSelectedChapterId(nextChapter?.id)}
-                    >
-                      Sau
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {selectedChapter ? (
-                  <div className="rounded-xl border bg-background p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Chương {selectedChapter.chapterNumber}
-                    </p>
-                    <p className="mt-1 text-sm font-medium">
-                      {selectedChapter.title || "(Không có tiêu đề)"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {selectedChapter.wordCount.toLocaleString("vi-VN")} từ ·{" "}
-                      {(chunkCountsByChapterId[selectedChapter.id] ?? 0).toLocaleString("vi-VN")} đoạn
-                    </p>
-                    <div className="mt-3 max-h-[360px] overflow-auto rounded-lg border bg-muted/30 p-3 text-sm leading-6">
-                      {selectedChapter.cleanContent.slice(0, 5000)}
+          <div ref={chapterListSectionRef}>
+            {hasDetectedChapters ? (
+              <div className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
+                <div className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        value={chapterSearch}
+                        onChange={(event) => setChapterSearch(event.target.value)}
+                        placeholder="Tìm chương..."
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={jumpChapterValue}
+                        onChange={(event) => setJumpChapterValue(event.target.value)}
+                        placeholder="Nhảy chương số..."
+                      />
+                      <Button type="button" variant="outline" onClick={handleJumpToChapter}>
+                        Đi
+                      </Button>
                     </div>
                   </div>
-                ) : (
-                  <EmptyState
-                    title="Chưa chọn chương"
-                    description="Chọn một chương từ danh sách để xem trước."
-                  />
-                )}
+
+                  <p className="text-xs text-muted-foreground">
+                    Hiển thị {visibleChapters.length.toLocaleString("vi-VN")} /{" "}
+                    {filteredChapters.length.toLocaleString("vi-VN")} chương
+                  </p>
+
+                  <div className="max-h-[520px] space-y-2 overflow-auto pr-1">
+                    {visibleChapters.map((chapter) => (
+                      <button
+                        key={chapter.id}
+                        type="button"
+                        className={
+                          chapter.id === selectedChapter?.id
+                            ? "w-full rounded-lg border border-primary/40 bg-primary/10 p-3 text-left"
+                            : "w-full rounded-lg border bg-background p-3 text-left hover:bg-muted/50"
+                        }
+                        onClick={() => setSelectedChapterId(chapter.id)}
+                      >
+                        <p className="text-xs text-muted-foreground">
+                          Chương {chapter.chapterNumber}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-sm font-medium">
+                          {chapter.title || "(Không có tiêu đề)"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {chapter.wordCount.toLocaleString("vi-VN")} từ ·{" "}
+                          {(chunkCountsByChapterId[chapter.id] ?? 0).toLocaleString("vi-VN")} đoạn
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-base font-semibold">Xem trước chương</h3>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!previousChapter}
+                        onClick={() => setSelectedChapterId(previousChapter?.id)}
+                      >
+                        <ArrowLeft className="mr-1 h-4 w-4" />
+                        Trước
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!nextChapter}
+                        onClick={() => setSelectedChapterId(nextChapter?.id)}
+                      >
+                        Sau
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {selectedChapter ? (
+                    <div className="rounded-xl border bg-background p-4">
+                      <p className="text-xs text-muted-foreground">
+                        Chương {selectedChapter.chapterNumber}
+                      </p>
+                      <p className="mt-1 text-sm font-medium">
+                        {selectedChapter.title || "(Không có tiêu đề)"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {selectedChapter.wordCount.toLocaleString("vi-VN")} từ ·{" "}
+                        {(chunkCountsByChapterId[selectedChapter.id] ?? 0).toLocaleString("vi-VN")} đoạn
+                      </p>
+                      <div className="mt-3 max-h-[360px] overflow-auto rounded-lg border bg-muted/30 p-3 text-sm leading-6">
+                        {selectedChapter.cleanContent.slice(0, 5000)}
+                      </div>
+                    </div>
+                  ) : (
+                    <EmptyState
+                      title="Chưa chọn chương"
+                      description="Chọn một chương từ danh sách để xem trước."
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <EmptyState
-              title="Chưa tách được chương"
-              description="Upload TXT, sau đó bấm Tách chương."
-            />
-          )}
+            ) : (
+              <EmptyState
+                title="Chưa tách được chương"
+                description="Upload TXT, sau đó bấm Tách chương."
+              />
+            )}
+          </div>
         </SectionCard>
       </PageContainer>
     </PageShell>
