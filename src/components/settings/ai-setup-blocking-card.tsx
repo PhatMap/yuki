@@ -9,7 +9,7 @@ import type { AiSetupReadiness } from "@/lib/settings/ai-setup-readiness";
 export function AiSetupBlockingCard({
   readiness,
 }: {
-  readiness: AiSetupReadiness;
+  readiness?: AiSetupReadiness;
 }) {
   return (
     <SectionCard
@@ -18,10 +18,10 @@ export function AiSetupBlockingCard({
     >
       <div className="space-y-3">
         <p className="text-sm">
-          Provider hiện tại: <strong>{readiness.providerLabel}</strong>
+          Provider hiện tại: <strong>{readiness?.providerLabel ?? "Chưa cấu hình"}</strong>
         </p>
 
-        {readiness.missingReasons.length > 0 ? (
+        {readiness?.missingReasons && readiness.missingReasons.length > 0 ? (
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
             {readiness.missingReasons.map((reason) => (
               <li key={reason}>{reason}</li>
@@ -31,10 +31,10 @@ export function AiSetupBlockingCard({
 
         <div className="flex flex-wrap gap-2">
           <Button asChild>
-            <Link href={readiness.nextSetupRoute}>Thiết lập AI</Link>
+            <Link href={readiness?.nextSetupRoute ?? "/settings"}>Thiết lập AI</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href={readiness.nextSetupRoute}>Mở cài đặt</Link>
+            <Link href={readiness?.nextSetupRoute ?? "/settings"}>Mở cài đặt</Link>
           </Button>
         </div>
       </div>

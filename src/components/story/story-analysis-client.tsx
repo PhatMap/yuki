@@ -350,6 +350,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
   const canUseLocalAggregatedAnalysis =
     runtimeSettings?.providerId === "mock" ||
     runtimeSettings?.providerId === "gemini-proxy";
+  const isAnalysisRunning = isSavingAnalysis || isLocalJobRunning;
 
   const scoutCoveragePercent = totalChapters
     ? Math.round((parsedChapters / totalChapters) * 100)
@@ -1065,7 +1066,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                 type="button"
                 onClick={handleStartAnalysis}
                 disabled={
-                  isLoading || chapters.length === 0 || isSavingAnalysis
+                  isLoading || chapters.length === 0 || isAnalysisRunning
                 }
               >
                 <Play className="mr-2 h-4 w-4" />
@@ -1091,7 +1092,7 @@ export function StoryAnalysisClient({ storyId }: StoryAnalysisClientProps) {
                   variant="outline"
                   onClick={handleResumeFailedBatch}
                   disabled={
-                    isLoading || chapters.length === 0 || isSavingAnalysis
+                    isLoading || chapters.length === 0 || isAnalysisRunning
                   }
                 >
                   {isResumingBatch ? "Đang tiếp tục..." : "Tiếp tục batch lỗi"}
