@@ -41,34 +41,29 @@ interface StoryNavigationGroup {
 const storyNavigationGroups: StoryNavigationGroup[] = [
   {
     label: "Bắt đầu",
-    description: "Vào truyện và chạy phân tích",
+    description: "Vào bàn làm việc và chạy phân tích",
     items: [
       {
-        label: "Tổng quan",
-        href: "",
+        label: "Workspace",
+        href: "workspace",
         icon: Home,
       },
       {
-        label: "Nhập & phân tích",
+        label: "Phân tích truyện",
         href: "analysis",
         icon: Layers3,
       },
-    ],
-  },
-  {
-    label: "Làm việc với truyện",
-    description: "Đọc, viết và rewrite",
-    items: [
       {
         label: "Đọc truyện",
         href: "reader",
         icon: BookOpen,
       },
-      {
-        label: "Viết / Rewrite",
-        href: "workspace",
-        icon: PenLine,
-      },
+    ],
+  },
+  {
+    label: "Viết / Rewrite",
+    description: "Lập kế hoạch và viết bản sửa",
+    items: [
       {
         label: "Rewrite Planner",
         href: "rewrite-planner",
@@ -157,9 +152,18 @@ function resolveStoryNavigationHref(
   item: StoryNavigationItem,
 ) {
   if (item.scope === "global") return item.href;
-  if (!item.href) return `/stories/${storyId}`;
 
   return `/stories/${storyId}/${item.href}`;
+}
+
+function isStoryItemActive(pathname: string, href: string) {
+  if (href.endsWith("/workspace")) {
+    const storyRoot = href.replace(/\/workspace$/u, "");
+
+    return pathname === href || pathname === storyRoot;
+  }
+
+  return pathname === href;
 }
 
 export function StoryNavigation({ storyId }: StoryNavigationProps) {
@@ -173,7 +177,7 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
             const activeItem = group.items.find((item) => {
               const href = resolveStoryNavigationHref(storyId, item);
 
-              return pathname === href;
+              return isStoryItemActive(pathname, href);
             });
             const isGroupActive = Boolean(activeItem);
 
@@ -199,7 +203,7 @@ export function StoryNavigation({ storyId }: StoryNavigationProps) {
                   {group.items.map((item) => {
                     const href = resolveStoryNavigationHref(storyId, item);
                     const Icon = item.icon;
-                    const isActive = pathname === href;
+                    const isActive = isStoryItemActive(pathname, href);
 
                     return (
                       <Link
