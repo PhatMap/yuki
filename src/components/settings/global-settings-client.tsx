@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Save, TestTube } from "lucide-react";
+import { TestTube } from "lucide-react";
 
 import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
@@ -48,6 +48,14 @@ const geminiDirectModelOptions = [
   "gemini-3-flash-preview",
   "gemini-3.1-flash-lite-preview",
 ];
+
+const GEMINI_PROXY_PRESET_ENDPOINT = "/api/proxy";
+
+interface GeminiProxyRemoteModel {
+  id: string;
+  displayName: string;
+  isGemini: boolean;
+}
 
 type ProviderKeyDraft = {
   single: string;
@@ -130,6 +138,9 @@ export function GlobalSettingsClient() {
   const [testMessage, setTestMessage] = useState("");
   const [isTestingProvider, setIsTestingProvider] = useState(false);
   const [isMutatingKeys, setIsMutatingKeys] = useState(false);
+  const [isLoadingGeminiModels, setIsLoadingGeminiModels] = useState(false);
+  const [geminiProxyModels, setGeminiProxyModels] = useState<GeminiProxyRemoteModel[]>([]);
+  const [modelLoadMessage, setModelLoadMessage] = useState("");
   const [providerKeys, setProviderKeys] = useState<
     Record<ApiKeyProviderId, AiProviderApiKeyRecord[]>
   >({
@@ -218,6 +229,84 @@ export function GlobalSettingsClient() {
     }
   }
 
+  function buildGeminiModelsEndpoint(endpoint: string) {
+    const trimmed = endpoint.trim();
+    if (!trimmed) return "/api/proxy/v1/models";
+    if (trimmed === GEMINI_PROXY_PRESET_ENDPOINT) return "/api/proxy/v1/models";
+
+    const normalized = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+    return `${normalized}/v1/models`;
+  }
+
+  async function handleLoadGeminiProxyModels() {
+    setIsLoadingGeminiModels(true);
+    setModelLoadMessage("");
+
+    try {
+      const modelsEndpoint = buildGeminiModelsEndpoint(settings.geminiProxyEndpoint);
+      const response = await fetch(modelsEndpoint, {
+        method: "GET",
+        headers: {
+          "content-type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        setModelLoadMessage(`Không thể tải models: HTTP ${response.status}.`);
+        return;
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!payload || typeof payload !== "object") {
+        setModelLoadMessage("Không thể tải models: response không hợp lệ.");
+        return;
+      }
+
+      const record = payload as Record<string, unknown>;
+      if (record.object !== "list" || !Array.isArray(record.data)) {
+        setModelLoadMessage("Không thể tải models: response không đúng định dạng list.");
+        return;
+      }
+
+      const parsedModels: GeminiProxyRemoteModel[] = [];
+      for (const item of record.data) {
+        if (!item || typeof item !== "object") continue;
+        const modelRecord = item as Record<string, unknown>;
+        if (typeof modelRecord.id !== "string") continue;
+
+        const id = modelRecord.id.trim();
+        if (!id) continue;
+        const displayName =
+          typeof modelRecord.display_name === "string" && modelRecord.display_name.trim()
+            ? modelRecord.display_name.trim()
+            : id;
+        parsedModels.push({
+          id,
+          displayName,
+          isGemini: id.toLowerCase().includes("gemini"),
+        });
+      }
+
+      const uniqueById = new Map<string, GeminiProxyRemoteModel>();
+      parsedModels.forEach((model) => uniqueById.set(model.id, model));
+      const merged = Array.from(uniqueById.values()).sort((left, right) =>
+        left.displayName.localeCompare(right.displayName),
+      );
+
+      setGeminiProxyModels(merged);
+      setModelLoadMessage(`Đã tải ${merged.length} model.`);
+    } catch (error) {
+      console.error("Failed to load Gemini Proxy models", error);
+      setModelLoadMessage(
+        error instanceof Error
+          ? `Không thể tải models: ${error.message}`
+          : "Không thể tải models.",
+      );
+    } finally {
+      setIsLoadingGeminiModels(false);
+    }
+  }
+
   async function handleAddSingleKey(providerId: ApiKeyProviderId) {
     const value = keyDrafts[providerId].single.trim();
     if (!value) return;
@@ -297,6 +386,23 @@ export function GlobalSettingsClient() {
     }
   }
 
+  const selectedGeminiProxyModel = useMemo(
+    () => settings.defaultModel.trim(),
+    [settings.defaultModel],
+  );
+  const geminiModelsOnly = useMemo(
+    () => geminiProxyModels.filter((model) => model.isGemini),
+    [geminiProxyModels],
+  );
+  const nonGeminiModels = useMemo(
+    () => geminiProxyModels.filter((model) => !model.isGemini),
+    [geminiProxyModels],
+  );
+  const selectedGeminiModelOption = useMemo(() => {
+    const all = [...geminiModelsOnly, ...nonGeminiModels];
+    return all.find((model) => model.id === selectedGeminiProxyModel);
+  }, [geminiModelsOnly, nonGeminiModels, selectedGeminiProxyModel]);
+
   return (
     <PageShell>
       <PageContainer className="max-w-[1120px]">
@@ -367,27 +473,35 @@ export function GlobalSettingsClient() {
           <SectionCard title="2) Cấu hình provider hiện tại">
             {settings.providerId === "gemini-proxy" ? (
               <div className="space-y-4">
-                <SettingInput
-                  id="gemini-proxy-endpoint"
-                  label="Gemini Proxy endpoint"
-                  value={settings.geminiProxyEndpoint}
-                  onChange={(value) => updateSetting("geminiProxyEndpoint", value)}
-                  placeholder="/api/ai/gemini"
-                />
-                <div className="grid gap-2">
-                  <Label>Model Gemini Proxy</Label>
-                  <select
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                    value={settings.defaultModel}
-                    onChange={(event) => updateSetting("defaultModel", event.target.value)}
+                <div className="rounded-xl border bg-background p-3">
+                  <p className="text-sm font-medium">Gemini Proxy mặc định</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Endpoint/profile: <span className="font-mono">/api/proxy</span>
+                  </p>
+                  <div className="mt-3 grid gap-2">
+                    <Label htmlFor="gemini-proxy-endpoint">Endpoint đang dùng</Label>
+                    <Input
+                      id="gemini-proxy-endpoint"
+                      value={settings.geminiProxyEndpoint}
+                      onChange={(event) =>
+                        updateSetting("geminiProxyEndpoint", event.target.value)
+                      }
+                      placeholder="/api/proxy"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() =>
+                      updateSetting("geminiProxyEndpoint", GEMINI_PROXY_PRESET_ENDPOINT)
+                    }
                   >
-                    {geminiProxyModelOptions.map((model) => (
-                      <option key={model} value={model}>
-                        {model}
-                      </option>
-                    ))}
-                  </select>
+                    Dùng preset
+                  </Button>
                 </div>
+
                 <ProviderKeySection
                   providerId="gemini-proxy"
                   title="API key Gemini Proxy"
@@ -399,6 +513,102 @@ export function GlobalSettingsClient() {
                   onAddBulk={() => void handleAddBulkKeys("gemini-proxy")}
                   onDelete={(id) => void handleDeleteKey(id)}
                 />
+
+                <p className="text-xs text-muted-foreground">
+                  API key được lưu cục bộ trong trình duyệt dưới dạng plaintext.
+                </p>
+
+                <div className="rounded-xl border bg-background p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Model mặc định đang dùng</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleLoadGeminiProxyModels}
+                      disabled={isLoadingGeminiModels}
+                    >
+                      {isLoadingGeminiModels ? "Đang tải..." : "Lấy models"}
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {selectedGeminiModelOption?.displayName ?? selectedGeminiProxyModel}
+                  </p>
+                  {modelLoadMessage ? (
+                    <p className="mt-2 text-xs text-muted-foreground">{modelLoadMessage}</p>
+                  ) : null}
+                  <div className="mt-3 grid gap-2">
+                    <Label htmlFor="gemini-proxy-model">Model Gemini Proxy</Label>
+                    <select
+                      id="gemini-proxy-model"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      value={settings.defaultModel}
+                      onChange={(event) =>
+                        updateSetting("defaultModel", event.target.value)
+                      }
+                    >
+                      {geminiModelsOnly.length > 0
+                        ? geminiModelsOnly.map((model) => (
+                            <option key={model.id} value={model.id}>
+                              {model.displayName}
+                            </option>
+                          ))
+                        : geminiProxyModelOptions.map((model) => (
+                            <option key={model} value={model}>
+                              {model}
+                            </option>
+                          ))}
+                      {!geminiModelsOnly.some(
+                        (model) => model.id === settings.defaultModel,
+                      ) ? (
+                        <option value={settings.defaultModel}>
+                          {settings.defaultModel} (giữ cấu hình hiện tại)
+                        </option>
+                      ) : null}
+                    </select>
+                  </div>
+                  {geminiModelsOnly.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {geminiModelsOnly.slice(0, 8).map((model) => (
+                        <Button
+                          key={model.id}
+                          type="button"
+                          size="sm"
+                          variant={
+                            settings.defaultModel === model.id ? "default" : "outline"
+                          }
+                          onClick={() => updateSetting("defaultModel", model.id)}
+                        >
+                          {model.displayName}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {nonGeminiModels.length > 0 ? (
+                    <details className="mt-3 rounded-lg border bg-muted/20">
+                      <summary className="cursor-pointer px-3 py-2 text-sm">
+                        Model khác
+                      </summary>
+                      <div className="space-y-2 border-t p-3">
+                        {nonGeminiModels.map((model) => (
+                          <Button
+                            key={model.id}
+                            type="button"
+                            size="sm"
+                            variant={
+                              settings.defaultModel === model.id
+                                ? "default"
+                                : "outline"
+                            }
+                            onClick={() => updateSetting("defaultModel", model.id)}
+                          >
+                            {model.displayName}
+                          </Button>
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
@@ -494,21 +704,15 @@ export function GlobalSettingsClient() {
           </SectionCard>
 
           <SectionCard title="3) Test kết nối">
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={handleSaveSettings} disabled={isLoading || isSaving}>
-                <Save className="mr-2 h-4 w-4" />
-                {isSaving ? "Đang lưu..." : "Lưu cấu hình"}
-              </Button>
-              <Button
-                type="button"
-                className="h-11 px-6"
-                onClick={handleTestProvider}
-                disabled={isLoading || isTestingProvider}
-              >
-                <TestTube className="mr-2 h-4 w-4" />
-                {isTestingProvider ? "Đang test..." : "Test kết nối"}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              className="h-11 px-6"
+              onClick={handleTestProvider}
+              disabled={isLoading || isTestingProvider}
+            >
+              <TestTube className="mr-2 h-4 w-4" />
+              {isTestingProvider ? "Đang test..." : "Test kết nối"}
+            </Button>
 
             {testMessage ? <p className="mt-3 text-sm text-muted-foreground">{testMessage}</p> : null}
 
@@ -523,7 +727,7 @@ export function GlobalSettingsClient() {
 
           <details className="rounded-xl border bg-card/70">
             <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Nâng cao</summary>
-            <div className="border-t p-4">
+            <div className="space-y-3 border-t p-4">
               <p className="text-sm font-medium">Mock Local (test only)</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Không khuyến nghị cho workflow thật.
@@ -536,6 +740,15 @@ export function GlobalSettingsClient() {
                 onClick={() => updateSetting("providerId", "mock")}
               >
                 Chuyển sang Mock Local
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleSaveSettings}
+                disabled={isLoading || isSaving}
+              >
+                {isSaving ? "Đang lưu..." : "Lưu cấu hình"}
               </Button>
             </div>
           </details>
