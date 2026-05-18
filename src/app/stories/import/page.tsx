@@ -359,16 +359,13 @@ export default function ImportNovelPage() {
 
         <SectionCard title="Việc tiếp theo">
           {!hasText ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
               <div>
                 <p className="text-sm font-medium">Upload file truyện</p>
                 <p className="text-sm text-muted-foreground">
-                  Chọn file TXT chứa toàn bộ truyện trong một lần nạp.
+                  Chọn file TXT ở khối Nạp liệu bên dưới. File nên chứa toàn bộ truyện.
                 </p>
               </div>
-              <Button type="button" onClick={() => fileInputRef.current?.click()}>
-                Mở upload
-              </Button>
             </div>
           ) : !hasDetectedChapters ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
