@@ -104,6 +104,15 @@ export const geminiProxyAiPipelineProvider: AiPipelineProvider = {
             missingVariables: context.renderedPrompt.missingVariables,
             usedVariables: context.renderedPrompt.usedVariables,
           },
+          promptPackage: {
+            promptId: context.renderedPrompt.package.promptId,
+            promptVersion: context.renderedPrompt.package.promptVersion,
+            category: context.renderedPrompt.package.category,
+            scope: context.renderedPrompt.package.scope,
+            storyId: context.renderedPrompt.package.storyId,
+            outputSchemaId: context.renderedPrompt.package.outputSchemaId,
+            estimatedTokens: context.renderedPrompt.package.estimatedTokens,
+          },
           input,
         }),
       });

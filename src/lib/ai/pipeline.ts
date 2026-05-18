@@ -147,6 +147,16 @@ function createImportAnalysisPromptVariables(input: AiPipelineInput) {
   };
 }
 
+function hasUsableStoryAnalysisContext(input: AiPipelineInput) {
+  const hasChapterContent = input.chapters.some(
+    (chapter) => chapter.cleanContent.trim().length > 0,
+  );
+  const hasChunkContent =
+    input.chunks?.some((chunk) => chunk.content.trim().length > 0) ?? false;
+
+  return hasChapterContent || hasChunkContent;
+}
+
 async function createExecutionContext(
   input: AiPipelineInput,
   settings: AiRuntimeSettings,
@@ -154,11 +164,21 @@ async function createExecutionContext(
   const providerLabel = getAiRuntimeProviderLabel(settings.providerId);
   const endpoint = getActiveRuntimeEndpoint(settings);
   const model = getActiveRuntimeModel(settings);
+  const promptVariables = createImportAnalysisPromptVariables(input);
+  const hasUsableContext = hasUsableStoryAnalysisContext(input);
+
+  if (!hasUsableContext) {
+    throw new Error(
+      "Không có chapter/chunk context hợp lệ để render prompt phân tích.",
+    );
+  }
 
   const renderedPrompt = await renderPromptTemplate({
     templateId: "import-analysis",
     includeSystemIdentity: true,
-    variables: createImportAnalysisPromptVariables(input),
+    storyId: input.storyId,
+    inputPayload: input,
+    variables: promptVariables,
   });
 
   return {
@@ -190,7 +210,43 @@ export async function runAiPipelineWithSettings(
   settings: AiRuntimeSettings,
 ): Promise<AiPipelineResult> {
   const startedAt = new Date().toISOString();
-  const context = await createExecutionContext(input, settings);
+  let context: AiPipelineExecutionContext;
+  try {
+    context = await createExecutionContext(input, settings);
+  } catch (error) {
+    const providerLabel = getAiRuntimeProviderLabel(settings.providerId);
+    const endpoint = getActiveRuntimeEndpoint(settings);
+    const model = getActiveRuntimeModel(settings);
+    const runtime: AiPipelineRuntimeContext = {
+      settings,
+      providerId: settings.providerId,
+      providerLabel,
+      endpoint,
+      model,
+      temperature: settings.temperature,
+      maxOutputTokens: settings.maxOutputTokens,
+    };
+    const fallbackPrompt = await renderPromptTemplate({
+      templateId: "import-analysis",
+      includeSystemIdentity: true,
+      storyId: input.storyId,
+      inputPayload: input,
+      variables: createImportAnalysisPromptVariables(input),
+    });
+
+    return createFailedResult({
+      startedAt,
+      runtime,
+      context: {
+        runtime,
+        renderedPrompt: fallbackPrompt,
+      },
+      message:
+        error instanceof Error
+          ? error.message
+          : "Không thể tạo prompt context cho phân tích.",
+    });
+  }
   const pipelineProviderId = mapRuntimeProviderToPipelineProviderId(
     settings.providerId,
   );

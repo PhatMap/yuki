@@ -15,6 +15,16 @@ export interface GeminiProxyPromptTemplateSnapshot {
   usedVariables: string[];
 }
 
+export interface GeminiProxyRenderedPromptPackageSnapshot {
+  promptId: string;
+  promptVersion: number;
+  category: string;
+  scope: "global" | "story-specific";
+  storyId?: string;
+  outputSchemaId: string;
+  estimatedTokens?: number;
+}
+
 export interface GeminiProxyRequestBody {
   provider?: string;
   task: GeminiProxyTask;
@@ -22,6 +32,7 @@ export interface GeminiProxyRequestBody {
   runtime?: GeminiProxyRuntimeOptions;
   prompt: string;
   promptTemplate?: GeminiProxyPromptTemplateSnapshot;
+  promptPackage?: GeminiProxyRenderedPromptPackageSnapshot;
   input: AiPipelineInput;
 }
 

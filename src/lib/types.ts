@@ -276,6 +276,8 @@ export interface StoryLocalSettings {
 export type PromptTemplateCategory =
   | "system"
   | "analysis"
+  | "scout"
+  | "arc"
   | "planning"
   | "rewrite"
   | "generation";

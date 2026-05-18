@@ -7,15 +7,38 @@ import type { GlobalPromptTemplate } from "@/lib/types";
 export type PromptTemplateId =
   | "story-system-identity"
   | "import-analysis"
+  | "chapter-scout"
+  | "arc-map"
   | "rewrite-impact-planner"
   | "rewrite-draft"
   | "new-story-from-framework";
+
+export interface RenderedPromptPackage {
+  promptId: string;
+  promptVersion: number;
+  category: string;
+  scope: "global" | "story-specific";
+  storyId?: string;
+  systemInstruction: string;
+  globalTaskInstruction: string;
+  storyInstruction?: string;
+  lockedContract: string;
+  variables: Record<string, unknown>;
+  renderedPrompt: string;
+  inputPayload: unknown;
+  outputSchemaId: string;
+  missingVariables: string[];
+  estimatedTokens?: number;
+}
 
 export interface PromptRenderInput {
   templateId: PromptTemplateId;
   variables?: Record<string, string | number | boolean | null | undefined>;
   includeSystemIdentity?: boolean;
   throwOnMissingTemplate?: boolean;
+  storyId?: string;
+  storyInstruction?: string;
+  inputPayload?: unknown;
 }
 
 export interface PromptRenderResult {
@@ -25,9 +48,31 @@ export interface PromptRenderResult {
   missingVariables: string[];
   usedVariables: string[];
   source: "indexed-db" | "default";
+  package: RenderedPromptPackage;
 }
 
 const variablePattern = /\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g;
+const outputSchemaPattern = /"outputSchemaId"\s*:\s*"([^"]+)"/;
+
+function inferPromptVersion(template: GlobalPromptTemplate) {
+  const matched = template.updatedAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!matched) return 1;
+
+  const [, year, month, day] = matched;
+  return Number(`${year}${month}${day}`);
+}
+
+function inferOutputSchemaId(template: GlobalPromptTemplate) {
+  const matched = template.lockedContract.match(outputSchemaPattern);
+  if (matched?.[1]) return matched[1];
+
+  return `${template.id}.v1`;
+}
+
+function estimatePromptTokens(value: string) {
+  if (!value.trim()) return 0;
+  return Math.ceil(value.length / 4);
+}
 
 function stringifyPromptVariable(
   value: string | number | boolean | null | undefined,
@@ -110,6 +155,9 @@ export async function renderPromptTemplate({
   variables = {},
   includeSystemIdentity = true,
   throwOnMissingTemplate = false,
+  storyId,
+  storyInstruction,
+  inputPayload,
 }: PromptRenderInput): Promise<PromptRenderResult> {
   const defaultTemplates = getDefaultPromptTemplates();
   const runtimeTemplates = await getRuntimePromptTemplates();
@@ -130,6 +178,23 @@ export async function renderPromptTemplate({
       missingVariables: [],
       usedVariables: [],
       source: "default",
+      package: {
+        promptId: fallbackTemplate.id,
+        promptVersion: inferPromptVersion(fallbackTemplate),
+        category: fallbackTemplate.category,
+        scope: "global",
+        storyId,
+        systemInstruction: "",
+        globalTaskInstruction: fallbackTemplate.editablePrompt,
+        storyInstruction,
+        lockedContract: fallbackTemplate.lockedContract,
+        variables,
+        renderedPrompt: "",
+        inputPayload,
+        outputSchemaId: inferOutputSchemaId(fallbackTemplate),
+        missingVariables: [],
+        estimatedTokens: 0,
+      },
     };
   }
 
@@ -143,20 +208,40 @@ export async function renderPromptTemplate({
   const rawPrompt = [
     systemIdentity?.editablePrompt,
     template.editablePrompt,
+    storyInstruction,
     template.lockedContract,
   ]
     .filter(Boolean)
     .join("\n\n");
 
   const rendered = interpolatePromptTemplate(rawPrompt, variables);
+  const renderedPrompt = rendered.prompt.trim();
+  const renderedPackage: RenderedPromptPackage = {
+    promptId: template.id,
+    promptVersion: inferPromptVersion(template),
+    category: template.category,
+    scope: storyInstruction ? "story-specific" : "global",
+    storyId,
+    systemInstruction: systemIdentity?.editablePrompt ?? "",
+    globalTaskInstruction: template.editablePrompt,
+    storyInstruction,
+    lockedContract: template.lockedContract,
+    variables,
+    renderedPrompt,
+    inputPayload,
+    outputSchemaId: inferOutputSchemaId(template),
+    missingVariables: rendered.missingVariables,
+    estimatedTokens: estimatePromptTokens(renderedPrompt),
+  };
 
   return {
     template,
     systemIdentity,
-    prompt: rendered.prompt.trim(),
+    prompt: renderedPrompt,
     missingVariables: rendered.missingVariables,
     usedVariables: rendered.usedVariables,
     source: runtimeTemplates.source,
+    package: renderedPackage,
   };
 }
 

@@ -32,8 +32,22 @@ const defaultPromptTemplates: GlobalPromptTemplate[] = [
     description:
       "Extracts canon facts, characters, timeline, world terms, items, and style from imported chapters.",
     category: "analysis",
-    editablePrompt:
-      "Analyze the imported chapters as canon source material. Extract durable facts, character states, event order, locations, factions, items, terms, power systems, and writing style. Prefer explicit evidence over speculation.",
+    editablePrompt: [
+      "Phân tích dữ liệu truyện đã nạp làm nguồn canon chính.",
+      "Chỉ dùng dữ liệu được cung cấp. Không bịa nội dung không có trong chapter/chunk.",
+      "Trả về JSON đúng contract. Không markdown, không prose ngoài JSON.",
+      "",
+      "Story: {{storyTitle}}",
+      "Chapter range: {{chapterRange}}",
+      "Tổng chương: {{chapterCount}}",
+      "Tổng chunk: {{chunkCount}}",
+      "",
+      "Chapter context:",
+      "{{chapters}}",
+      "",
+      "Chunk context:",
+      "{{chunks}}",
+    ].join("\n"),
     lockedContract: formatContract({
       input: ["story", "chapters", "chunks"],
       output: {
@@ -47,6 +61,97 @@ const defaultPromptTemplates: GlobalPromptTemplate[] = [
       rules: ["include chapter references", "mark uncertain facts clearly"],
     }),
     variables: ["storyTitle", "chapterRange", "chapters", "chunks"],
+    createdAt: defaultPromptCreatedAt,
+    updatedAt: defaultPromptCreatedAt,
+  },
+  {
+    id: "chapter-scout",
+    title: "Chapter Scout",
+    description:
+      "Quét nhanh chapter samples để đề xuất skip/light/deep trước khi phân tích sâu.",
+    category: "scout",
+    editablePrompt: [
+      "Bạn là Chapter Scout cho Yuki.",
+      "Đọc chapter samples và đánh dấu mức ưu tiên cho từng chương.",
+      "Không bịa nội dung ngoài dữ liệu đã cung cấp.",
+      "Trả về JSON thuần theo contract.",
+      "",
+      "Mục tiêu: {{goal}}",
+      "Story: {{storyTitle}}",
+      "Story instruction: {{storyInstruction}}",
+      "Chapter samples:",
+      "{{chapterSamples}}",
+    ].join("\n"),
+    lockedContract: formatContract({
+      outputSchemaId: "chapter-scout.v1",
+      output: {
+        results: [
+          {
+            chapterIndex: "number",
+            priority: "low | medium | high | critical",
+            recommendation: "skip | light_load | deep_load",
+            detectedSignals: "string[]",
+            reason: "string",
+            confidence: "number",
+          },
+        ],
+      },
+      rules: [
+        "strict json only",
+        "no markdown",
+        "no invented chapter content",
+      ],
+    }),
+    variables: ["goal", "storyTitle", "storyInstruction", "chapterSamples"],
+    createdAt: defaultPromptCreatedAt,
+    updatedAt: defaultPromptCreatedAt,
+  },
+  {
+    id: "arc-map",
+    title: "Arc Map",
+    description:
+      "Gom kết quả scout thành arcs để chọn phần cần deep analysis.",
+    category: "arc",
+    editablePrompt: [
+      "Bạn là Arc Mapper cho Yuki.",
+      "Nhóm scout results thành các arc hợp lý để phục vụ deep analysis.",
+      "Chỉ dùng dữ liệu có trong scout results.",
+      "Trả về JSON thuần theo contract.",
+      "",
+      "Window: {{windowLabel}}",
+      "Tổng chương: {{chapterCount}}",
+      "Story instruction: {{storyInstruction}}",
+      "Scout results:",
+      "{{scoutResults}}",
+    ].join("\n"),
+    lockedContract: formatContract({
+      outputSchemaId: "arc-map.v1",
+      output: {
+        arcs: [
+          {
+            id: "string",
+            title: "string",
+            chapterStart: "number",
+            chapterEnd: "number",
+            summary: "string",
+            importance: "low | medium | high | critical",
+            whyLoad: "string",
+            recommendedDeepChapters: "number[]",
+          },
+        ],
+      },
+      rules: [
+        "strict json only",
+        "no markdown",
+        "no invented chapter content",
+      ],
+    }),
+    variables: [
+      "windowLabel",
+      "chapterCount",
+      "storyInstruction",
+      "scoutResults",
+    ],
     createdAt: defaultPromptCreatedAt,
     updatedAt: defaultPromptCreatedAt,
   },

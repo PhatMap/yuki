@@ -27,6 +27,8 @@ const categoryLabels: Record<CategoryFilter, string> = {
   all: "Tất cả",
   system: "System",
   analysis: "Analysis",
+  scout: "Scout",
+  arc: "Arc",
   planning: "Planning",
   rewrite: "Rewrite",
   generation: "Generation",

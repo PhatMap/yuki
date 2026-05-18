@@ -45,6 +45,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function hasUsableContent(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -272,6 +276,46 @@ export function normalizeGenerationConfig(runtime?: GeminiProxyRuntimeOptions) {
 }
 
 export function buildGeminiStoryAnalysisPrompt(body: GeminiProxyRequestBody) {
+  const chapterContext = body.input.chapters
+    .slice(0, 24)
+    .map((chapter) =>
+      [
+        `Chapter ${chapter.chapterNumber}: ${chapter.title || "Không có tiêu đề"}`,
+        `Word count: ${chapter.wordCount}`,
+        chapter.cleanContent.trim().slice(0, 2400),
+      ].join("\n"),
+    )
+    .join("\n\n---\n\n");
+  const chunkContext =
+    body.input.chunks
+      ?.slice(0, 36)
+      .map((chunk) =>
+        [
+          `Chunk ${chunk.chunkIndex} / Chapter ${chunk.chapterNumber}`,
+          `Words: ${chunk.wordCount}`,
+          chunk.content.trim().slice(0, 1600),
+        ].join("\n"),
+      )
+      .join("\n\n---\n\n") ?? "";
+  const structuredContext = [
+    "",
+    "INPUT_CONTEXT_JSON:",
+    JSON.stringify(
+      {
+        storyId: body.input.storyId,
+        chapterCount: body.input.chapters.length,
+        chunkCount: body.input.chunks?.length ?? 0,
+      },
+      null,
+      2,
+    ),
+    "",
+    "CHAPTER_CONTEXT:",
+    chapterContext || "(empty)",
+    "",
+    "CHUNK_CONTEXT:",
+    chunkContext || "(empty)",
+  ].join("\n");
   const strictJsonInstruction = [
     "",
     "Return ONLY a valid JSON object. Do not return markdown. Do not return prose.",
@@ -280,7 +324,7 @@ export function buildGeminiStoryAnalysisPrompt(body: GeminiProxyRequestBody) {
     `storyId must be exactly: ${body.input.storyId}`,
   ].join("\n");
 
-  return `${body.prompt}\n${strictJsonInstruction}`;
+  return `${body.prompt}\n${structuredContext}\n${strictJsonInstruction}`;
 }
 
 function extractGoogleResponseText(payload: unknown) {
@@ -683,6 +727,29 @@ export function validateGeminiProxyRequestBody(
       );
     }
   }
+  const promptPackage = value.promptPackage;
+  if (promptPackage !== undefined) {
+    if (!isObject(promptPackage)) {
+      throw new Error("Request promptPackage must be an object when provided.");
+    }
+    if (typeof promptPackage.promptId !== "string") {
+      throw new Error("Request promptPackage.promptId must be a string.");
+    }
+    if (typeof promptPackage.promptVersion !== "number") {
+      throw new Error("Request promptPackage.promptVersion must be a number.");
+    }
+    if (typeof promptPackage.category !== "string") {
+      throw new Error("Request promptPackage.category must be a string.");
+    }
+    if (promptPackage.scope !== "global" && promptPackage.scope !== "story-specific") {
+      throw new Error(
+        "Request promptPackage.scope must be global or story-specific.",
+      );
+    }
+    if (typeof promptPackage.outputSchemaId !== "string") {
+      throw new Error("Request promptPackage.outputSchemaId must be a string.");
+    }
+  }
 
   const runtime = isObject(value.runtime)
     ? {
@@ -712,6 +779,18 @@ export function validateGeminiProxyRequestBody(
       ? (input.chunks as GeminiProxyRequestBody["input"]["chunks"])
       : undefined,
   };
+  const hasChapterContext = validatedInput.chapters.some((chapter) =>
+    hasUsableContent(chapter.cleanContent),
+  );
+  const hasChunkContext =
+    validatedInput.chunks?.some((chunk) => hasUsableContent(chunk.content)) ??
+    false;
+
+  if (!hasChapterContext && !hasChunkContext) {
+    throw new Error(
+      "Request input has no usable chapter/chunk content for import-analysis.",
+    );
+  }
 
   return {
     provider: typeof value.provider === "string" ? value.provider : undefined,
@@ -720,6 +799,23 @@ export function validateGeminiProxyRequestBody(
     runtime,
     prompt: value.prompt,
     promptTemplate: validatedPromptTemplate,
+    promptPackage: isObject(promptPackage)
+      ? {
+          promptId: promptPackage.promptId as string,
+          promptVersion: promptPackage.promptVersion as number,
+          category: promptPackage.category as string,
+          scope: promptPackage.scope as "global" | "story-specific",
+          storyId:
+            typeof promptPackage.storyId === "string"
+              ? promptPackage.storyId
+              : undefined,
+          outputSchemaId: promptPackage.outputSchemaId as string,
+          estimatedTokens:
+            typeof promptPackage.estimatedTokens === "number"
+              ? promptPackage.estimatedTokens
+              : undefined,
+        }
+      : undefined,
     input: validatedInput,
   };
 }
