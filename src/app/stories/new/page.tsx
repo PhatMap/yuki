@@ -101,7 +101,7 @@ export default function NewStoryPage() {
       router.push(`/stories/${storyId}/workspace`);
     } catch (error) {
       console.error("Failed to save story setup to IndexedDB", error);
-      setErrorMessage("Không thể lưu project mới vào IndexedDB.");
+      setErrorMessage("Không thể lưu truyện mới vào IndexedDB.");
       setIsSaving(false);
     }
   }
@@ -110,9 +110,9 @@ export default function NewStoryPage() {
     <PageShell>
       <PageContainer className="max-w-4xl">
         <PageHeader
-          eyebrow="Create Story"
-          title="Tạo project truyện mới"
-          description="Nhập thông tin cơ bản để AI có thể tạo outline, chương đầu hoặc viết tiếp theo đúng gu của bạn."
+          eyebrow="Tùy chọn"
+          title="Tạo truyện trống"
+          description="Dùng khi bạn muốn bắt đầu từ ý tưởng mới. Nếu đã có truyện dài, hãy dùng Nhập truyện."
           action={
             <Button variant="ghost" type="button" onClick={() => router.back()}>
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -128,8 +128,8 @@ export default function NewStoryPage() {
         ) : null}
 
         <SectionCard
-          title="Thông tin truyện"
-          description="Thiết lập metadata ban đầu cho story project."
+          title="Thông tin ban đầu"
+          description="Tạo một workspace trống để viết, ghi chú canon hoặc chuẩn bị rewrite."
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid gap-2">
@@ -151,7 +151,7 @@ export default function NewStoryPage() {
                 onChange={(event) =>
                   updateForm("description", event.target.value)
                 }
-                placeholder="Mô tả bối cảnh, nhân vật chính, xung đột hoặc hướng truyện bạn muốn..."
+                placeholder="Bối cảnh, nhân vật chính, xung đột hoặc hướng truyện bạn muốn..."
               />
             </div>
 
@@ -207,7 +207,7 @@ export default function NewStoryPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label>Mức bám sát bản gốc</Label>
+                <Label>Mức bám canon</Label>
                 <Select
                   value={form.canonAdherence}
                   onValueChange={(value) =>
@@ -234,10 +234,9 @@ export default function NewStoryPage() {
             <div className="rounded-xl border bg-muted/40 p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <Label>Đây là fanwork / đồng nhân?</Label>
+                  <Label>Fanwork / đồng nhân</Label>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Bật nếu truyện dựa trên tác phẩm, nhân vật hoặc thế giới đã
-                    có.
+                    Bật nếu truyện dựa trên tác phẩm, nhân vật hoặc thế giới đã có.
                   </p>
                 </div>
 
@@ -277,40 +276,35 @@ export default function NewStoryPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="mustKeep">Tình tiết muốn giữ</Label>
+                  <Label htmlFor="mustKeep">Cần giữ</Label>
                   <Textarea
                     id="mustKeep"
                     value={form.mustKeep}
                     onChange={(event) =>
                       updateForm("mustKeep", event.target.value)
                     }
-                    placeholder="Nhân vật, quan hệ, sự kiện, thế giới hoặc tone cần giữ..."
+                    placeholder="Nhân vật, quan hệ, sự kiện, world hoặc tone cần giữ..."
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="mustChange">Tình tiết muốn thay đổi</Label>
+                  <Label htmlFor="mustChange">Cần đổi</Label>
                   <Textarea
                     id="mustChange"
                     value={form.mustChange}
                     onChange={(event) =>
                       updateForm("mustChange", event.target.value)
                     }
-                    placeholder="Những điểm bạn muốn sửa, rẽ nhánh, viết lại hoặc thay thế..."
+                    placeholder="Điểm muốn sửa, rẽ nhánh, viết lại hoặc thay thế..."
                   />
                 </div>
-
-                <p className="rounded-lg bg-muted p-3 text-sm leading-6 text-muted-foreground">
-                  Nội dung fanwork là bản sáng tạo không chính thức, không đại
-                  diện cho tác giả gốc hoặc đơn vị sở hữu bản quyền.
-                </p>
               </section>
             ) : null}
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isSaving}>
                 <Sparkles className="mr-2 h-4 w-4" />
-                {isSaving ? "Đang lưu..." : "Tạo project truyện"}
+                {isSaving ? "Đang lưu..." : "Tạo truyện trống"}
               </Button>
             </div>
           </form>
