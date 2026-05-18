@@ -65,28 +65,28 @@ const providerChoices: {
   {
     id: "gemini-proxy",
     title: "Gemini Proxy",
-    description: "Khuyen nghi cho workflow chinh cua Yuki.",
+    description: "Khuyến nghị cho workflow chính của Yuki.",
     practical: true,
     unlockedWorkflow: true,
   },
   {
     id: "ollama",
     title: "Ollama",
-    description: "Local AI, phu hop khi ban da chay Ollama o may ca nhan.",
+    description: "Local AI, phù hợp khi bạn đã chạy Ollama ở máy cá nhân.",
     practical: true,
     unlockedWorkflow: true,
   },
   {
     id: "gemini-direct",
     title: "Gemini Direct",
-    description: "Co the cau hinh, nhung hien chua mo workflow.",
+    description: "Có thể cấu hình, nhưng hiện chưa mở workflow.",
     practical: false,
     unlockedWorkflow: false,
   },
   {
     id: "custom-openai",
     title: "Custom OpenAI-compatible",
-    description: "Co the cau hinh, nhung hien chua mo workflow.",
+    description: "Có thể cấu hình, nhưng hiện chưa mở workflow.",
     practical: false,
     unlockedWorkflow: false,
   },
@@ -109,7 +109,7 @@ function createInitialKeyDrafts() {
 }
 
 function formatDateTime(value?: string) {
-  if (!value) return "Chua cap nhat";
+  if (!value) return "Chưa cập nhật";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString("vi-VN");
@@ -179,7 +179,7 @@ export function GlobalSettingsClient() {
       } catch (error) {
         console.error("Failed to load AI setup data", error);
         if (active) {
-          setMessage("Khong the doc du lieu setup AI.");
+          setMessage("Không thể đọc dữ liệu setup AI.");
         }
       } finally {
         if (active) {
@@ -232,10 +232,10 @@ export function GlobalSettingsClient() {
       const saved = await saveAiRuntimeSettings(settings);
       setSettings(saved);
       await refreshReadiness();
-      setMessage("Da luu settings AI.");
+      setMessage("Đã lưu settings AI.");
     } catch (error) {
       console.error("Failed to save AI settings", error);
-      setMessage("Khong the luu settings AI.");
+      setMessage("Không thể lưu settings AI.");
     } finally {
       setIsSaving(false);
     }
@@ -251,10 +251,10 @@ export function GlobalSettingsClient() {
       await addProviderApiKey(providerId, value);
       await Promise.all([refreshProviderKeys(), refreshReadiness()]);
       updateKeyDraft(providerId, { single: "" });
-      setMessage(`Da them API key cho ${providerId}.`);
+      setMessage(`Đã thêm API key cho ${providerId}.`);
     } catch (error) {
       console.error("Failed to add API key", error);
-      setMessage("Khong the them API key.");
+      setMessage("Không thể thêm API key.");
     } finally {
       setIsMutatingKeys(false);
     }
@@ -270,10 +270,10 @@ export function GlobalSettingsClient() {
       const result = await addProviderApiKeysFromLines(providerId, bulk);
       await Promise.all([refreshProviderKeys(), refreshReadiness()]);
       updateKeyDraft(providerId, { bulk: "" });
-      setMessage(`Da them ${result.added} API key cho ${providerId}.`);
+      setMessage(`Đã thêm ${result.added} API key cho ${providerId}.`);
     } catch (error) {
       console.error("Failed to add API keys in bulk", error);
-      setMessage("Khong the them nhieu API key.");
+      setMessage("Không thể thêm nhiều API key.");
     } finally {
       setIsMutatingKeys(false);
     }
@@ -285,10 +285,10 @@ export function GlobalSettingsClient() {
     try {
       await deleteProviderApiKey(id);
       await Promise.all([refreshProviderKeys(), refreshReadiness()]);
-      setMessage("Da xoa API key.");
+      setMessage("Đã xóa API key.");
     } catch (error) {
       console.error("Failed to delete API key", error);
-      setMessage("Khong the xoa API key.");
+      setMessage("Không thể xóa API key.");
     } finally {
       setIsMutatingKeys(false);
     }
@@ -311,7 +311,7 @@ export function GlobalSettingsClient() {
       setTestMessage(result.message);
     } catch (error) {
       console.error("Failed to test provider", error);
-      setTestMessage("Khong the test provider.");
+      setTestMessage("Không thể test provider.");
     } finally {
       setIsTestingProvider(false);
     }
@@ -321,8 +321,8 @@ export function GlobalSettingsClient() {
     <PageShell>
       <PageContainer>
         <PageHeader
-          title="Thiet lap AI"
-          description="Chon provider, nhap API key, chon model, roi test ket noi truoc khi dung Yuki."
+          title="Thiết lập AI"
+          description="Chọn provider, nhập API key, chọn model, rồi test kết nối trước khi dùng Yuki."
           action={
             <Button
               type="button"
@@ -330,7 +330,7 @@ export function GlobalSettingsClient() {
               disabled={isLoading || isSaving}
             >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving ? "Dang luu..." : "Luu settings"}
+              {isSaving ? "Đang lưu..." : "Lưu settings"}
             </Button>
           }
         />
@@ -356,7 +356,7 @@ export function GlobalSettingsClient() {
               ))}
             </div>
             <div className="text-sm">
-              <strong>{readiness?.isReady ? "San sang" : "Chua san sang"}</strong>
+              <strong>{readiness?.isReady ? "Sẵn sàng" : "Chưa sẵn sàng"}</strong>
             </div>
           </div>
           {readiness?.missingReasons?.length ? (
@@ -370,7 +370,7 @@ export function GlobalSettingsClient() {
 
         <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
           <div className="space-y-4">
-            <SectionCard title="1) Chon provider">
+            <SectionCard title="1) Chọn provider">
               <div className="grid gap-2">
                 {providerChoices
                   .sort((a, b) => Number(b.practical) - Number(a.practical))
@@ -390,7 +390,7 @@ export function GlobalSettingsClient() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium">{provider.title}</p>
                           {!provider.unlockedWorkflow ? (
-                            <span className="app-chip">chua mo workflow</span>
+                            <span className="app-chip">chưa mở workflow</span>
                           ) : null}
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -402,9 +402,9 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
-            <SectionCard title="2) Nhap API key">
+            <SectionCard title="2) Nhập API key">
               <p className="mb-3 text-xs text-muted-foreground">
-                API key duoc luu local trong trinh duyet (IndexedDB).
+                API key được lưu local trong trình duyệt (IndexedDB).
               </p>
               <div className="space-y-4">
                 {(["gemini-proxy", "gemini-direct", "custom-openai"] as const).map(
@@ -432,7 +432,7 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
-            <SectionCard title="3) Chon model">
+            <SectionCard title="3) Chọn model">
               <p className="text-sm text-muted-foreground">
                 {getModelFieldLabel(settings.providerId)}
               </p>
@@ -489,14 +489,14 @@ export function GlobalSettingsClient() {
               </div>
             </SectionCard>
 
-            <SectionCard title="4) Test ket noi">
+            <SectionCard title="4) Test kết nối">
               <Button
                 type="button"
                 onClick={handleTestProvider}
                 disabled={isLoading || isTestingProvider}
               >
                 <TestTube className="mr-2 h-4 w-4" />
-                {isTestingProvider ? "Dang test..." : "Test ket noi"}
+                {isTestingProvider ? "Đang test..." : "Test kết nối"}
               </Button>
               {testMessage ? (
                 <p className="mt-3 text-sm text-muted-foreground">{testMessage}</p>
@@ -505,7 +505,7 @@ export function GlobalSettingsClient() {
               {readiness?.isReady ? (
                 <div className="mt-4">
                   <Button asChild>
-                    <Link href="/stories/import">Bat dau nap truyen</Link>
+                    <Link href="/stories/import">Bắt đầu nạp truyện</Link>
                   </Button>
                 </div>
               ) : null}
@@ -516,15 +516,15 @@ export function GlobalSettingsClient() {
             <SectionCard title="Tom tat nhanh">
               <div className="space-y-2 text-sm">
                 <p>
-                  Provider: <strong>{readiness?.providerLabel || "Dang tai..."}</strong>
+                  Provider: <strong>{readiness?.providerLabel || "Đang tải..."}</strong>
                 </p>
                 <p>
-                  Model: <strong>{activeModel || "chua cau hinh"}</strong>
+                  Model: <strong>{activeModel || "chưa cấu hình"}</strong>
                 </p>
                 <p className="text-muted-foreground">
                   {activeProvider?.unlockedWorkflow
-                    ? "Provider co the mo workflow khi du dieu kien setup."
-                    : "Provider nay hien chua mo workflow phan tich."}
+                    ? "Provider có thể mở workflow khi đủ điều kiện setup."
+                    : "Provider này hiện chưa mở workflow phân tích."}
                 </p>
               </div>
             </SectionCard>
@@ -625,7 +625,7 @@ export function GlobalSettingsClient() {
                 <div className="rounded-xl border bg-background p-3">
                   <p className="text-sm font-medium">Mock Local (test only)</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Khong khuyen nghi cho workflow that.
+                    Không khuyến nghị cho workflow thật.
                   </p>
                   <Button
                     type="button"
@@ -634,12 +634,12 @@ export function GlobalSettingsClient() {
                     size="sm"
                     onClick={() => updateSetting("providerId", "mock")}
                   >
-                    Chuyen sang Mock Local
+                    Chuyển sang Mock Local
                   </Button>
                 </div>
 
                 <div className="rounded-xl border bg-background p-3">
-                  <p className="text-sm font-medium">Cong cu ky thuat</p>
+                  <p className="text-sm font-medium">Công cụ kỹ thuật</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button asChild size="sm" variant="outline">
                       <Link href="/stories/data-health">Data Health</Link>
@@ -664,15 +664,15 @@ export function GlobalSettingsClient() {
           </aside>
         </section>
 
-        <SectionCard title="Thong tin hien tai">
+        <SectionCard title="Thông tin hiện tại">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard label="Provider" value={settings.providerId} />
-            <SummaryCard label="Model" value={activeModel || "chua cau hinh"} />
+            <SummaryCard label="Model" value={activeModel || "chưa cấu hình"} />
             <SummaryCard
               label="Endpoint/Base URL"
-              value={getCurrentEndpointValue(settings) || "chua cau hinh"}
+              value={getCurrentEndpointValue(settings) || "chưa cấu hình"}
             />
-            <SummaryCard label="San sang" value={readiness?.isReady ? "Yes" : "No"} />
+            <SummaryCard label="Sẵn sàng" value={readiness?.isReady ? "Có" : "Không"} />
           </div>
         </SectionCard>
       </PageContainer>
@@ -798,10 +798,10 @@ function ProviderKeySection({
         <Input
           value={draft.single}
           onChange={(event) => onDraftChange({ single: event.target.value })}
-          placeholder={`Them 1 key cho ${providerId}`}
+          placeholder={`Thêm 1 key cho ${providerId}`}
         />
         <Button type="button" onClick={onAddSingle} disabled={isMutating}>
-          Them key
+          Thêm key
         </Button>
       </div>
 
@@ -812,7 +812,7 @@ function ProviderKeySection({
           size="sm"
           onClick={() => onDraftChange({ showBulk: !draft.showBulk })}
         >
-          Nhap nhieu key
+          Nhập nhiều key
         </Button>
       </div>
 
@@ -822,10 +822,10 @@ function ProviderKeySection({
             className="min-h-24"
             value={draft.bulk}
             onChange={(event) => onDraftChange({ bulk: event.target.value })}
-            placeholder="Moi dong mot key"
+            placeholder="Mỗi dòng một key"
           />
           <Button type="button" onClick={onAddBulk} disabled={isMutating}>
-            Them tat ca key hop le
+            Thêm tất cả key hợp lệ
           </Button>
         </div>
       ) : null}
@@ -855,7 +855,7 @@ function ProviderKeySection({
             </div>
           ))
         ) : (
-          <p className="text-xs text-muted-foreground">Chua co API key.</p>
+          <p className="text-xs text-muted-foreground">Chưa có API key.</p>
         )}
       </div>
     </div>
