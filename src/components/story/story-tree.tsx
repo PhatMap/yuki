@@ -11,7 +11,7 @@ export default function StoryTree({
 }) {
   return (
     <aside className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-      <h2 className="text-lg font-semibold tracking-tight">Story tree</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Cây truyện</h2>
       <div className="mt-5 space-y-5">
         {stories.map((story) => {
           const storyChapters = chapters.filter(
