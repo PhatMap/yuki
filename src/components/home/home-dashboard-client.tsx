@@ -223,7 +223,7 @@ export function HomeDashboardClient() {
           description="Mở lại truyện để tiếp tục đọc, phân tích hoặc rewrite."
         >
           {storedItems.length > 0 ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {storedItems.map((story) => (
                 <StoryCard key={story.id} story={story} />
               ))}
@@ -249,8 +249,8 @@ export function HomeDashboardClient() {
             title="Truyện mẫu để bắt đầu nhanh"
             description="Dùng để thử flow đọc và rewrite khi chưa nhập truyện thật."
           >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {starterItems.slice(0, 6).map((story) => (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {starterItems.slice(0, 8).map((story) => (
                 <StoryCard key={story.id} story={story} />
               ))}
             </div>
