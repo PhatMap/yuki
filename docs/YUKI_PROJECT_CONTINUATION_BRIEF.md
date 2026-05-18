@@ -14,7 +14,7 @@ Primary goal:
 - run AI analysis through Gemini Proxy batch jobs;
 - inspect job/cache/storage state;
 - backup and restore local project data;
-- support reader, planning, rewrite, timeline, relationships, and story bible workflows.
+- support reader, planning, rewrite, timeline, relationships, world tracking, and Story Bible workflows.
 
 The app is optimized for large stories, including stories with thousands of chapters.
 
@@ -45,6 +45,45 @@ Important env direction:
 - Do not expose API keys through `NEXT_PUBLIC_*`.
 - Browser talks to the local app route, not directly to Gemini with a key.
 
+## UI language policy
+
+Yuki UI should be Vietnamese-first.
+
+Use Vietnamese for:
+
+- normal headings;
+- buttons;
+- helper text;
+- empty states;
+- user-facing labels.
+
+Keep English where it is a product/runtime/technical term:
+
+- Yuki;
+- Gemini Proxy;
+- IndexedDB;
+- Runtime;
+- Prompt Manager;
+- Data Health;
+- JSON;
+- API;
+- cache;
+- job;
+- worker;
+- provider;
+- model;
+- endpoint;
+- prompt;
+- template;
+- variable;
+- locked contract;
+- chunk;
+- Rewrite;
+- Canon;
+- Story Bible.
+
+Avoid long explanations. Simple is gold.
+
 ## Major completed foundations
 
 ### Storage
@@ -59,7 +98,7 @@ Important env direction:
 - Global prompt templates are stored in IndexedDB.
 - Prompt Manager exists at `/prompt-manager`.
 - Prompt templates include locked contracts and editable prompt sections.
-- UI now explains prompt safety, variables, reset behavior, and locked contracts.
+- UI explains prompt safety, variables, reset behavior, and locked contracts.
 
 ### Local AI job system
 
@@ -116,92 +155,110 @@ Important env direction:
 - Import page uses local import worker.
 - Import processing is cancelable.
 - Import page saves story/chapter/chunk data to IndexedDB.
-- Import page has UX guidance for large story import.
+- Import page now focuses on the real flow: `Chọn file TXT → Tách chương → Lưu và phân tích`.
 
-### UI theme
+### AI setup gate
+
+- Dashboard and core workflows are locked until AI setup is ready.
+- Settings first screen follows: provider → API key → model → test connection.
+- Reader remains readable before AI setup, but rewrite submit is gated.
+
+### UI theme and layout
 
 - Yuki Night Snow dark-first theme foundation exists.
 - Theme uses dark navy surfaces, ice-blue primary, mint accents, and dark card surfaces.
-- Contrast polish was applied.
-- Shared UI surfaces were polished.
+- App layout was widened to better use large screens.
+- Dashboard and story workspace grids now use more horizontal space on large displays.
 
-### UI/UX polish completed
+## Recent UX cleanup commits
 
-Completed areas:
+Recent confirmed commits after the old brief include:
 
-- Settings UX for Gemini Core workflow.
-- Story Analysis Dashboard UX.
-- Import Page UX.
-- Story Data Health UX.
-- Home Dashboard and Stories List UX.
-- Shared StoryCard actions.
-- Reader UX.
-- Prompt Manager UX.
-- Story Workspace UX.
-- Shared UI surface polish.
-- App metadata/public asset guidance.
-- UI copy cleanup pass.
+- `753723a` — Localize main workflow copy and import type fix
+- `f972d8a` — Improve dashboard/import/navigation workflow clarity
+- `3d3d8c3` — Add guided Analysis workflow scaffold
+- `9b36955` — Improve Import page structure
+- `39195aa` — Remove manual raw textarea from main import UI
+- `0d71480` — Add AI setup readiness gate foundation
+- `385c236` — Finish AI setup blocking card/analysis gate fix
+- `73cc9cc` — Add job status card and running-state signals
+- `0d42088` — Simplify Settings AI setup flow
+- `65df94f` — Polish app navigation route cohesion
+- `10e6852` — Polish story navigation route cohesion
+- `1dc684e` — Simplify import workflow UI
+- `289ca2a` — Widen app page content layout
+- `77582d0` — Apply wider layout stylesheet
+- `b3bf0f5` — Widen dashboard story grids
+- `82a2458` — Polish settings layout and copy
+- `a619c4b` — Widen story content grids
+- `ef503cb` — Polish wide layout density
+- `d133395` — Clarify advanced story navigation labels
+- `dcc17a9` — Simplify analysis page workflow UX
+- `e7acec6` — Simplify workspace writing UX
+- `66f575f` — Simplify reader rewrite UX
+- `baebb9a` — Simplify rewrite planner UX
+- `28f0911` — Simplify rewrite draft UX
+- `9ba4e83` — Simplify Story Bible UX copy
+- `af9fd6e` — Simplify Relationships UX copy
+- `64fdead` — Simplify World Tracker UX copy
+- `8fea116` — Localize AI Contract page copy
+- `460c7eb` — Localize AI Proxy Test page copy
+- `b55d2d4` — Localize Import Scale Test copy
 
-## Recent confirmed commits
+## Current known state
 
-Recent relevant commits include:
+Completed or mostly completed UI cleanup areas:
 
-- `2931182` — Restructure settings UX for Gemini core
-- `bf8da7b` — Polish story analysis dashboard UX
-- `25ce5f3` — Polish import page UX
-- `7b2b072` — Polish story data health UX
-- `8906322` — Polish home and stories UX
-- `6cd34c9` — Polish shared story card actions
-- `4d55396` — Polish remaining Yuki UI workflow
-- `01a68cd` — Clean up Yuki UI copy
-- `e0b8446` — Add user working preferences brief
+- Dashboard
+- Import
+- AI setup Settings
+- Story navigation
+- Analysis
+- Workspace
+- Reader
+- Rewrite Planner
+- Rewrite Draft
+- Story Bible
+- Relationships
+- World Tracker
+- AI Contract
+- AI Proxy Test
+- Import Scale Test
 
-## Current known issue / immediate next work
+Still needs cleanup:
 
-The user wants UI copy to be Vietnamese-first.
+- Timeline
+- Story Settings
+- Prompt Manager light polish
+- Data Health final copy/density pass
 
-A previous cleanup pass converted many visible UI labels to English. The desired policy is:
+Important: Timeline, Story Settings, Prompt Manager, and Data Health are large enough that full-file updates through chat tooling may be blocked. Prefer Codex/local editor for these files.
 
-- normal UI copy should be Vietnamese;
-- technical terms can remain English.
+## Pending validation batch
 
-Example desired copy:
+The following commits were created through GitHub tool after the last local lint/build pass and still need one full local validation:
 
-- Nhập truyện
-- Tách chương cục bộ
-- Tạo truyện trong IndexedDB
-- Đang tải chương từ IndexedDB
-- Chưa có chương để đọc
-- Phân tích bằng Gemini Proxy
-- Mở Data Health
-- Mở Prompt Manager
+- `28f0911` — Rewrite Draft
+- `9ba4e83` — Story Bible
+- `af9fd6e` — Relationships
+- `64fdead` — World Tracker
+- `8fea116` — AI Contract
+- `460c7eb` — AI Proxy Test
+- `b55d2d4` — Import Scale Test
+- this brief update commit
 
-Because the local LM Studio Qwen 7B agent is weak on large multi-file edits, localization should be handled in small file groups or by Codex/Copilot.
+Run:
 
-Recommended immediate task:
+```bash
+npm.cmd run lint
+npm.cmd run build
+```
 
-1. Localize import page visible copy.
-2. Localize reader visible copy.
-3. Localize analysis/workspace/navigation copy.
-4. Localize home/stories/dashboard copy.
-5. Light pass on Prompt Manager/Settings/Data Health copy.
-
-Keep technical terms in English.
-
-## Important route expectations
-
-Shared StoryCard currently exposes links to:
-
-- `/stories/[storyId]/workspace`
-- `/stories/[storyId]/reader`
-- `/stories/[storyId]/analysis`
-- `/stories/[storyId]/data-health`
-
-After UI polish, a technical audit should verify these route files exist and links are correct.
+If errors appear, fix only those errors.
 
 ## Recommended next technical audit
 
-After localization is fixed, run a post-polish technical audit:
+After localization is finished, run a post-polish technical audit:
 
 - verify routes/links;
 - verify Prompt Manager JSX layout;
@@ -226,14 +283,14 @@ npm.cmd run build
 Use concise commit messages such as:
 
 - `Localize import page UI copy`
-- `Localize story workflow UI copy`
-- `Localize home and story library UI copy`
+- `Simplify analysis page workflow UX`
+- `Simplify workspace writing UX`
+- `Localize story technical pages copy`
 - `Audit post-polish Yuki workflow`
 
 Agent final response should include:
 
 - commit hash;
-- push result;
 - files changed;
 - lint result;
 - build result;
