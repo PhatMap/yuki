@@ -120,8 +120,8 @@ export function StoryAiProxyTestClient({
     } catch (error) {
       setErrorMessage(
         error instanceof Error
-          ? `Failed to check proxy status: ${error.message}`
-          : "Failed to check proxy status.",
+          ? `Không thể kiểm tra proxy status: ${error.message}`
+          : "Không thể kiểm tra proxy status.",
       );
     } finally {
       setIsCheckingStatus(false);
@@ -150,8 +150,8 @@ export function StoryAiProxyTestClient({
     } catch (error) {
       setErrorMessage(
         error instanceof Error
-          ? `Failed to run proxy smoke test: ${error.message}`
-          : "Failed to run proxy smoke test.",
+          ? `Không thể chạy proxy smoke test: ${error.message}`
+          : "Không thể chạy proxy smoke test.",
       );
     } finally {
       setIsPostingTest(false);
@@ -162,9 +162,8 @@ export function StoryAiProxyTestClient({
     <PageShell>
       <PageContainer>
         <PageHeader
-          eyebrow="Step 36"
-          title="AI Proxy Smoke Test"
-          description="Test the local server-side proxy route without writing story data, exposing API keys, or calling Gemini directly from the browser."
+          title="AI Proxy Test"
+          description="Kiểm tra proxy route local mà không ghi dữ liệu truyện, không lộ API key và không gọi Gemini trực tiếp từ browser."
         />
 
         {errorMessage ? (
@@ -182,7 +181,7 @@ export function StoryAiProxyTestClient({
         <section className="app-two-column">
           <SectionCard
             title="GET status check"
-            description="Calls the proxy route with GET to verify that the route is reachable and reports whether Gemini is configured server-side."
+            description="Gọi proxy route bằng GET để kiểm tra route có truy cập được và Gemini đã cấu hình server-side chưa."
           >
             <button
               type="button"
@@ -190,13 +189,13 @@ export function StoryAiProxyTestClient({
               disabled={isCheckingStatus}
               className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isCheckingStatus ? "Checking..." : "Check proxy status"}
+              {isCheckingStatus ? "Đang kiểm tra..." : "Kiểm tra proxy status"}
             </button>
           </SectionCard>
 
           <SectionCard
             title="POST smoke test"
-            description="Sends a minimal valid AiPipelineInput. If GEMINI_API_KEY is not configured, a safe failed response is expected."
+            description="Gửi AiPipelineInput tối thiểu. Nếu GEMINI_API_KEY chưa cấu hình, response failed an toàn là kết quả hợp lệ."
           >
             <button
               type="button"
@@ -204,21 +203,21 @@ export function StoryAiProxyTestClient({
               disabled={isPostingTest}
               className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isPostingTest ? "Running..." : "Run POST smoke test"}
+              {isPostingTest ? "Đang chạy..." : "Chạy POST smoke test"}
             </button>
           </SectionCard>
         </section>
 
         <ContractBlock
           title="POST request payload"
-          description="This payload is generated locally and does not read real story data."
+          description="Payload này tạo local và không đọc dữ liệu truyện thật."
           code={formatJson(samplePayload)}
         />
 
         {statusResponse ? (
           <ContractBlock
             title={`GET response — HTTP ${statusResponse.status}`}
-            description={`Received at ${new Date(
+            description={`Nhận lúc ${new Date(
               statusResponse.receivedAt,
             ).toLocaleString()}. ok=${String(statusResponse.ok)}`}
             code={formatJson(statusResponse.body)}
@@ -228,34 +227,31 @@ export function StoryAiProxyTestClient({
         {postResponse ? (
           <ContractBlock
             title={`POST response — HTTP ${postResponse.status}`}
-            description={`Received at ${new Date(
+            description={`Nhận lúc ${new Date(
               postResponse.receivedAt,
             ).toLocaleString()}. ok=${String(postResponse.ok)}`}
             code={formatJson(postResponse.body)}
           />
         ) : null}
 
-        <SectionCard title="Expected result">
+        <SectionCard title="Kết quả mong đợi">
           <div className="space-y-3 text-sm leading-6 text-muted-foreground">
             <p>
-              Without{" "}
+              Khi chưa có{" "}
               <code className="rounded bg-muted px-1 py-0.5">
                 GEMINI_API_KEY
               </code>
-              , the POST test should fail safely and return a provider error
-              body.
+              , POST test nên fail an toàn và trả provider error body.
             </p>
             <p>
-              With{" "}
+              Khi đã có{" "}
               <code className="rounded bg-muted px-1 py-0.5">
                 GEMINI_API_KEY
               </code>
-              , the route may attempt the server-side Gemini call, depending on
-              the current proxy implementation.
+              , route có thể thử gọi Gemini server-side tùy proxy implementation hiện tại.
             </p>
             <p>
-              This page does not save anything to IndexedDB or browser
-              key-value storage.
+              Trang này không lưu gì vào IndexedDB hoặc browser key-value storage.
             </p>
           </div>
         </SectionCard>
