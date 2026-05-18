@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Yuki Story Studio",
-  description: "Local-first AI story analysis workspace for long novels.",
+  description: "Không gian AI local-first để nạp, phân tích và rewrite truyện dài.",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-icon.png",
