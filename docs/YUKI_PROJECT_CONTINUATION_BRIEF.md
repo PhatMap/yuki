@@ -204,6 +204,13 @@ Recent confirmed commits after the old brief include:
 - `8fea116` — Localize AI Contract page copy
 - `460c7eb` — Localize AI Proxy Test page copy
 - `b55d2d4` — Localize Import Scale Test copy
+- `8e97530` — Update continuation brief after UX cleanup
+- `e8313e2` — Polish story tree copy
+- `bc34ef7` — Polish story library layout copy
+- `c823116` — Polish new story setup copy
+- `1d01a2b` — Polish story card copy
+- `3bbfb63` — Audit post-polish Yuki workflow
+- `9832330` — Simplify AI setup blocking card
 
 ## Current known state
 
@@ -213,6 +220,8 @@ Completed or mostly completed UI cleanup areas:
 - Import
 - AI setup Settings
 - Story navigation
+- Story library
+- New story setup
 - Analysis
 - Workspace
 - Reader
@@ -236,15 +245,13 @@ Important: Timeline, Story Settings, Prompt Manager, and Data Health are large e
 
 ## Pending validation batch
 
-The following commits were created through GitHub tool after the last local lint/build pass and still need one full local validation:
+Latest validated commit:
 
-- `28f0911` — Rewrite Draft
-- `9ba4e83` — Story Bible
-- `af9fd6e` — Relationships
-- `64fdead` — World Tracker
-- `8fea116` — AI Contract
-- `460c7eb` — AI Proxy Test
-- `b55d2d4` — Import Scale Test
+- `3bbfb63` — `npm.cmd run lint` passed and `npm.cmd run build` passed.
+
+Commits created after that validation and still needing one local validation:
+
+- `9832330` — AI setup blocking card
 - this brief update commit
 
 Run:
@@ -258,7 +265,7 @@ If errors appear, fix only those errors.
 
 ## Recommended next technical audit
 
-After localization is finished, run a post-polish technical audit:
+After remaining localization is finished, run a post-polish technical audit:
 
 - verify routes/links;
 - verify Prompt Manager JSX layout;
