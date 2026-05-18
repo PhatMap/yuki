@@ -104,7 +104,7 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
   },
   {
     label: "Nâng cao",
-    description: "Cài đặt kỹ thuật và công cụ",
+    description: "Cài đặt và kiểm tra kỹ thuật",
     items: [
       {
         label: "Data Health",
@@ -112,12 +112,12 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         icon: Database,
       },
       {
-        label: "Story Settings",
+        label: "Cài đặt truyện",
         href: "settings",
         icon: Settings,
       },
       {
-        label: "Runtime",
+        label: "Thiết lập AI",
         href: "/settings",
         icon: Settings,
         scope: "global",
@@ -129,17 +129,17 @@ const storyNavigationGroups: StoryNavigationGroup[] = [
         scope: "global",
       },
       {
-        label: "AI Test",
+        label: "Test AI",
         href: "ai-proxy-test",
         icon: Activity,
       },
       {
-        label: "Contract",
+        label: "AI Contract",
         href: "ai-contract",
         icon: FileJson,
       },
       {
-        label: "Scale",
+        label: "Import Scale Test",
         href: "import-scale-test",
         icon: Gauge,
       },
